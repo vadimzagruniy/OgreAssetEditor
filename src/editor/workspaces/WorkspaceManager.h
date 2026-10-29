@@ -52,6 +52,8 @@ private: // Implementation
 
   void SetActive(std::size_t _Index);
 
+  void RequestActive(std::size_t _Index);
+
   void RebuildPathIndex();
 
 private: // Attributes
@@ -62,6 +64,7 @@ private: // Attributes
   std::unordered_map<std::string, std::size_t>   m_IndexByPath;
   std::size_t                                    m_ActiveIndex;
   bool                                           m_HasActive;
+  bool                                           m_IsTabSelectionPending;
 };
 
 } // namespace editor
