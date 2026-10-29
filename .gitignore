@@ -2,3 +2,6 @@
 /.vs/
 *.user
 *.suo
+
+# ImGui window layout, rewritten on every run
+imgui.ini
