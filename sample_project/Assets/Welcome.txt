@@ -1,0 +1,4 @@
+Ogre Resource Editor sample
+
+Double-click this file in Content to open the Text Editor module.
+dsdsdasd 

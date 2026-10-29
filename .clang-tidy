@@ -1,0 +1,20 @@
+Checks: '-*,readability-identifier-naming'
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*/src/.*'
+CheckOptions:
+  - key: readability-identifier-naming.VariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.ParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.ParameterPrefix
+    value: '_'
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: 'm_'
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionIgnoredRegexp
+    value: '^(main|locateResources|setup|shutdown|frameStarted|keyPressed)$'
+  - key: readability-identifier-naming.IgnoreMainLikeFunctions
+    value: 'true'

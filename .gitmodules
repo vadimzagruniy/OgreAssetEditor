@@ -1,0 +1,6 @@
+[submodule "third_party/ogre"]
+	path = third_party/ogre
+	url = https://github.com/OGRECave/ogre.git
+[submodule "third_party/imgui"]
+	path = third_party/imgui
+	url = https://github.com/ocornut/imgui.git
