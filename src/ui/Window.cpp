@@ -13,7 +13,7 @@ namespace editor::ui
 
 CWindow::CWindow(std::string _Title, std::string _StableId, bool _Visible):
   m_Title(std::move(_Title)),
-  m_StableId(std::move(_StableId)),
+  m_Label(m_Title + "###" + _StableId),
   m_Visible(_Visible)
 {
   // Empty
@@ -30,8 +30,7 @@ void CWindow::Draw()
   if (!m_Visible)
     return;
 
-  const std::string Label = m_Title + "###" + m_StableId;
-  if (ImGui::Begin(Label.c_str(), &m_Visible))
+  if (ImGui::Begin(m_Label.c_str(), &m_Visible))
     OnGui();
 
   ImGui::End();
@@ -50,6 +49,11 @@ void CWindow::SetVisible(bool _Visible) noexcept
 const std::string & CWindow::GetTitle() const noexcept
 {
   return m_Title;
+}
+
+const std::string & CWindow::GetLabel() const noexcept
+{
+  return m_Label;
 }
 
 } // namespace editor::ui

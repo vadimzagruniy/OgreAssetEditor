@@ -18,7 +18,8 @@ namespace editor
 CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CWorkspaceManager> _WorkspaceManager):
   CDockedWindow(_Desc.Title, "ContentBrowser", _Desc.Visible),
   m_AssetManager(std::move(_AssetManager)),
-  m_WorkspaceManager(std::move(_WorkspaceManager))
+  m_WorkspaceManager(std::move(_WorkspaceManager)),
+  m_Filter{}
 {
   // Empty
 }

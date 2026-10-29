@@ -6,6 +6,9 @@
 #include "editor/modules/ModulesManager.h"
 #include "editor/workspaces/WorkspaceManager.h"
 #include "ui/WindowManager.h"
+#include "ui/dock_layout/DockLayoutBuilder.h"
+#include "ui/dock_layout/DockLayoutDesc.h"
+#include "ui/dock_layout/DockSlot.h"
 
 #include <imgui.h>
 
@@ -25,7 +28,9 @@ CEditor::CEditor(std::filesystem::path _ProjectRoot):
   m_WorkspaceManager(std::make_shared<CWorkspaceManager>(m_AssetTypes, m_Log)),
   m_WindowManager(std::make_shared<ui::CWindowManager>()),
   m_Services(std::make_unique<core::CEditorService>()),
-  m_Modules(std::make_unique<CModulesManager>())
+  m_Modules(std::make_unique<CModulesManager>()),
+  m_IsLayoutChecked(false),
+  m_ResetLayoutRequested(false)
 {
   m_AssetManager->OpenProject(_ProjectRoot);
 
@@ -74,8 +79,7 @@ void CEditor::Tick(float _DeltaTime)
 void CEditor::Draw()
 {
   DrawMainMenu();
-
-  ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+  DrawDockSpace();
 
   m_WorkspaceManager->Draw();
   m_WindowManager->Draw();
@@ -128,10 +132,59 @@ void CEditor::DrawMainMenu()
   if (ImGui::BeginMenu("Window"))
   {
     m_WindowManager->DrawMenuItems();
+
+    ImGui::Separator();
+
+    if (ImGui::MenuItem("Reset Layout"))
+      m_ResetLayoutRequested = true;
+
     ImGui::EndMenu();
   }
 
   ImGui::EndMainMenuBar();
+}
+
+void CEditor::DrawDockSpace()
+{
+  const ImGuiID DockSpaceId = ImGui::GetID("EditorDockSpace");
+  const ImVec2  WorkSize    = ImGui::GetMainViewport()->WorkSize;
+
+  // OGRE reports the viewport size to ImGui only after the first rendered frame.
+  const bool HasViewportSize = WorkSize.x > 0.0f && WorkSize.y > 0.0f;
+
+  if (HasViewportSize && !m_IsLayoutChecked)
+  {
+    m_IsLayoutChecked = true;
+
+    if (!ui::CDockLayoutBuilder::HasLayout(DockSpaceId))
+      m_ResetLayoutRequested = true;
+  }
+
+  if (HasViewportSize && m_ResetLayoutRequested)
+  {
+    m_ResetLayoutRequested = false;
+    BuildDefaultLayout(DockSpaceId);
+  }
+
+  ImGui::DockSpaceOverViewport(DockSpaceId, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+}
+
+void CEditor::BuildDefaultLayout(unsigned int _DockSpaceId)
+{
+  const ui::TDockLayoutDesc LayoutDesc
+  {
+    .LeftWidth        = 0.20f,
+    .RightWidth       = 0.22f,
+    .BottomHeight     = 0.25f,
+    .SideBottomHeight = 0.50f
+  };
+
+  ui::CDockLayoutBuilder Builder(LayoutDesc);
+  Builder.DockWindow(CWorkspaceManager::WindowLabel, ui::EDockSlot::Center);
+
+  m_WindowManager->AddDefaultDocking(Builder);
+
+  Builder.Build(_DockSpaceId);
 }
 
 } // namespace editor

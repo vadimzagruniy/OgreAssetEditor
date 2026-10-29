@@ -14,6 +14,7 @@ editor core.
   and a failed startup rolls back the modules already started.
 - Asset type registry: file extension → asset type → editor workspace.
 - Tabbed editor workspaces with a single instance per file.
+- Default dock layout: the editor defines the panel proportions, each module picks a slot for its tool windows.
 - OGRE resources are released when their editor tab is closed (unless still used elsewhere).
 - Built-in modules: Content Browser, Properties, Console, Texture viewer, Mesh info, Text editor.
 
@@ -43,6 +44,7 @@ src/
   core/        type keys, service locator, logging, signals, commands, undo stack
   platform/    OGRE + SDL application, frame and input dispatch
   ui/          ImGui window base classes and the tool window manager
+    dock_layout/ default dock layout: dock slots and the layout builder
   editor/
     assets/      project asset scanning, asset type interface and registry
     modules/     module interface, static module registry, module lifecycle

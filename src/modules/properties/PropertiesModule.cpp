@@ -33,7 +33,7 @@ bool CPropertiesModule::Startup(core::CEditorService & _Services, std::string & 
 
   m_WindowManager = std::move(WindowManager);
 
-  const ui::TToolBoxDesc Desc{GetInfo().Name, "Properties", true};
+  const ui::TToolBoxDesc Desc{GetInfo().Name, "Properties", true, ui::EDockSlot::Right, 0};
   m_WindowManager->RegisterToolBox(Desc, std::make_shared<CPropertiesWindow>(Desc, std::move(WorkspaceManager)));
 
   return true;

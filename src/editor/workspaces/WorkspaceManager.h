@@ -20,6 +20,10 @@ class CEditorWorkspace;
 
 class CWorkspaceManager
 {
+public: // Constants
+
+  static constexpr const char * WindowLabel = "Resource Editors###WorkspaceHost";
+
 public: // Constructor/Destructor
 
   CWorkspaceManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<core::CLog> _Log);
@@ -56,8 +60,8 @@ private: // Attributes
   std::shared_ptr<core::CLog>                    m_Log;
   std::vector<std::unique_ptr<CEditorWorkspace>> m_Workspaces;
   std::unordered_map<std::string, std::size_t>   m_IndexByPath;
-  std::size_t                                    m_ActiveIndex = 0;
-  bool                                           m_HasActive   = false;
+  std::size_t                                    m_ActiveIndex;
+  bool                                           m_HasActive;
 };
 
 } // namespace editor

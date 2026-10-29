@@ -2,9 +2,11 @@
 #include "ModalWindow.h"
 #include "ToolBoxDesc.h"
 #include "Window.h"
+#include "ui/dock_layout/DockLayoutBuilder.h"
 
 #include <imgui.h>
 
+#include <algorithm>
 #include <typeinfo>
 
 namespace editor::ui
@@ -36,7 +38,12 @@ bool CWindowManager::RegisterToolBox(const TToolBoxDesc & _Desc, std::shared_ptr
 
   _Window->SetVisible(_Desc.Visible);
 
-  m_Windows.push_back({_Desc.Module, _Window});
+  const auto InsertPosition = std::upper_bound(m_Windows.begin(), m_Windows.end(), _Desc.DockOrder, [](int _DockOrder, const TWindowEntry & _Entry)
+  {
+    return _DockOrder < _Entry.DockOrder;
+  });
+
+  m_Windows.insert(InsertPosition, {_Desc.Module, _Window, _Desc.DockSlot, _Desc.DockOrder});
   m_ToolBoxes.emplace(ToolBoxType, std::move(_Window));
 
   return true;
@@ -120,6 +127,12 @@ void CWindowManager::DrawMenuItems()
     if (ImGui::MenuItem(WindowEntry.Window->GetTitle().c_str(), nullptr, &IsVisible))
       WindowEntry.Window->SetVisible(IsVisible);
   }
+}
+
+void CWindowManager::AddDefaultDocking(CDockLayoutBuilder & _Builder) const
+{
+  for (const auto & WindowEntry : m_Windows)
+    _Builder.DockWindow(WindowEntry.Window->GetLabel(), WindowEntry.DockSlot);
 }
 
 } // namespace editor::ui

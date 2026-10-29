@@ -37,7 +37,9 @@ std::string MakePathKey(const CEditorWorkspace & _Workspace)
 
 CWorkspaceManager::CWorkspaceManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<core::CLog> _Log):
   m_AssetTypes(std::move(_AssetTypes)),
-  m_Log(std::move(_Log))
+  m_Log(std::move(_Log)),
+  m_ActiveIndex(0),
+  m_HasActive(false)
 {
   // Empty
 }
@@ -99,7 +101,7 @@ bool CWorkspaceManager::AddWorkspace(std::unique_ptr<CEditorWorkspace> _Workspac
 
 void CWorkspaceManager::Draw()
 {
-  if (!ImGui::Begin("Resource Editors###AssetEditorHost"))
+  if (!ImGui::Begin(WindowLabel))
   {
     ImGui::End();
     return;

@@ -21,6 +21,8 @@ public: // Interface
 
   const std::string & GetTitle() const noexcept;
 
+  const std::string & GetLabel() const noexcept;
+
 protected: // Constructor
 
   CWindow(std::string _Title, std::string _StableId, bool _Visible = true);
@@ -32,8 +34,8 @@ protected: // Interface
 private: // Attributes
 
   std::string m_Title;
-  std::string m_StableId;
-  bool        m_Visible = true;
+  std::string m_Label;
+  bool        m_Visible;
 };
 
 } // namespace editor::ui

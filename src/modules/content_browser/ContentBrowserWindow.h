@@ -31,7 +31,7 @@ private: // Attributes
 
   std::shared_ptr<CAssetManager>     m_AssetManager;
   std::shared_ptr<CWorkspaceManager> m_WorkspaceManager;
-  char                               m_Filter[256]{};
+  char                               m_Filter[256];
   std::string                        m_Selected;
 };
 

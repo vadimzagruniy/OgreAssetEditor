@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/TypeKey.h"
+#include "ui/dock_layout/DockSlot.h"
 
 #include <memory>
 #include <string>
@@ -12,6 +13,7 @@ namespace editor::ui
 
 class CWindow;
 class CModalWindow;
+class CDockLayoutBuilder;
 struct TToolBoxDesc;
 
 class CWindowManager
@@ -40,12 +42,16 @@ public: // Interface
 
   void DrawMenuItems();
 
+  void AddDefaultDocking(CDockLayoutBuilder & _Builder) const;
+
 private: // Types
 
   struct TWindowEntry
   {
     std::string              Module;
     std::shared_ptr<CWindow> Window;
+    EDockSlot                DockSlot  = EDockSlot::None;
+    int                      DockOrder = 0;
   };
 
 private: // Attributes

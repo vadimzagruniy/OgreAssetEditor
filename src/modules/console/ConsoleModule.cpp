@@ -33,7 +33,7 @@ bool CConsoleModule::Startup(core::CEditorService & _Services, std::string & _Er
 
   m_WindowManager = std::move(WindowManager);
 
-  const ui::TToolBoxDesc Desc{GetInfo().Name, "Console", true};
+  const ui::TToolBoxDesc Desc{GetInfo().Name, "Console", true, ui::EDockSlot::Bottom, 0};
   m_WindowManager->RegisterToolBox(Desc, std::make_shared<CConsoleWindow>(Desc, std::move(EditorLog)));
 
   return true;

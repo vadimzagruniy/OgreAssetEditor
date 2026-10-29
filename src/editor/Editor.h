@@ -54,6 +54,10 @@ private: // Implementation
 
   void DrawMainMenu();
 
+  void DrawDockSpace();
+
+  void BuildDefaultLayout(unsigned int _DockSpaceId);
+
 private: // Attributes
 
   std::shared_ptr<core::CLog>           m_Log;
@@ -64,6 +68,8 @@ private: // Attributes
   std::unique_ptr<core::CEditorService> m_Services;
   std::unique_ptr<CModulesManager>      m_Modules;
   std::function<void()>                 m_RequestQuit;
+  bool                                  m_IsLayoutChecked;
+  bool                                  m_ResetLayoutRequested;
 };
 
 } // namespace editor
