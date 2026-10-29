@@ -16,7 +16,9 @@ editor core.
 - Tabbed editor workspaces with a single instance per file.
 - Default dock layout: the editor defines the panel proportions, each module picks a slot for its tool windows.
 - OGRE resources are released when their editor tab is closed (unless still used elsewhere).
-- Built-in modules: Content Browser, Properties, Console, Texture viewer, Mesh info, Text editor.
+- Mesh viewer: the mesh is rendered into a texture in its own scene and shown inside the tab;
+  orbit camera (left mouse — rotate, right/middle mouse — pan, wheel — zoom).
+- Built-in modules: Content Browser, Properties, Console, Texture viewer, Mesh viewer, Text editor.
 
 ## Building
 
@@ -36,6 +38,7 @@ The solution is generated at `build/vs2022-x64/OgreAssetEditor.sln`.
 
 Run `OgreResourceEditor.exe` with a project directory as an argument; without one it opens `sample_project`.
 A project is any directory that contains an `Assets` folder.
+The sample project includes `ogrehead.mesh` with its material and textures from the OGRE samples.
 
 ## Architecture
 
