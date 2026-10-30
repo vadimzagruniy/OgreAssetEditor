@@ -11,9 +11,10 @@ struct TToolBoxDesc
 {
   std::string Module;
   std::string Title;
-  bool        Visible   = true;
-  EDockSlot   DockSlot  = EDockSlot::None;
-  int         DockOrder = 0;
+  bool        Visible          = true;
+  EDockSlot   DockSlot         = EDockSlot::None;
+  int         DockOrder        = 0;
+  bool        IsTitleBarHidden = false;
 };
 
 } // namespace editor::ui

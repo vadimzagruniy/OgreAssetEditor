@@ -23,6 +23,7 @@ class CAssetManager;
 class CAssetTypeRegistry;
 class CModulesManager;
 class CWorkspaceManager;
+class CWorkspaceWindow;
 
 class CEditor
 {
@@ -64,6 +65,7 @@ private: // Attributes
   std::shared_ptr<CAssetManager>        m_AssetManager;
   std::shared_ptr<CAssetTypeRegistry>   m_AssetTypes;
   std::shared_ptr<CWorkspaceManager>    m_WorkspaceManager;
+  std::unique_ptr<CWorkspaceWindow>     m_WorkspaceWindow;
   std::shared_ptr<ui::CWindowManager>   m_WindowManager;
   std::unique_ptr<core::CEditorService> m_Services;
   std::unique_ptr<CModulesManager>      m_Modules;

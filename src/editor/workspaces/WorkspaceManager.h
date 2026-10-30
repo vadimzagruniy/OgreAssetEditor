@@ -21,10 +21,6 @@ class CEditorWorkspace;
 
 class CWorkspaceManager
 {
-public: // Constants
-
-  static constexpr const char * WindowLabel = "Resource Editors###WorkspaceHost";
-
 public: // Constructor/Destructor
 
   CWorkspaceManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<core::CLog> _Log);
@@ -37,7 +33,7 @@ public: // Interface
 
   bool AddWorkspace(std::unique_ptr<CEditorWorkspace> _Workspace);
 
-  void Draw();
+  void SetActive(std::size_t _Index);
 
   void Close(std::size_t _Index);
 
@@ -49,15 +45,15 @@ public: // Interface
 
   void RelocateAssets(const std::filesystem::path & _OldPath, const std::filesystem::path & _NewPath, const std::filesystem::path & _AssetsRoot);
 
+  bool HasActive() const noexcept;
+
+  std::size_t GetActiveIndex() const noexcept;
+
   CEditorWorkspace * GetActive() const noexcept;
 
   const std::vector<std::unique_ptr<CEditorWorkspace>> & GetWorkspaces() const noexcept;
 
 private: // Implementation
-
-  void SetActive(std::size_t _Index);
-
-  void RequestActive(std::size_t _Index);
 
   void RebuildPathIndex();
 
@@ -69,7 +65,6 @@ private: // Attributes
   std::unordered_map<std::string, std::size_t>   m_IndexByPath;
   std::size_t                                    m_ActiveIndex;
   bool                                           m_HasActive;
-  bool                                           m_IsTabSelectionPending;
 };
 
 } // namespace editor

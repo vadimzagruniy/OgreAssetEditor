@@ -5,6 +5,7 @@
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/modules/ModulesManager.h"
 #include "editor/workspaces/WorkspaceManager.h"
+#include "editor/workspaces/WorkspaceWindow.h"
 #include "ui/WindowManager.h"
 #include "ui/dock_layout/DockLayoutBuilder.h"
 #include "ui/dock_layout/DockLayoutDesc.h"
@@ -26,6 +27,7 @@ CEditor::CEditor(std::filesystem::path _ProjectRoot):
   m_AssetManager(std::make_shared<CAssetManager>()),
   m_AssetTypes(std::make_shared<CAssetTypeRegistry>()),
   m_WorkspaceManager(std::make_shared<CWorkspaceManager>(m_AssetTypes, m_Log)),
+  m_WorkspaceWindow(std::make_unique<CWorkspaceWindow>(*m_WorkspaceManager)),
   m_WindowManager(std::make_shared<ui::CWindowManager>()),
   m_Services(std::make_unique<core::CEditorService>()),
   m_Modules(std::make_unique<CModulesManager>()),
@@ -91,7 +93,7 @@ void CEditor::Draw()
   DrawMainMenu();
   DrawDockSpace();
 
-  m_WorkspaceManager->Draw();
+  m_WorkspaceWindow->Draw();
   m_WindowManager->Draw();
 }
 
@@ -190,7 +192,7 @@ void CEditor::BuildDefaultLayout(unsigned int _DockSpaceId)
   };
 
   ui::CDockLayoutBuilder Builder(LayoutDesc);
-  Builder.DockWindow(CWorkspaceManager::WindowLabel, ui::EDockSlot::Center);
+  Builder.DockWindow(m_WorkspaceWindow->GetLabel(), ui::EDockSlot::Center);
 
   m_WindowManager->AddDefaultDocking(Builder);
 

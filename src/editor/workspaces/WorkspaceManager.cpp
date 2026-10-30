@@ -8,8 +8,6 @@
 #include "editor/assets/AssetType.h"
 #include "editor/assets/AssetTypeRegistry.h"
 
-#include <imgui.h>
-
 #include <algorithm>
 #include <filesystem>
 #include <utility>
@@ -40,8 +38,7 @@ CWorkspaceManager::CWorkspaceManager(std::shared_ptr<CAssetTypeRegistry> _AssetT
   m_AssetTypes(std::move(_AssetTypes)),
   m_Log(std::move(_Log)),
   m_ActiveIndex(0),
-  m_HasActive(false),
-  m_IsTabSelectionPending(false)
+  m_HasActive(false)
 {
   // Empty
 }
@@ -57,7 +54,7 @@ bool CWorkspaceManager::OpenAsset(const TAssetRecord & _Asset)
   // Already opened asset is just activated, without loading it again.
   if (const auto OpenedIterator = m_IndexByPath.find(MakePathKey(_Asset.AbsolutePath)); OpenedIterator != m_IndexByPath.end())
   {
-    RequestActive(OpenedIterator->second);
+    SetActive(OpenedIterator->second);
     return true;
   }
 
@@ -89,58 +86,30 @@ bool CWorkspaceManager::AddWorkspace(std::unique_ptr<CEditorWorkspace> _Workspac
 
   if (const auto OpenedIterator = m_IndexByPath.find(PathKey); OpenedIterator != m_IndexByPath.end())
   {
-    RequestActive(OpenedIterator->second);
+    SetActive(OpenedIterator->second);
     return false;
   }
 
   m_IndexByPath.emplace(PathKey, m_Workspaces.size());
   m_Workspaces.push_back(std::move(_Workspace));
 
-  RequestActive(m_Workspaces.size() - 1);
+  SetActive(m_Workspaces.size() - 1);
 
   return true;
 }
 
-void CWorkspaceManager::Draw()
+void CWorkspaceManager::SetActive(std::size_t _Index)
 {
-  if (!ImGui::Begin(WindowLabel))
-  {
-    ImGui::End();
+  if (m_HasActive && m_ActiveIndex == _Index)
     return;
-  }
 
-  if (ImGui::BeginTabBar("##OpenAssetTabs"))
-  {
-    const bool IsSelectionForced = m_IsTabSelectionPending;
-    m_IsTabSelectionPending = false;
+  if (m_HasActive)
+    m_Workspaces[m_ActiveIndex]->OnDeactivated();
 
-    for (std::size_t WorkspaceIndex = 0; WorkspaceIndex < m_Workspaces.size(); ++WorkspaceIndex)
-    {
-      auto &                  Workspace = *m_Workspaces[WorkspaceIndex];
-      bool                    IsOpen    = true;
-      const ImGuiTabItemFlags TabFlags  = IsSelectionForced && WorkspaceIndex == m_ActiveIndex ? ImGuiTabItemFlags_SetSelected : 0;
+  m_ActiveIndex = _Index;
+  m_HasActive   = true;
 
-      if (ImGui::BeginTabItem(Workspace.GetTitle().c_str(), &IsOpen, TabFlags))
-      {
-        if (!IsSelectionForced)
-          SetActive(WorkspaceIndex);
-
-        Workspace.OnGui();
-
-        ImGui::EndTabItem();
-      }
-
-      if (!IsOpen)
-      {
-        Close(WorkspaceIndex);
-        break;
-      }
-    }
-
-    ImGui::EndTabBar();
-  }
-
-  ImGui::End();
+  m_Workspaces[m_ActiveIndex]->OnActivated();
 }
 
 void CWorkspaceManager::Close(std::size_t _Index)
@@ -166,7 +135,7 @@ void CWorkspaceManager::Close(std::size_t _Index)
   }
 
   if (WasActive)
-    RequestActive(std::min(_Index, m_Workspaces.size() - 1));
+    SetActive(std::min(_Index, m_Workspaces.size() - 1));
   else
   if (_Index < m_ActiveIndex)
     --m_ActiveIndex;
@@ -220,6 +189,16 @@ void CWorkspaceManager::RelocateAssets(const std::filesystem::path & _OldPath, c
   RebuildPathIndex();
 }
 
+bool CWorkspaceManager::HasActive() const noexcept
+{
+  return m_HasActive;
+}
+
+std::size_t CWorkspaceManager::GetActiveIndex() const noexcept
+{
+  return m_ActiveIndex;
+}
+
 CEditorWorkspace * CWorkspaceManager::GetActive() const noexcept
 {
   return m_HasActive ? m_Workspaces[m_ActiveIndex].get() : nullptr;
@@ -233,26 +212,6 @@ const std::vector<std::unique_ptr<CEditorWorkspace>> & CWorkspaceManager::GetWor
 //
 // Implementation
 //
-
-void CWorkspaceManager::SetActive(std::size_t _Index)
-{
-  if (m_HasActive && m_ActiveIndex == _Index)
-    return;
-
-  if (m_HasActive)
-    m_Workspaces[m_ActiveIndex]->OnDeactivated();
-
-  m_ActiveIndex = _Index;
-  m_HasActive   = true;
-
-  m_Workspaces[m_ActiveIndex]->OnActivated();
-}
-
-void CWorkspaceManager::RequestActive(std::size_t _Index)
-{
-  SetActive(_Index);
-  m_IsTabSelectionPending = true;
-}
 
 void CWorkspaceManager::RebuildPathIndex()
 {

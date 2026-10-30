@@ -19,6 +19,8 @@ public: // Interface
 
   void SetVisible(bool _Visible) noexcept;
 
+  void SetTitleBarHidden(bool _IsTitleBarHidden) noexcept;
+
   const std::string & GetTitle() const noexcept;
 
   const std::string & GetLabel() const noexcept;
@@ -36,6 +38,7 @@ private: // Attributes
   std::string m_Title;
   std::string m_Label;
   bool        m_Visible;
+  bool        m_IsTitleBarHidden;
 };
 
 } // namespace editor::ui

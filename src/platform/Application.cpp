@@ -2,6 +2,7 @@
 #include "core/Log.h"
 #include "editor/Editor.h"
 #include "editor/assets/AssetManager.h"
+#include "ui/EditorStyle.h"
 
 #include <OgreCamera.h>
 #include <OgreImGuiOverlay.h>
@@ -16,8 +17,20 @@
 
 #include <utility>
 
+#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
+#include <windows.h>
+#endif
+
 namespace editor::platform
 {
+
+namespace
+{
+
+constexpr uint32_t DefaultWindowWidth  = 1600;
+constexpr uint32_t DefaultWindowHeight = 900;
+
+} // namespace
 
 //
 // Constructor/Destructor
@@ -53,6 +66,8 @@ void CApplication::setup()
 {
   OgreBites::ApplicationContext::setup();
 
+  MaximizeWindow();
+
   m_SceneManager = getRoot()->createSceneManager("DefaultSceneManager", "EditorScene");
   Ogre::RTShader::ShaderGenerator::getSingleton().addSceneManager(m_SceneManager);
   m_SceneManager->addRenderQueueListener(getOverlaySystem());
@@ -69,9 +84,16 @@ void CApplication::setup()
   auto * Viewport = getRenderWindow()->addViewport(Camera);
   Viewport->setBackgroundColour(Ogre::ColourValue(0.12f, 0.13f, 0.15f));
 
-  Ogre::OverlayManager::getSingleton().setPixelRatio(getDisplayDPI() / 96.0f);
+  const float UiScale = getDisplayDPI() / 96.0f;
+  Ogre::OverlayManager::getSingleton().setPixelRatio(UiScale);
 
-  initialiseImGui()->show();
+  auto & Overlay = *initialiseImGui();
+
+  if (!ui::LoadEditorFont(getFSLayer().getConfigFilePath("fonts/Roboto-Medium.ttf"), UiScale))
+    m_Editor->GetLog()->Write(core::ELogLevel::Warning, "Editor font not found, using the default ImGui font.");
+
+  ui::ApplyEditorStyle(UiScale);
+  Overlay.show();
 
   addInputListener(getImGuiInputListener());
   addInputListener(this);
@@ -127,6 +149,31 @@ bool CApplication::keyPressed(const OgreBites::KeyboardEvent & _Event)
   }
 
   return false;
+}
+
+OgreBites::NativeWindowPair CApplication::createWindow(const Ogre::String & _Name, uint32_t _Width, uint32_t _Height, Ogre::NameValuePairList _MiscParams)
+{
+  getRoot()->getRenderSystem()->setConfigOption("Full Screen", "No");
+
+  const uint32_t Width  = _Width > 0 ? _Width : DefaultWindowWidth;
+  const uint32_t Height = _Height > 0 ? _Height : DefaultWindowHeight;
+
+  return OgreBites::ApplicationContext::createWindow(_Name, Width, Height, std::move(_MiscParams));
+}
+
+//
+// Implementation
+//
+
+void CApplication::MaximizeWindow()
+{
+#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
+  HWND WindowHandle = nullptr;
+  getRenderWindow()->getCustomAttribute("WINDOW", &WindowHandle);
+
+  if (WindowHandle)
+    ShowWindow(WindowHandle, SW_MAXIMIZE);
+#endif
 }
 
 } // namespace editor::platform

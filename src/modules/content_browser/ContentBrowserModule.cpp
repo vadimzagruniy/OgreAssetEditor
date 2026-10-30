@@ -42,7 +42,7 @@ bool CContentBrowserModule::Startup(core::CEditorService & _Services, std::strin
 
   m_WindowManager = std::move(WindowManager);
 
-  const ui::TToolBoxDesc Desc{GetInfo().Name, "Content", true, ui::EDockSlot::Left, 0};
+  const ui::TToolBoxDesc Desc{GetInfo().Name, "Content", true, ui::EDockSlot::Left, 0, true};
   m_WindowManager->RegisterToolBox(Desc, std::make_shared<CContentBrowserWindow>(Desc, std::move(Controller)));
 
   return true;

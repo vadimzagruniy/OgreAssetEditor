@@ -43,6 +43,12 @@ public: // ApplicationContext
 
   bool keyPressed(const OgreBites::KeyboardEvent & _Event) override;
 
+  OgreBites::NativeWindowPair createWindow(const Ogre::String & _Name, uint32_t _Width, uint32_t _Height, Ogre::NameValuePairList _MiscParams) override;
+
+private: // Implementation
+
+  void MaximizeWindow();
+
 private: // Attributes
 
   std::unique_ptr<CEditor> m_Editor;

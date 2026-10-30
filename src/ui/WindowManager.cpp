@@ -37,6 +37,7 @@ bool CWindowManager::RegisterToolBox(const TToolBoxDesc & _Desc, std::shared_ptr
     return false;
 
   _Window->SetVisible(_Desc.Visible);
+  _Window->SetTitleBarHidden(_Desc.IsTitleBarHidden);
 
   const auto InsertPosition = std::upper_bound(m_Windows.begin(), m_Windows.end(), _Desc.DockOrder, [](int _DockOrder, const TWindowEntry & _Entry)
   {
