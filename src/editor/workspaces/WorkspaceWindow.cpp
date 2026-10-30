@@ -1,10 +1,14 @@
 #include "WorkspaceWindow.h"
 #include "AssetInstance.h"
 #include "EditorWorkspace.h"
+#include "WorkspaceController.h"
 #include "WorkspaceManager.h"
 #include "editor/assets/AssetRecord.h"
 
 #include <imgui.h>
+
+#include <cstddef>
+#include <string>
 
 namespace editor
 {
@@ -17,15 +21,22 @@ const std::filesystem::path & GetAssetPath(const CEditorWorkspace & _Workspace)
   return _Workspace.GetInstance()->GetRecord().RelativePath;
 }
 
+std::string MakeTabLabel(const CEditorWorkspace & _Workspace)
+{
+  const std::string DirtyMark = _Workspace.IsDirty() ? " *" : "";
+  return _Workspace.GetTitle() + DirtyMark + "###" + GetAssetPath(_Workspace).generic_string();
+}
+
 } // namespace
 
 //
 // Constructor
 //
 
-CWorkspaceWindow::CWorkspaceWindow(CWorkspaceManager & _WorkspaceManager):
+CWorkspaceWindow::CWorkspaceWindow(CWorkspaceManager & _WorkspaceManager, CWorkspaceController & _WorkspaceController):
   CWindow("Resource Editors", "WorkspaceHost"),
-  m_WorkspaceManager(_WorkspaceManager)
+  m_WorkspaceManager(_WorkspaceManager),
+  m_WorkspaceController(_WorkspaceController)
 {
   SetTitleBarHidden(true);
 }
@@ -54,7 +65,7 @@ void CWorkspaceWindow::OnGui()
     bool                    IsOpen    = true;
     const ImGuiTabItemFlags TabFlags  = IsSelectionForced && WorkspaceIndex == ActiveIndex ? ImGuiTabItemFlags_SetSelected : 0;
 
-    if (ImGui::BeginTabItem(Workspace.GetTitle().c_str(), &IsOpen, TabFlags))
+    if (ImGui::BeginTabItem(MakeTabLabel(Workspace).c_str(), &IsOpen, TabFlags))
     {
       if (!IsSelectionForced)
       {
@@ -69,7 +80,7 @@ void CWorkspaceWindow::OnGui()
 
     if (!IsOpen)
     {
-      m_WorkspaceManager.Close(WorkspaceIndex);
+      m_WorkspaceController.RequestClose(WorkspaceIndex);
       break;
     }
   }

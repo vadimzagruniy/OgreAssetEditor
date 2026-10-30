@@ -48,6 +48,26 @@ std::string CEditorWorkspace::GetTitle() const
   return m_Instance->GetRecord().RelativePath.filename().string();
 }
 
+bool CEditorWorkspace::IsDirty() const
+{
+  return !m_UndoStack.IsAtSavePoint();
+}
+
+bool CEditorWorkspace::Save(std::string & _Error)
+{
+  if (!OnSave(_Error))
+    return false;
+
+  m_UndoStack.MarkSaved();
+
+  return true;
+}
+
+std::vector<core::TTypeKey> CEditorWorkspace::GetToolBoxes() const
+{
+  return {};
+}
+
 //
 // IWorkspaceContext
 //
@@ -74,6 +94,11 @@ void CEditorWorkspace::OnActivated()
 void CEditorWorkspace::OnDeactivated()
 {
   // Empty
+}
+
+bool CEditorWorkspace::OnSave(std::string & /*_Error*/)
+{
+  return true;
 }
 
 } // namespace editor

@@ -96,7 +96,6 @@ void CApplication::setup()
   Overlay.show();
 
   addInputListener(getImGuiInputListener());
-  addInputListener(this);
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 #if defined(IMGUI_HAS_DOCK)
@@ -132,23 +131,6 @@ bool CApplication::frameStarted(const Ogre::FrameEvent & _Event)
   m_Editor->Draw();
 
   return true;
-}
-
-bool CApplication::keyPressed(const OgreBites::KeyboardEvent & _Event)
-{
-  if (_Event.keysym.sym == OgreBites::SDLK_F5)
-  {
-    m_Editor->GetAssetManager()->Refresh();
-    return true;
-  }
-
-  if (_Event.keysym.sym == OgreBites::SDLK_ESCAPE)
-  {
-    getRoot()->queueEndRendering();
-    return true;
-  }
-
-  return false;
 }
 
 OgreBites::NativeWindowPair CApplication::createWindow(const Ogre::String & _Name, uint32_t _Width, uint32_t _Height, Ogre::NameValuePairList _MiscParams)

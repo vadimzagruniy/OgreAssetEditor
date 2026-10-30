@@ -3,6 +3,7 @@
 #include "editor/workspaces/EditorWorkspace.h"
 
 #include <memory>
+#include <string>
 
 namespace editor
 {
@@ -18,7 +19,13 @@ public: // Constructor
 
 public: // CEditorWorkspace
 
+  bool IsDirty() const override;
+
   void OnGui() override;
+
+protected: // CEditorWorkspace
+
+  bool OnSave(std::string & _Error) override;
 };
 
 } // namespace editor

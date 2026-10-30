@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace editor::core
@@ -31,10 +32,19 @@ public: // Interface
 
   bool CanRedo() const noexcept;
 
+  std::string GetUndoName() const;
+
+  std::string GetRedoName() const;
+
+  void MarkSaved() noexcept;
+
+  bool IsAtSavePoint() const noexcept;
+
 private: // Attributes
 
   std::vector<std::unique_ptr<ICommand>> m_Commands;
-  std::size_t                            m_Cursor = 0;
+  std::size_t                            m_Cursor;
+  std::size_t                            m_SavedCursor;
 };
 
 } // namespace editor::core

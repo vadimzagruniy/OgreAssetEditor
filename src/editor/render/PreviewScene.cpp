@@ -1,10 +1,12 @@
-#include "MeshPreview.h"
+#include "PreviewScene.h"
 #include "OrbitCamera.h"
+#include "PreviewShape.h"
 
 #include <OgreCamera.h>
 #include <OgreEntity.h>
 #include <OgreHardwarePixelBuffer.h>
 #include <OgreLight.h>
+#include <OgreMaterial.h>
 #include <OgreMesh.h>
 #include <OgreRenderTexture.h>
 #include <OgreRoot.h>
@@ -23,15 +25,29 @@ namespace
 const Ogre::ColourValue BackgroundColour(0.18f, 0.19f, 0.21f);
 const Ogre::ColourValue AmbientColour(0.35f, 0.35f, 0.35f);
 
+const char * GetShapeMeshName(EPreviewShape _Shape)
+{
+  switch (_Shape)
+  {
+    case EPreviewShape::Cube:   return Ogre::SceneManager::PT_CUBE;
+    case EPreviewShape::Plane:  return Ogre::SceneManager::PT_PLANE;
+    case EPreviewShape::Sphere: break;
+  }
+
+  return Ogre::SceneManager::PT_SPHERE;
+}
+
 } // namespace
 
 //
 // Constructor/Destructor
 //
 
-CMeshPreview::CMeshPreview(const Ogre::MeshPtr & _Mesh):
+CPreviewScene::CPreviewScene():
   m_SceneManager(Ogre::Root::getSingleton().createSceneManager()),
   m_Camera(nullptr),
+  m_MeshNode(nullptr),
+  m_Entity(nullptr),
   m_Width(0),
   m_Height(0),
   m_IsActive(true)
@@ -40,8 +56,7 @@ CMeshPreview::CMeshPreview(const Ogre::MeshPtr & _Mesh):
 
   m_SceneManager->setAmbientLight(AmbientColour);
 
-  auto * MeshNode = m_SceneManager->getRootSceneNode()->createChildSceneNode();
-  MeshNode->attachObject(m_SceneManager->createEntity(_Mesh));
+  m_MeshNode = m_SceneManager->getRootSceneNode()->createChildSceneNode();
 
   m_Camera = m_SceneManager->createCamera("PreviewCamera");
   m_Camera->setAutoAspectRatio(true);
@@ -50,16 +65,10 @@ CMeshPreview::CMeshPreview(const Ogre::MeshPtr & _Mesh):
   CameraNode->attachObject(m_Camera);
   CameraNode->attachObject(m_SceneManager->createLight(Ogre::Light::LT_DIRECTIONAL));
 
-  const float Radius = _Mesh->getBoundingSphereRadius();
-
-  m_Camera->setNearClipDistance(Radius * 0.01f);
-  m_Camera->setFarClipDistance(Radius * 100.0f);
-
   m_OrbitCamera = std::make_unique<COrbitCamera>(CameraNode);
-  m_OrbitCamera->Focus(_Mesh->getBounds().getCenter(), Radius);
 }
 
-CMeshPreview::~CMeshPreview()
+CPreviewScene::~CPreviewScene()
 {
   DestroyRenderTarget();
 
@@ -73,7 +82,25 @@ CMeshPreview::~CMeshPreview()
 // Interface
 //
 
-void CMeshPreview::Resize(unsigned int _Width, unsigned int _Height)
+void CPreviewScene::SetMesh(const Ogre::MeshPtr & _Mesh)
+{
+  ShowEntity(m_SceneManager->createEntity(_Mesh));
+}
+
+void CPreviewScene::SetShape(EPreviewShape _Shape)
+{
+  ShowEntity(m_SceneManager->createEntity(GetShapeMeshName(_Shape)));
+}
+
+void CPreviewScene::SetMaterial(const Ogre::MaterialPtr & _Material)
+{
+  m_Material = _Material;
+
+  if (m_Entity && m_Material)
+    m_Entity->setMaterial(m_Material);
+}
+
+void CPreviewScene::Resize(unsigned int _Width, unsigned int _Height)
 {
   if (_Width == 0 || _Height == 0)
     return;
@@ -85,7 +112,7 @@ void CMeshPreview::Resize(unsigned int _Width, unsigned int _Height)
   CreateRenderTarget(_Width, _Height);
 }
 
-void CMeshPreview::SetActive(bool _IsActive)
+void CPreviewScene::SetActive(bool _IsActive)
 {
   m_IsActive = _IsActive;
 
@@ -93,12 +120,12 @@ void CMeshPreview::SetActive(bool _IsActive)
     m_RenderTexture->getBuffer()->getRenderTarget()->setActive(m_IsActive);
 }
 
-const Ogre::TexturePtr & CMeshPreview::GetTexture() const noexcept
+const Ogre::TexturePtr & CPreviewScene::GetTexture() const noexcept
 {
   return m_RenderTexture;
 }
 
-COrbitCamera & CMeshPreview::GetCamera() noexcept
+COrbitCamera & CPreviewScene::GetCamera() noexcept
 {
   return *m_OrbitCamera;
 }
@@ -107,9 +134,32 @@ COrbitCamera & CMeshPreview::GetCamera() noexcept
 // Implementation
 //
 
-void CMeshPreview::CreateRenderTarget(unsigned int _Width, unsigned int _Height)
+void CPreviewScene::ShowEntity(Ogre::Entity * _Entity)
 {
-  const Ogre::String TextureName = "MeshPreview/" + m_SceneManager->getName();
+  if (m_Entity)
+  {
+    m_MeshNode->detachAllObjects();
+    m_SceneManager->destroyEntity(m_Entity);
+  }
+
+  m_Entity = _Entity;
+  m_MeshNode->attachObject(m_Entity);
+
+  if (m_Material)
+    m_Entity->setMaterial(m_Material);
+
+  const auto & Mesh   = m_Entity->getMesh();
+  const float  Radius = Mesh->getBoundingSphereRadius();
+
+  m_Camera->setNearClipDistance(Radius * 0.01f);
+  m_Camera->setFarClipDistance(Radius * 100.0f);
+
+  m_OrbitCamera->Focus(Mesh->getBounds().getCenter(), Radius);
+}
+
+void CPreviewScene::CreateRenderTarget(unsigned int _Width, unsigned int _Height)
+{
+  const Ogre::String TextureName = "PreviewScene/" + m_SceneManager->getName();
 
   m_RenderTexture = Ogre::TextureManager::getSingleton().createManual(TextureName, Ogre::RGN_INTERNAL, Ogre::TEX_TYPE_2D, _Width, _Height, 0, Ogre::PF_BYTE_RGBA, Ogre::TU_RENDERTARGET);
 
@@ -125,7 +175,7 @@ void CMeshPreview::CreateRenderTarget(unsigned int _Width, unsigned int _Height)
   m_Height = _Height;
 }
 
-void CMeshPreview::DestroyRenderTarget()
+void CPreviewScene::DestroyRenderTarget()
 {
   if (!m_RenderTexture)
     return;

@@ -1,27 +1,23 @@
 #include "DeleteConfirmationView.h"
 #include "modules/content_browser/presenter/IContentBrowserPresenter.h"
+#include "ui/ChoiceModal.h"
+#include "ui/ChoiceModalDesc.h"
+#include "ui/WindowManager.h"
 
-#include <imgui.h>
-
-#include <cstddef>
+#include <string>
+#include <utility>
 
 namespace editor
 {
-
-namespace
-{
-
-constexpr const char * PopupName       = "Delete Assets";
-constexpr std::size_t  MaxListedPaths  = 8;
-
-} // namespace
 
 //
 // Constructor
 //
 
-CDeleteConfirmationView::CDeleteConfirmationView(IContentBrowserPresenter & _Presenter):
-  m_Presenter(_Presenter)
+CDeleteConfirmationView::CDeleteConfirmationView(std::weak_ptr<IContentBrowserPresenter> _Presenter, ui::CWindowManager & _WindowManager):
+  m_Presenter(std::move(_Presenter)),
+  m_WindowManager(_WindowManager),
+  m_IsModalOpened(false)
 {
   // Empty
 }
@@ -32,47 +28,60 @@ CDeleteConfirmationView::CDeleteConfirmationView(IContentBrowserPresenter & _Pre
 
 void CDeleteConfirmationView::Draw()
 {
-  if (m_Presenter.IsDeleteRequested() && !ImGui::IsPopupOpen(PopupName))
-    ImGui::OpenPopup(PopupName);
+  const auto Presenter = m_Presenter.lock();
+  if (!Presenter || !Presenter->IsDeleteRequested())
+  {
+    m_IsModalOpened = false;
+    return;
+  }
 
-  if (!ImGui::BeginPopupModal(PopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+  if (m_IsModalOpened)
     return;
 
-  const auto & Selection = m_Presenter.GetSelection();
+  m_IsModalOpened = true;
+  OpenModal(*Presenter);
+}
 
-  ImGui::Text("Delete %zu item(s)? This cannot be undone.", Selection.size());
-  ImGui::Separator();
+//
+// Implementation
+//
 
-  std::size_t ListedCount = 0;
+void CDeleteConfirmationView::OpenModal(const IContentBrowserPresenter & _Presenter)
+{
+  const auto & Selection = _Presenter.GetSelection();
+
+  ui::TChoiceModalDesc Desc;
+  Desc.Title   = "Delete Assets";
+  Desc.Message = "Delete " + std::to_string(Selection.size()) + " item(s)? This cannot be undone.";
 
   for (const auto & Path : Selection)
+    Desc.Details.push_back(Path.generic_string());
+
+  Desc.Choices =
   {
-    if (ListedCount++ == MaxListedPaths)
+    {"Delete", [Presenter = m_Presenter](std::string & /*_Error*/)
     {
-      ImGui::TextDisabled("...");
-      break;
-    }
+      if (const auto LockedPresenter = Presenter.lock())
+        LockedPresenter->ConfirmDelete();
 
-    ImGui::BulletText("%s", Path.generic_string().c_str());
-  }
+      return true;
+    }},
+    {"Cancel", [Presenter = m_Presenter](std::string & /*_Error*/)
+    {
+      if (const auto LockedPresenter = Presenter.lock())
+        LockedPresenter->CancelDelete();
 
-  ImGui::Separator();
+      return true;
+    }}
+  };
 
-  if (ImGui::Button("Delete"))
+  Desc.CancelAction = [Presenter = m_Presenter]
   {
-    m_Presenter.ConfirmDelete();
-    ImGui::CloseCurrentPopup();
-  }
+    if (const auto LockedPresenter = Presenter.lock())
+      LockedPresenter->CancelDelete();
+  };
 
-  ImGui::SameLine();
-
-  if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
-  {
-    m_Presenter.CancelDelete();
-    ImGui::CloseCurrentPopup();
-  }
-
-  ImGui::EndPopup();
+  m_WindowManager.OpenModal(std::make_unique<ui::CChoiceModal>(std::move(Desc)));
 }
 
 } // namespace editor

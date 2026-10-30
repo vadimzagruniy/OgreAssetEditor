@@ -22,7 +22,14 @@ editor core.
   talk to the controller only through `IContentBrowserPresenter`; user actions are queued and applied after all views
   are drawn. Create folder, rename (F2), duplicate (Ctrl+D), delete (Del) with confirmation, filter, breadcrumbs.
 - Open editor tabs follow file operations: renamed assets keep their tabs, deleted assets close them.
-- Built-in modules: Content Browser, Properties, Console, Texture viewer, Mesh viewer, Text editor.
+- Material editor for `.material` scripts: edits run on working copies of the OGRE materials, so the preview updates
+  live while the originals stay untouched until the file is saved; closing the tab without saving discards the copies.
+  A tab declares its own tool windows (Material Outline, Material Inspector), which the editor shows only while that
+  tab is active. Pass colours, shininess, blending, depth write, culling, texture and addressing; preview on a sphere,
+  cube or plane.
+- Undo/redo shared by all tabs: every edit is a command on the tab's undo stack, a slider drag is one command,
+  Ctrl+Z / Ctrl+Y, Ctrl+S, `*` on modified tabs and save prompts when closing a tab or the editor.
+- Built-in modules: Content Browser, Properties, Console, Texture viewer, Mesh viewer, Material editor, Text editor.
 
 ## Building
 
@@ -57,11 +64,16 @@ src/
     assets/      project asset scanning, asset type interface and registry
     modules/     module interface, static module registry, module lifecycle
     workspaces/  asset instances, editor workspaces and the workspace (tab) manager
+    render/      offscreen preview scene, orbit camera and the ImGui viewport shared by viewers
   modules/     one folder per module
-    console/  content_browser/  properties/  mesh/  texture/  text/
+    console/  content_browser/  properties/  mesh/  material/  texture/  text/
     content_browser/
       presenter/   IContentBrowserPresenter, CContentBrowserController (no ImGui)
       views/       folder tree, navigation bar, list and grid views, toolbar, delete confirmation
+    material/
+      MaterialInstance   original materials and their working copies, saving
+      MaterialDocument   reads and edits pass / texture unit state, turns edits into undo commands
+      views/             outline and inspector tool windows
 third_party/   OGRE 14.5.2 and Dear ImGui 1.91.1-docking as git submodules
 ```
 

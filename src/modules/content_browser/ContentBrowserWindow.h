@@ -9,6 +9,7 @@ namespace editor
 
 namespace ui
 {
+class CWindowManager;
 struct TToolBoxDesc;
 } // namespace ui
 
@@ -25,7 +26,7 @@ class CContentBrowserWindow final:
 {
 public: // Constructor/Destructor
 
-  CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std::unique_ptr<CContentBrowserController> _Controller);
+  CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CContentBrowserController> _Controller, ui::CWindowManager & _WindowManager);
 
   ~CContentBrowserWindow() override;
 
@@ -35,7 +36,7 @@ private: // CWindow
 
 private: // Attributes
 
-  std::unique_ptr<CContentBrowserController> m_Controller;
+  std::shared_ptr<CContentBrowserController> m_Controller;
   std::unique_ptr<CContentToolbarView>       m_ToolbarView;
   std::unique_ptr<CFolderTreeView>           m_FolderTreeView;
   std::unique_ptr<CNavigationBarView>        m_NavigationBarView;

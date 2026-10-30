@@ -3,6 +3,7 @@
 #include "core/TypeKey.h"
 #include "ui/dock_layout/DockSlot.h"
 
+#include <deque>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -58,7 +59,7 @@ private: // Attributes
 
   std::vector<TWindowEntry>                                    m_Windows;
   std::unordered_map<core::TTypeKey, std::shared_ptr<CWindow>> m_ToolBoxes;
-  std::vector<std::unique_ptr<CModalWindow>>                   m_Modals;
+  std::deque<std::unique_ptr<CModalWindow>>                    m_Modals;
 };
 
 } // namespace editor::ui

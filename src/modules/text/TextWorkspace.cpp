@@ -40,25 +40,14 @@ CTextWorkspace::CTextWorkspace(std::unique_ptr<CTextInstance> _Instance):
 // CEditorWorkspace
 //
 
+bool CTextWorkspace::IsDirty() const
+{
+  return static_cast<const CTextInstance *>(GetInstance())->IsDirty();
+}
+
 void CTextWorkspace::OnGui()
 {
   auto * Instance = static_cast<CTextInstance *>(GetInstance());
-
-  ImGui::TextUnformatted(Instance->IsDirty() ? "Unsaved changes" : "Saved");
-  ImGui::SameLine();
-
-  if (ImGui::Button("Save") && !Instance->Save())
-    ImGui::OpenPopup("Save failed");
-
-  if (ImGui::BeginPopupModal("Save failed", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-  {
-    ImGui::TextUnformatted("Could not write this file.");
-
-    if (ImGui::Button("Close"))
-      ImGui::CloseCurrentPopup();
-
-    ImGui::EndPopup();
-  }
 
   auto &     Content    = Instance->GetContent();
   const auto Available  = ImGui::GetContentRegionAvail();
@@ -66,6 +55,22 @@ void CTextWorkspace::OnGui()
 
   if (ImGui::InputTextMultiline("##Text", Content.data(), Content.capacity() + 1, Available, InputFlags, ResizeStringCallback, &Content))
     Instance->MarkDirty();
+}
+
+//
+// Protected CEditorWorkspace
+//
+
+bool CTextWorkspace::OnSave(std::string & _Error)
+{
+  auto & Instance = *static_cast<CTextInstance *>(GetInstance());
+
+  if (Instance.Save())
+    return true;
+
+  _Error = "Could not write " + GetTitle();
+
+  return false;
 }
 
 } // namespace editor

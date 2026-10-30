@@ -8,7 +8,7 @@ namespace editor
 {
 
 class CMeshInstance;
-class CMeshPreview;
+class CPreviewScene;
 
 class CMeshWorkspace final:
   public CEditorWorkspace
@@ -27,13 +27,9 @@ public: // CEditorWorkspace
 
   void OnGui() override;
 
-private: // Implementation
-
-  void HandleViewportInput();
-
 private: // Attributes
 
-  std::unique_ptr<CMeshPreview> m_Preview;
+  std::unique_ptr<CPreviewScene> m_Preview;
 };
 
 } // namespace editor

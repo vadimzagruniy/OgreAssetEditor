@@ -110,6 +110,8 @@ void CWorkspaceManager::SetActive(std::size_t _Index)
   m_HasActive   = true;
 
   m_Workspaces[m_ActiveIndex]->OnActivated();
+
+  m_ActiveChangedSignal.Emit();
 }
 
 void CWorkspaceManager::Close(std::size_t _Index)
@@ -131,6 +133,8 @@ void CWorkspaceManager::Close(std::size_t _Index)
   {
     m_HasActive   = false;
     m_ActiveIndex = 0;
+
+    m_ActiveChangedSignal.Emit();
     return;
   }
 
@@ -157,6 +161,8 @@ void CWorkspaceManager::CloseAll()
 
   m_HasActive   = false;
   m_ActiveIndex = 0;
+
+  m_ActiveChangedSignal.Emit();
 }
 
 void CWorkspaceManager::CloseAssets(const std::filesystem::path & _Path)
@@ -189,6 +195,43 @@ void CWorkspaceManager::RelocateAssets(const std::filesystem::path & _OldPath, c
   RebuildPathIndex();
 }
 
+std::optional<std::size_t> CWorkspaceManager::FindWorkspace(const std::filesystem::path & _AbsolutePath) const
+{
+  const auto WorkspaceIterator = m_IndexByPath.find(MakePathKey(_AbsolutePath));
+  if (WorkspaceIterator == m_IndexByPath.end())
+    return std::nullopt;
+
+  return WorkspaceIterator->second;
+}
+
+bool CWorkspaceManager::HasDirtyWorkspaces() const
+{
+  return std::any_of(m_Workspaces.begin(), m_Workspaces.end(), [](const std::unique_ptr<CEditorWorkspace> & _Workspace)
+  {
+    return _Workspace->IsDirty();
+  });
+}
+
+bool CWorkspaceManager::SaveAll(std::string & _Error)
+{
+  bool IsSaved = true;
+
+  for (const auto & Workspace : m_Workspaces)
+  {
+    if (!Workspace->IsDirty())
+      continue;
+
+    std::string Error;
+    if (!Workspace->Save(Error))
+    {
+      _Error += Error.empty() ? "Cannot save " + Workspace->GetTitle() + "\n" : Error + "\n";
+      IsSaved = false;
+    }
+  }
+
+  return IsSaved;
+}
+
 bool CWorkspaceManager::HasActive() const noexcept
 {
   return m_HasActive;
@@ -207,6 +250,15 @@ CEditorWorkspace * CWorkspaceManager::GetActive() const noexcept
 const std::vector<std::unique_ptr<CEditorWorkspace>> & CWorkspaceManager::GetWorkspaces() const noexcept
 {
   return m_Workspaces;
+}
+
+//
+// Signals
+//
+
+CWorkspaceManager::TActiveChangedSignal & CWorkspaceManager::GetActiveChangedSignal() noexcept
+{
+  return m_ActiveChangedSignal;
 }
 
 //

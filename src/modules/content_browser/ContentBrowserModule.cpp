@@ -38,12 +38,12 @@ bool CContentBrowserModule::Startup(core::CEditorService & _Services, std::strin
     return false;
   }
 
-  auto Controller = std::make_unique<CContentBrowserController>(std::move(AssetManager), std::move(AssetTypes), std::move(WorkspaceManager), std::move(EditorLog));
+  auto Controller = std::make_shared<CContentBrowserController>(std::move(AssetManager), std::move(AssetTypes), std::move(WorkspaceManager), std::move(EditorLog));
 
   m_WindowManager = std::move(WindowManager);
 
   const ui::TToolBoxDesc Desc{GetInfo().Name, "Content", true, ui::EDockSlot::Left, 0, true};
-  m_WindowManager->RegisterToolBox(Desc, std::make_shared<CContentBrowserWindow>(Desc, std::move(Controller)));
+  m_WindowManager->RegisterToolBox(Desc, std::make_shared<CContentBrowserWindow>(Desc, std::move(Controller), *m_WindowManager));
 
   return true;
 }

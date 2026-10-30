@@ -8,21 +8,28 @@
 namespace editor
 {
 
+enum class EPreviewShape;
 class COrbitCamera;
 
-class CMeshPreview
+class CPreviewScene
 {
 public: // Constructor/Destructor
 
-  explicit CMeshPreview(const Ogre::MeshPtr & _Mesh);
+  CPreviewScene();
 
-  ~CMeshPreview();
+  ~CPreviewScene();
 
-  CMeshPreview(const CMeshPreview &) = delete;
+  CPreviewScene(const CPreviewScene &) = delete;
 
-  CMeshPreview & operator=(const CMeshPreview &) = delete;
+  CPreviewScene & operator=(const CPreviewScene &) = delete;
 
 public: // Interface
+
+  void SetMesh(const Ogre::MeshPtr & _Mesh);
+
+  void SetShape(EPreviewShape _Shape);
+
+  void SetMaterial(const Ogre::MaterialPtr & _Material);
 
   void Resize(unsigned int _Width, unsigned int _Height);
 
@@ -34,6 +41,8 @@ public: // Interface
 
 private: // Implementation
 
+  void ShowEntity(Ogre::Entity * _Entity);
+
   void CreateRenderTarget(unsigned int _Width, unsigned int _Height);
 
   void DestroyRenderTarget();
@@ -42,6 +51,9 @@ private: // Attributes
 
   Ogre::SceneManager *          m_SceneManager;
   Ogre::Camera *                m_Camera;
+  Ogre::SceneNode *             m_MeshNode;
+  Ogre::Entity *                m_Entity;
+  Ogre::MaterialPtr             m_Material;
   std::unique_ptr<COrbitCamera> m_OrbitCamera;
   Ogre::TexturePtr              m_RenderTexture;
   unsigned int                  m_Width;

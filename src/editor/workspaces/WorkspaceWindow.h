@@ -7,6 +7,7 @@
 namespace editor
 {
 
+class CWorkspaceController;
 class CWorkspaceManager;
 
 class CWorkspaceWindow final:
@@ -14,7 +15,7 @@ class CWorkspaceWindow final:
 {
 public: // Constructor
 
-  explicit CWorkspaceWindow(CWorkspaceManager & _WorkspaceManager);
+  CWorkspaceWindow(CWorkspaceManager & _WorkspaceManager, CWorkspaceController & _WorkspaceController);
 
 private: // CWindow
 
@@ -22,8 +23,9 @@ private: // CWindow
 
 private: // Attributes
 
-  CWorkspaceManager &   m_WorkspaceManager;
-  std::filesystem::path m_ShownAssetPath;
+  CWorkspaceManager &    m_WorkspaceManager;
+  CWorkspaceController & m_WorkspaceController;
+  std::filesystem::path  m_ShownAssetPath;
 };
 
 } // namespace editor

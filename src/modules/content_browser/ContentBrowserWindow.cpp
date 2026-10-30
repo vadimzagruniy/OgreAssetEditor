@@ -20,7 +20,7 @@ namespace editor
 // Constructor/Destructor
 //
 
-CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std::unique_ptr<CContentBrowserController> _Controller):
+CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CContentBrowserController> _Controller, ui::CWindowManager & _WindowManager):
   CDockedWindow(_Desc.Title, "ContentBrowser", _Desc.Visible),
   m_Controller(std::move(_Controller)),
   m_ToolbarView(std::make_unique<CContentToolbarView>(*m_Controller)),
@@ -28,7 +28,7 @@ CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std
   m_NavigationBarView(std::make_unique<CNavigationBarView>(*m_Controller)),
   m_AssetListView(std::make_unique<CAssetListView>(*m_Controller)),
   m_AssetGridView(std::make_unique<CAssetGridView>(*m_Controller)),
-  m_DeleteConfirmationView(std::make_unique<CDeleteConfirmationView>(*m_Controller)),
+  m_DeleteConfirmationView(std::make_unique<CDeleteConfirmationView>(m_Controller, _WindowManager)),
   m_SplitRatio(0.4f)
 {
   // Empty

@@ -111,13 +111,8 @@ void CWindowManager::Draw()
   for (const auto & WindowEntry : m_Windows)
     WindowEntry.Window->Draw();
 
-  for (auto ModalIterator = m_Modals.begin(); ModalIterator != m_Modals.end();)
-  {
-    if ((*ModalIterator)->Draw())
-      ++ModalIterator;
-    else
-      ModalIterator = m_Modals.erase(ModalIterator);
-  }
+  if (!m_Modals.empty() && !m_Modals.front()->Draw())
+    m_Modals.pop_front();
 }
 
 void CWindowManager::DrawMenuItems()

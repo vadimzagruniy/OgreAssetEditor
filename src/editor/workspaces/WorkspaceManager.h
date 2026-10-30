@@ -1,8 +1,11 @@
 #pragma once
 
+#include "core/Signal.h"
+
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -21,6 +24,10 @@ class CEditorWorkspace;
 
 class CWorkspaceManager
 {
+public: // Types
+
+  using TActiveChangedSignal = core::CSignal<>;
+
 public: // Constructor/Destructor
 
   CWorkspaceManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<core::CLog> _Log);
@@ -45,6 +52,12 @@ public: // Interface
 
   void RelocateAssets(const std::filesystem::path & _OldPath, const std::filesystem::path & _NewPath, const std::filesystem::path & _AssetsRoot);
 
+  std::optional<std::size_t> FindWorkspace(const std::filesystem::path & _AbsolutePath) const;
+
+  bool HasDirtyWorkspaces() const;
+
+  bool SaveAll(std::string & _Error);
+
   bool HasActive() const noexcept;
 
   std::size_t GetActiveIndex() const noexcept;
@@ -52,6 +65,10 @@ public: // Interface
   CEditorWorkspace * GetActive() const noexcept;
 
   const std::vector<std::unique_ptr<CEditorWorkspace>> & GetWorkspaces() const noexcept;
+
+public: // Signals
+
+  TActiveChangedSignal & GetActiveChangedSignal() noexcept;
 
 private: // Implementation
 
@@ -65,6 +82,7 @@ private: // Attributes
   std::unordered_map<std::string, std::size_t>   m_IndexByPath;
   std::size_t                                    m_ActiveIndex;
   bool                                           m_HasActive;
+  TActiveChangedSignal                           m_ActiveChangedSignal;
 };
 
 } // namespace editor

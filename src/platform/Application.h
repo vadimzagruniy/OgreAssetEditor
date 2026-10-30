@@ -20,8 +20,7 @@ namespace editor::platform
 {
 
 class CApplication final:
-  public OgreBites::ApplicationContext,
-  public OgreBites::InputListener
+  public OgreBites::ApplicationContext
 {
 public: // Constructor/Destructor
 
@@ -40,8 +39,6 @@ public: // ApplicationContext
   void shutdown() override;
 
   bool frameStarted(const Ogre::FrameEvent & _Event) override;
-
-  bool keyPressed(const OgreBites::KeyboardEvent & _Event) override;
 
   OgreBites::NativeWindowPair createWindow(const Ogre::String & _Name, uint32_t _Width, uint32_t _Height, Ogre::NameValuePairList _MiscParams) override;
 

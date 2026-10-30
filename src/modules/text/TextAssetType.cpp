@@ -16,7 +16,7 @@ namespace editor
 
 const TAssetTypeInfo & CTextAssetType::GetInfo() const noexcept
 {
-  static const TAssetTypeInfo Info{"text", "Text", {".txt", ".md", ".json", ".xml", ".ini", ".cfg", ".log", ".nut", ".lua", ".h", ".cpp", ".glsl", ".material", ".compositor", ".program"}, true};
+  static const TAssetTypeInfo Info{"text", "Text", {".txt", ".md", ".json", ".xml", ".ini", ".cfg", ".log", ".nut", ".lua", ".h", ".cpp", ".glsl", ".compositor", ".program"}, true};
   return Info;
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WorkspaceContext.h"
+#include "core/TypeKey.h"
 #include "core/UndoStack.h"
 
 #include <memory>
@@ -33,6 +34,12 @@ public: // Interface
 
   std::string GetTitle() const;
 
+  virtual bool IsDirty() const;
+
+  bool Save(std::string & _Error);
+
+  virtual std::vector<core::TTypeKey> GetToolBoxes() const;
+
 public: // IWorkspaceContext
 
   CEditorWorkspace * GetWorkspace() const noexcept override;
@@ -46,6 +53,10 @@ public: // Events
   virtual void OnDeactivated();
 
   virtual void OnGui() = 0;
+
+protected: // Events
+
+  virtual bool OnSave(std::string & _Error);
 
 private: // Attributes
 

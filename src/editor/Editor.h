@@ -22,6 +22,7 @@ class CWindowManager;
 class CAssetManager;
 class CAssetTypeRegistry;
 class CModulesManager;
+class CWorkspaceController;
 class CWorkspaceManager;
 class CWorkspaceWindow;
 
@@ -45,6 +46,8 @@ public: // Interface
 
   void SetQuitCallback(std::function<void()> _Callback);
 
+  void RequestQuit();
+
 public: // Services
 
   std::shared_ptr<CAssetManager> GetAssetManager() const noexcept;
@@ -54,6 +57,10 @@ public: // Services
 private: // Implementation
 
   void DrawMainMenu();
+
+  void DrawEditMenu();
+
+  void HandleShortcuts();
 
   void DrawDockSpace();
 
@@ -65,11 +72,12 @@ private: // Attributes
   std::shared_ptr<CAssetManager>        m_AssetManager;
   std::shared_ptr<CAssetTypeRegistry>   m_AssetTypes;
   std::shared_ptr<CWorkspaceManager>    m_WorkspaceManager;
-  std::unique_ptr<CWorkspaceWindow>     m_WorkspaceWindow;
   std::shared_ptr<ui::CWindowManager>   m_WindowManager;
+  std::unique_ptr<CWorkspaceController> m_WorkspaceController;
+  std::unique_ptr<CWorkspaceWindow>     m_WorkspaceWindow;
   std::unique_ptr<core::CEditorService> m_Services;
   std::unique_ptr<CModulesManager>      m_Modules;
-  std::function<void()>                 m_RequestQuit;
+  std::function<void()>                 m_QuitCallback;
   bool                                  m_IsLayoutChecked;
   bool                                  m_ResetLayoutRequested;
 };
