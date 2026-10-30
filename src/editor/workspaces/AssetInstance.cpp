@@ -29,6 +29,11 @@ const TAssetRecord & CAssetInstance::GetRecord() const noexcept
   return *m_Record;
 }
 
+void CAssetInstance::SetRecord(TAssetRecord _Record)
+{
+  *m_Record = std::move(_Record);
+}
+
 const std::string & CAssetInstance::GetTypeName() const noexcept
 {
   return m_TypeName;

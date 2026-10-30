@@ -34,6 +34,16 @@ CEditor::CEditor(std::filesystem::path _ProjectRoot):
 {
   m_AssetManager->OpenProject(_ProjectRoot);
 
+  m_AssetManager->GetRemovedSignal().Connect([this](const std::filesystem::path & _Path)
+  {
+    m_WorkspaceManager->CloseAssets(_Path);
+  });
+
+  m_AssetManager->GetRenamedSignal().Connect([this](const std::filesystem::path & _OldPath, const std::filesystem::path & _NewPath)
+  {
+    m_WorkspaceManager->RelocateAssets(_OldPath, _NewPath, m_AssetManager->GetAssetsRoot());
+  });
+
   m_Services->Register(m_AssetManager);
   m_Services->Register(m_AssetTypes);
   m_Services->Register(m_WorkspaceManager);

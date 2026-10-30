@@ -3,6 +3,7 @@
 #include "EditorWorkspace.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
+#include "editor/assets/AssetPath.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetType.h"
 #include "editor/assets/AssetTypeRegistry.h"
@@ -187,6 +188,36 @@ void CWorkspaceManager::CloseAll()
 
   m_HasActive   = false;
   m_ActiveIndex = 0;
+}
+
+void CWorkspaceManager::CloseAssets(const std::filesystem::path & _Path)
+{
+  for (std::size_t WorkspaceIndex = m_Workspaces.size(); WorkspaceIndex > 0; --WorkspaceIndex)
+  {
+    const auto & Record = m_Workspaces[WorkspaceIndex - 1]->GetInstance()->GetRecord();
+
+    if (IsSameOrInside(Record.RelativePath, _Path))
+      Close(WorkspaceIndex - 1);
+  }
+}
+
+void CWorkspaceManager::RelocateAssets(const std::filesystem::path & _OldPath, const std::filesystem::path & _NewPath, const std::filesystem::path & _AssetsRoot)
+{
+  for (const auto & Workspace : m_Workspaces)
+  {
+    auto & Instance = *Workspace->GetInstance();
+
+    if (!IsSameOrInside(Instance.GetRecord().RelativePath, _OldPath))
+      continue;
+
+    TAssetRecord Record = Instance.GetRecord();
+    Record.RelativePath = RebasePath(Record.RelativePath, _OldPath, _NewPath);
+    Record.AbsolutePath = (_AssetsRoot / Record.RelativePath).lexically_normal();
+
+    Instance.SetRecord(std::move(Record));
+  }
+
+  RebuildPathIndex();
 }
 
 CEditorWorkspace * CWorkspaceManager::GetActive() const noexcept

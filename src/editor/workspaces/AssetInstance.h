@@ -22,6 +22,8 @@ public: // Interface
 
   const TAssetRecord & GetRecord() const noexcept;
 
+  void SetRecord(TAssetRecord _Record);
+
   const std::string & GetTypeName() const noexcept;
 
   virtual std::vector<TAssetProperty> GetProperties() const = 0;

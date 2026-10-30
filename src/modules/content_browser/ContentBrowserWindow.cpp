@@ -1,8 +1,13 @@
 #include "ContentBrowserWindow.h"
-#include "editor/assets/AssetManager.h"
-#include "editor/assets/AssetRecord.h"
-#include "editor/workspaces/WorkspaceManager.h"
+#include "presenter/ContentBrowserController.h"
 #include "ui/ToolBoxDesc.h"
+#include "ui/widgets/Splitter.h"
+#include "views/AssetGridView.h"
+#include "views/AssetListView.h"
+#include "views/ContentToolbarView.h"
+#include "views/DeleteConfirmationView.h"
+#include "views/FolderTreeView.h"
+#include "views/NavigationBarView.h"
 
 #include <imgui.h>
 
@@ -12,17 +17,24 @@ namespace editor
 {
 
 //
-// Constructor
+// Constructor/Destructor
 //
 
-CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CWorkspaceManager> _WorkspaceManager):
+CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std::unique_ptr<CContentBrowserController> _Controller):
   CDockedWindow(_Desc.Title, "ContentBrowser", _Desc.Visible),
-  m_AssetManager(std::move(_AssetManager)),
-  m_WorkspaceManager(std::move(_WorkspaceManager)),
-  m_Filter{}
+  m_Controller(std::move(_Controller)),
+  m_ToolbarView(std::make_unique<CContentToolbarView>(*m_Controller)),
+  m_FolderTreeView(std::make_unique<CFolderTreeView>(*m_Controller)),
+  m_NavigationBarView(std::make_unique<CNavigationBarView>(*m_Controller)),
+  m_AssetListView(std::make_unique<CAssetListView>(*m_Controller)),
+  m_AssetGridView(std::make_unique<CAssetGridView>(*m_Controller)),
+  m_DeleteConfirmationView(std::make_unique<CDeleteConfirmationView>(*m_Controller)),
+  m_SplitRatio(0.4f)
 {
   // Empty
 }
+
+CContentBrowserWindow::~CContentBrowserWindow() = default;
 
 //
 // CWindow
@@ -30,36 +42,31 @@ CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std
 
 void CContentBrowserWindow::OnGui()
 {
-  ImGui::InputText("Filter", m_Filter, sizeof(m_Filter));
-
-  if (ImGui::Button("Refresh"))
-    m_AssetManager->Refresh();
+  m_ToolbarView->Draw();
 
   ImGui::Separator();
 
-  if (!m_AssetManager->GetLastError().empty())
-    ImGui::TextWrapped("%s", m_AssetManager->GetLastError().c_str());
+  const float AvailableHeight = ImGui::GetContentRegionAvail().y;
 
-  if (!ImGui::BeginChild("##AssetList", ImVec2(0, 0), ImGuiChildFlags_Borders))
-  {
-    ImGui::EndChild();
-    return;
-  }
-
-  for (const auto & Asset : m_AssetManager->GetAssets())
-  {
-    const auto Label = Asset.RelativePath.generic_string();
-    if (m_Filter[0] && Label.find(m_Filter) == std::string::npos)
-      continue;
-
-    if (ImGui::Selectable(Label.c_str(), m_Selected == Label))
-      m_Selected = Label;
-
-    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-      m_WorkspaceManager->OpenAsset(Asset);
-  }
+  if (ImGui::BeginChild("##FolderTree", ImVec2(0.0f, AvailableHeight * m_SplitRatio)))
+    m_FolderTreeView->Draw();
 
   ImGui::EndChild();
+
+  ui::HorizontalSplitter("##ContentSplitter", m_SplitRatio, AvailableHeight, 0.1f, 0.9f);
+
+  m_NavigationBarView->Draw();
+
+  ImGui::Separator();
+
+  if (m_Controller->GetViewMode() == EContentViewMode::Grid)
+    m_AssetGridView->Draw();
+  else
+    m_AssetListView->Draw();
+
+  m_DeleteConfirmationView->Draw();
+
+  m_Controller->ApplyPendingActions();
 }
 
 } // namespace editor

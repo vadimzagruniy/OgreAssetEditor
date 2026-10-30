@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -43,6 +44,10 @@ public: // Interface
   void CloseActive();
 
   void CloseAll();
+
+  void CloseAssets(const std::filesystem::path & _Path);
+
+  void RelocateAssets(const std::filesystem::path & _OldPath, const std::filesystem::path & _NewPath, const std::filesystem::path & _AssetsRoot);
 
   CEditorWorkspace * GetActive() const noexcept;
 

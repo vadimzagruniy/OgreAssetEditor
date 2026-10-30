@@ -18,6 +18,10 @@ editor core.
 - OGRE resources are released when their editor tab is closed (unless still used elsewhere).
 - Mesh viewer: the mesh is rendered into a texture in its own scene and shown inside the tab;
   orbit camera (left mouse — rotate, right/middle mouse — pan, wheel — zoom).
+- Content browser built with MVP: a folder tree, a navigation bar and list/grid content views are passive views that
+  talk to the controller only through `IContentBrowserPresenter`; user actions are queued and applied after all views
+  are drawn. Create folder, rename (F2), duplicate (Ctrl+D), delete (Del) with confirmation, filter, breadcrumbs.
+- Open editor tabs follow file operations: renamed assets keep their tabs, deleted assets close them.
 - Built-in modules: Content Browser, Properties, Console, Texture viewer, Mesh viewer, Text editor.
 
 ## Building
@@ -48,12 +52,16 @@ src/
   platform/    OGRE + SDL application, frame and input dispatch
   ui/          ImGui window base classes and the tool window manager
     dock_layout/ default dock layout: dock slots and the layout builder
+    widgets/     small reusable ImGui widgets (splitter)
   editor/
     assets/      project asset scanning, asset type interface and registry
     modules/     module interface, static module registry, module lifecycle
     workspaces/  asset instances, editor workspaces and the workspace (tab) manager
   modules/     one folder per module
     console/  content_browser/  properties/  mesh/  texture/  text/
+    content_browser/
+      presenter/   IContentBrowserPresenter, CContentBrowserController (no ImGui)
+      views/       folder tree, navigation bar, list and grid views, toolbar, delete confirmation
 third_party/   OGRE 14.5.2 and Dear ImGui 1.91.1-docking as git submodules
 ```
 
