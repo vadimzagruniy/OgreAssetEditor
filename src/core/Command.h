@@ -18,6 +18,8 @@ public: // Interface
   virtual void Execute() = 0;
 
   virtual void Undo() = 0;
+
+  virtual bool MergeWith(const ICommand & _Next);
 };
 
 } // namespace editor::core

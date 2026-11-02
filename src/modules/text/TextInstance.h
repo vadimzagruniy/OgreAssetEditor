@@ -3,6 +3,7 @@
 #include "editor/workspaces/AssetInstance.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
 namespace editor
@@ -25,18 +26,21 @@ public: // CAssetInstance
 
 public: // Interface
 
-  std::string & GetContent() noexcept;
+  const std::string & GetContent() const noexcept;
 
-  bool IsDirty() const noexcept;
+  std::uint64_t GetRevision() const noexcept;
 
-  void MarkDirty() noexcept;
+  std::size_t GetLastChangeEnd() const noexcept;
+
+  void Replace(std::size_t _Offset, std::size_t _Count, const std::string & _Text);
 
   bool Save();
 
 private: // Attributes
 
-  std::string m_Content;
-  bool        m_Dirty = false;
+  std::string   m_Content;
+  std::uint64_t m_Revision;
+  std::size_t   m_LastChangeEnd;
 };
 
 } // namespace editor

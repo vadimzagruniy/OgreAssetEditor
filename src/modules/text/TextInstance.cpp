@@ -15,9 +15,11 @@ namespace editor
 
 CTextInstance::CTextInstance(TAssetRecord _Record, std::string _Content):
   CAssetInstance(std::move(_Record), "Text"),
-  m_Content(std::move(_Content))
+  m_Content(std::move(_Content)),
+  m_Revision(0),
+  m_LastChangeEnd(0)
 {
-  m_Content.reserve(std::min(MaxContentBytes, m_Content.size() + 4096));
+  // Empty
 }
 
 //
@@ -28,28 +30,37 @@ std::vector<TAssetProperty> CTextInstance::GetProperties() const
 {
   const auto LineCount = 1 + std::count(m_Content.begin(), m_Content.end(), '\n');
 
-  return {{"Bytes",    std::to_string(m_Content.size())},
-          {"Lines",    std::to_string(LineCount)       },
-          {"Modified", m_Dirty ? "Yes" : "No"          }};
+  return {{"Bytes", std::to_string(m_Content.size())},
+          {"Lines", std::to_string(LineCount)       }};
 }
 
 //
 // Interface
 //
 
-std::string & CTextInstance::GetContent() noexcept
+const std::string & CTextInstance::GetContent() const noexcept
 {
   return m_Content;
 }
 
-bool CTextInstance::IsDirty() const noexcept
+std::uint64_t CTextInstance::GetRevision() const noexcept
 {
-  return m_Dirty;
+  return m_Revision;
 }
 
-void CTextInstance::MarkDirty() noexcept
+std::size_t CTextInstance::GetLastChangeEnd() const noexcept
 {
-  m_Dirty = true;
+  return m_LastChangeEnd;
+}
+
+void CTextInstance::Replace(std::size_t _Offset, std::size_t _Count, const std::string & _Text)
+{
+  const std::size_t Offset = std::min(_Offset, m_Content.size());
+
+  m_Content.replace(Offset, _Count, _Text);
+
+  m_LastChangeEnd = Offset + _Text.size();
+  ++m_Revision;
 }
 
 bool CTextInstance::Save()
@@ -57,12 +68,7 @@ bool CTextInstance::Save()
   std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
   File.write(m_Content.data(), static_cast<std::streamsize>(m_Content.size()));
 
-  if (!File)
-    return false;
-
-  m_Dirty = false;
-
-  return true;
+  return static_cast<bool>(File);
 }
 
 } // namespace editor

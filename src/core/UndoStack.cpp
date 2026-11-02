@@ -37,6 +37,9 @@ void CUndoStack::Execute(std::unique_ptr<ICommand> _Command)
 
   _Command->Execute();
 
+  if (TryMerge(*_Command))
+    return;
+
   if (m_SavedCursor > m_Cursor)
     m_SavedCursor = UnreachableCursor;
 
@@ -102,6 +105,19 @@ void CUndoStack::MarkSaved() noexcept
 bool CUndoStack::IsAtSavePoint() const noexcept
 {
   return m_Cursor == m_SavedCursor;
+}
+
+//
+// Implementation
+//
+
+bool CUndoStack::TryMerge(const ICommand & _Command)
+{
+  const bool IsTopCommand = m_Cursor > 0 && m_Cursor == m_Commands.size();
+  if (!IsTopCommand || IsAtSavePoint())
+    return false;
+
+  return m_Commands.back()->MergeWith(_Command);
 }
 
 } // namespace editor::core

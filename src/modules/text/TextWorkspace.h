@@ -2,6 +2,7 @@
 
 #include "editor/workspaces/EditorWorkspace.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -19,13 +20,27 @@ public: // Constructor
 
 public: // CEditorWorkspace
 
-  bool IsDirty() const override;
-
   void OnGui() override;
 
 protected: // CEditorWorkspace
 
   bool OnSave(std::string & _Error) override;
+
+private: // Implementation
+
+  CTextInstance & GetTextInstance() const noexcept;
+
+  void SyncBuffer();
+
+  void CommitBuffer();
+
+  void HandleHistoryShortcuts();
+
+private: // Attributes
+
+  std::string   m_Buffer;
+  std::uint64_t m_BufferRevision;
+  unsigned int  m_EditSession;
 };
 
 } // namespace editor

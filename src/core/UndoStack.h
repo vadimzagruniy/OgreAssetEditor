@@ -40,6 +40,10 @@ public: // Interface
 
   bool IsAtSavePoint() const noexcept;
 
+private: // Implementation
+
+  bool TryMerge(const ICommand & _Command);
+
 private: // Attributes
 
   std::vector<std::unique_ptr<ICommand>> m_Commands;

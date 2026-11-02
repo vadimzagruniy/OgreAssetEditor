@@ -9,4 +9,13 @@ namespace editor::core
 
 ICommand::~ICommand() = default;
 
+//
+// Interface
+//
+
+bool ICommand::MergeWith(const ICommand & /*_Next*/)
+{
+  return false;
+}
+
 } // namespace editor::core

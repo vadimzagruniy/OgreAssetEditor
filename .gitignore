@@ -8,3 +8,6 @@ imgui.ini
 
 # Local rules for Claude, not for the public repository
 CLAUDE.local.md
+
+# Main rules for Claude, not for the public repository
+CLAUDE.md
