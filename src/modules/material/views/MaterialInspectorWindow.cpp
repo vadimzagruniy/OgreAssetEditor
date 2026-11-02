@@ -2,10 +2,10 @@
 #include "editor/assets/AssetManager.h"
 #include "editor/assets/AssetNode.h"
 #include "modules/material/MaterialDocument.h"
-#include "modules/material/MaterialEditingSession.h"
 #include "modules/material/MaterialInstance.h"
 #include "modules/material/MaterialNode.h"
 #include "modules/material/MaterialState.h"
+#include "modules/material/presenter/IMaterialEditorPresenter.h"
 #include "ui/ToolBoxDesc.h"
 
 #include <OgreCodec.h>
@@ -171,9 +171,9 @@ void CollectImages(const TAssetNode & _Folder, std::vector<std::string> & _Names
 // Constructor
 //
 
-CMaterialInspectorWindow::CMaterialInspectorWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CMaterialEditingSession> _Session, std::shared_ptr<CAssetManager> _AssetManager):
+CMaterialInspectorWindow::CMaterialInspectorWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<IMaterialEditorPresenter> _Presenter, std::shared_ptr<CAssetManager> _AssetManager):
   CDockedWindow(_Desc.Title, "MaterialInspector", _Desc.Visible),
-  m_Session(std::move(_Session)),
+  m_Presenter(std::move(_Presenter)),
   m_AssetManager(std::move(_AssetManager)),
   m_AmbientEdit("Ambient"),
   m_DiffuseEdit("Diffuse"),
@@ -196,7 +196,7 @@ CMaterialInspectorWindow::CMaterialInspectorWindow(const ui::TToolBoxDesc & _Des
 
 void CMaterialInspectorWindow::OnGui()
 {
-  const auto Document = m_Session->GetDocument();
+  const auto Document = m_Presenter->GetDocument();
   if (!Document)
   {
     ImGui::TextUnformatted("No material is open");
@@ -364,7 +364,7 @@ void CMaterialInspectorWindow::DrawTextureUnitState(const TTextureUnitState & _S
 
 void CMaterialInspectorWindow::EditPassState(const std::function<void(TPassState &)> & _Edit) const
 {
-  const auto Document = m_Session->GetDocument();
+  const auto Document = m_Presenter->GetDocument();
   if (!Document)
     return;
 
@@ -374,12 +374,12 @@ void CMaterialInspectorWindow::EditPassState(const std::function<void(TPassState
     return;
 
   _Edit(*State);
-  Document->Preview(Node, *State);
+  m_Presenter->Preview(Node, *State);
 }
 
 void CMaterialInspectorWindow::EditTextureUnitState(const std::function<void(TTextureUnitState &)> & _Edit) const
 {
-  const auto Document = m_Session->GetDocument();
+  const auto Document = m_Presenter->GetDocument();
   if (!Document)
     return;
 
@@ -389,13 +389,12 @@ void CMaterialInspectorWindow::EditTextureUnitState(const std::function<void(TTe
     return;
 
   _Edit(*State);
-  Document->Preview(Node, *State);
+  m_Presenter->Preview(Node, *State);
 }
 
 void CMaterialInspectorWindow::CommitEdit() const
 {
-  if (const auto Document = m_Session->GetDocument())
-    Document->CommitPreview();
+  m_Presenter->CommitEdit();
 }
 
 std::vector<std::string> CMaterialInspectorWindow::CollectTextureNames() const

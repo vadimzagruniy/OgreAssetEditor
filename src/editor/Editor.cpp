@@ -1,4 +1,5 @@
 #include "Editor.h"
+#include "core/ActionQueue.h"
 #include "core/EditorService.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
@@ -25,6 +26,7 @@ namespace editor
 
 CEditor::CEditor(std::filesystem::path _ProjectRoot):
   m_Log(std::make_shared<core::CLog>()),
+  m_ActionQueue(std::make_shared<core::CActionQueue>()),
   m_AssetManager(std::make_shared<CAssetManager>()),
   m_AssetTypes(std::make_shared<CAssetTypeRegistry>()),
   m_WorkspaceManager(std::make_shared<CWorkspaceManager>(m_AssetTypes, m_Log)),
@@ -53,6 +55,7 @@ CEditor::CEditor(std::filesystem::path _ProjectRoot):
   m_Services->Register(m_WorkspaceManager);
   m_Services->Register(m_WindowManager);
   m_Services->Register(m_Log);
+  m_Services->Register(m_ActionQueue);
 }
 
 CEditor::~CEditor() = default;
@@ -99,6 +102,8 @@ void CEditor::Draw()
 
   m_WorkspaceWindow->Draw();
   m_WindowManager->Draw();
+
+  m_ActionQueue->Apply();
 }
 
 void CEditor::SetQuitCallback(std::function<void()> _Callback)

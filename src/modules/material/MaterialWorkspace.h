@@ -16,7 +16,7 @@ class CText;
 
 enum class EPreviewShape;
 class CMaterialDocument;
-class CMaterialEditingSession;
+class CMaterialEditorController;
 class CMaterialInstance;
 class CPreviewScene;
 
@@ -25,7 +25,7 @@ class CMaterialWorkspace final:
 {
 public: // Constructor/Destructor
 
-  CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Instance, std::shared_ptr<CMaterialEditingSession> _Session);
+  CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Instance, std::shared_ptr<CMaterialEditorController> _Controller);
 
   ~CMaterialWorkspace() override;
 
@@ -53,14 +53,14 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<CMaterialEditingSession> m_Session;
-  std::shared_ptr<CMaterialDocument>       m_Document;
-  std::unique_ptr<CPreviewScene>           m_Preview;
-  EPreviewShape                            m_Shape;
-  int                                      m_PreviewMaterialIndex;
-  ui::CLayout                              m_Toolbar;
-  ui::CComboBox &                          m_ShapeCombo;
-  ui::CText &                              m_WarningText;
+  std::shared_ptr<CMaterialEditorController> m_Controller;
+  std::shared_ptr<CMaterialDocument>         m_Document;
+  std::unique_ptr<CPreviewScene>             m_Preview;
+  EPreviewShape                              m_Shape;
+  int                                        m_PreviewMaterialIndex;
+  ui::CLayout                                m_Toolbar;
+  ui::CComboBox &                            m_ShapeCombo;
+  ui::CText &                                m_WarningText;
 };
 
 } // namespace editor

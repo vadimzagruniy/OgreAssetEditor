@@ -12,6 +12,7 @@ namespace editor
 
 namespace core
 {
+class CActionQueue;
 class CLog;
 } // namespace core
 
@@ -24,7 +25,7 @@ class CContentBrowserController final:
 {
 public: // Constructor/Destructor
 
-  CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log);
+  CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue);
 
   ~CContentBrowserController() override;
 
@@ -78,10 +79,6 @@ public: // IContentBrowserPresenter actions
 
   void Refresh() override;
 
-public: // Interface
-
-  void ApplyPendingActions();
-
 private: // Implementation
 
   void Post(std::function<void()> _Action);
@@ -116,6 +113,7 @@ private: // Attributes
   std::shared_ptr<CAssetTypeRegistry> m_AssetTypes;
   std::shared_ptr<CWorkspaceManager>  m_WorkspaceManager;
   std::shared_ptr<core::CLog>         m_Log;
+  std::shared_ptr<core::CActionQueue> m_ActionQueue;
   std::filesystem::path               m_CurrentFolder;
   std::vector<TContentItem>           m_Items;
   std::set<std::filesystem::path>     m_Selection;
@@ -123,8 +121,6 @@ private: // Attributes
   std::string                         m_Filter;
   EContentViewMode                    m_ViewMode;
   bool                                m_IsDeleteRequested;
-  bool                                m_IsItemsDirty;
-  std::vector<std::function<void()>>  m_PendingActions;
   std::size_t                         m_ChangedConnection;
   std::size_t                         m_RenamedConnection;
 };

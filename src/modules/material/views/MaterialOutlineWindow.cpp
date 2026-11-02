@@ -1,8 +1,8 @@
 #include "MaterialOutlineWindow.h"
 #include "modules/material/MaterialDocument.h"
-#include "modules/material/MaterialEditingSession.h"
 #include "modules/material/MaterialInstance.h"
 #include "modules/material/MaterialNode.h"
+#include "modules/material/presenter/IMaterialEditorPresenter.h"
 #include "ui/ToolBoxDesc.h"
 
 #include <OgreMaterial.h>
@@ -35,28 +35,15 @@ std::string MakeLabel(const char * _Kind, std::size_t _Index, const std::string 
   return Label;
 }
 
-bool DrawNode(CMaterialDocument & _Document, const TMaterialNode & _Node, const std::string & _Label, ImGuiTreeNodeFlags _Flags)
-{
-  if (_Document.GetSelection() == _Node)
-    _Flags |= ImGuiTreeNodeFlags_Selected;
-
-  const bool IsOpen = ImGui::TreeNodeEx(_Label.c_str(), _Flags);
-
-  if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-    _Document.Select(_Node);
-
-  return IsOpen;
-}
-
 } // namespace
 
 //
 // Constructor
 //
 
-CMaterialOutlineWindow::CMaterialOutlineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CMaterialEditingSession> _Session):
+CMaterialOutlineWindow::CMaterialOutlineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<IMaterialEditorPresenter> _Presenter):
   CDockedWindow(_Desc.Title, "MaterialOutline", _Desc.Visible),
-  m_Session(std::move(_Session))
+  m_Presenter(std::move(_Presenter))
 {
   // Empty
 }
@@ -67,7 +54,7 @@ CMaterialOutlineWindow::CMaterialOutlineWindow(const ui::TToolBoxDesc & _Desc, s
 
 void CMaterialOutlineWindow::OnGui()
 {
-  const auto Document = m_Session->GetDocument();
+  const auto Document = m_Presenter->GetDocument();
   if (!Document)
   {
     ImGui::TextUnformatted("No material is open");
@@ -88,7 +75,7 @@ void CMaterialOutlineWindow::OnGui()
 // Implementation
 //
 
-void CMaterialOutlineWindow::DrawMaterial(CMaterialDocument & _Document, int _MaterialIndex)
+void CMaterialOutlineWindow::DrawMaterial(const CMaterialDocument & _Document, int _MaterialIndex) const
 {
   const auto & Instance      = _Document.GetInstance();
   const auto   MaterialIndex = static_cast<std::size_t>(_MaterialIndex);
@@ -111,7 +98,7 @@ void CMaterialOutlineWindow::DrawMaterial(CMaterialDocument & _Document, int _Ma
   ImGui::TreePop();
 }
 
-void CMaterialOutlineWindow::DrawTechnique(CMaterialDocument & _Document, const Ogre::Technique & _Technique, const TMaterialNode & _Node)
+void CMaterialOutlineWindow::DrawTechnique(const CMaterialDocument & _Document, const Ogre::Technique & _Technique, const TMaterialNode & _Node) const
 {
   const auto Label = MakeLabel("Technique", static_cast<std::size_t>(_Node.TechniqueIndex), _Technique.getName());
   if (!DrawNode(_Document, _Node, Label, BranchFlags))
@@ -127,7 +114,7 @@ void CMaterialOutlineWindow::DrawTechnique(CMaterialDocument & _Document, const 
   ImGui::TreePop();
 }
 
-void CMaterialOutlineWindow::DrawPass(CMaterialDocument & _Document, const Ogre::Pass & _Pass, const TMaterialNode & _Node)
+void CMaterialOutlineWindow::DrawPass(const CMaterialDocument & _Document, const Ogre::Pass & _Pass, const TMaterialNode & _Node) const
 {
   const auto Label            = MakeLabel("Pass", static_cast<std::size_t>(_Node.PassIndex), _Pass.getName());
   const auto TextureUnitCount = _Pass.getNumTextureUnitStates();
@@ -151,10 +138,23 @@ void CMaterialOutlineWindow::DrawPass(CMaterialDocument & _Document, const Ogre:
   ImGui::TreePop();
 }
 
-void CMaterialOutlineWindow::DrawTextureUnit(CMaterialDocument & _Document, const Ogre::TextureUnitState & _TextureUnit, const TMaterialNode & _Node)
+void CMaterialOutlineWindow::DrawTextureUnit(const CMaterialDocument & _Document, const Ogre::TextureUnitState & _TextureUnit, const TMaterialNode & _Node) const
 {
   const auto Label = MakeLabel("Texture", static_cast<std::size_t>(_Node.TextureUnitIndex), _TextureUnit.getTextureName());
   DrawNode(_Document, _Node, Label, LeafFlags);
+}
+
+bool CMaterialOutlineWindow::DrawNode(const CMaterialDocument & _Document, const TMaterialNode & _Node, const std::string & _Label, int _Flags) const
+{
+  if (_Document.GetSelection() == _Node)
+    _Flags |= ImGuiTreeNodeFlags_Selected;
+
+  const bool IsOpen = ImGui::TreeNodeEx(_Label.c_str(), _Flags);
+
+  if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    m_Presenter->Select(_Node);
+
+  return IsOpen;
 }
 
 } // namespace editor

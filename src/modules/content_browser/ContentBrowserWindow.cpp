@@ -65,8 +65,6 @@ void CContentBrowserWindow::OnGui()
     m_AssetListView->Draw();
 
   m_DeleteConfirmationView->Draw();
-
-  m_Controller->ApplyPendingActions();
 }
 
 } // namespace editor

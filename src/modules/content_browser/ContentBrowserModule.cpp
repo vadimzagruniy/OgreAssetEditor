@@ -1,5 +1,6 @@
 #include "ContentBrowserModule.h"
 #include "ContentBrowserWindow.h"
+#include "core/ActionQueue.h"
 #include "core/EditorService.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
@@ -31,14 +32,15 @@ bool CContentBrowserModule::Startup(core::CEditorService & _Services, std::strin
   auto WorkspaceManager = _Services.GetService<CWorkspaceManager>();
   auto AssetTypes       = _Services.GetService<CAssetTypeRegistry>();
   auto EditorLog        = _Services.GetService<core::CLog>();
+  auto ActionQueue      = _Services.GetService<core::CActionQueue>();
 
-  if (!WindowManager || !AssetManager || !WorkspaceManager || !AssetTypes || !EditorLog)
+  if (!WindowManager || !AssetManager || !WorkspaceManager || !AssetTypes || !EditorLog || !ActionQueue)
   {
-    _Error = "Content Browser module requires the window manager, asset manager, workspace manager, asset type registry and log services.";
+    _Error = "Content Browser module requires the window manager, asset manager, workspace manager, asset type registry, log and action queue services.";
     return false;
   }
 
-  auto Controller = std::make_shared<CContentBrowserController>(std::move(AssetManager), std::move(AssetTypes), std::move(WorkspaceManager), std::move(EditorLog));
+  auto Controller = std::make_shared<CContentBrowserController>(std::move(AssetManager), std::move(AssetTypes), std::move(WorkspaceManager), std::move(EditorLog), std::move(ActionQueue));
 
   m_WindowManager = std::move(WindowManager);
 

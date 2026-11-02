@@ -1,4 +1,5 @@
 #include "ContentBrowserController.h"
+#include "core/ActionQueue.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
 #include "editor/assets/AssetNode.h"
@@ -34,17 +35,19 @@ std::string ToLower(std::string _Text)
 // Constructor/Destructor
 //
 
-CContentBrowserController::CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log):
+CContentBrowserController::CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_AssetManager(std::move(_AssetManager)),
   m_AssetTypes(std::move(_AssetTypes)),
   m_WorkspaceManager(std::move(_WorkspaceManager)),
   m_Log(std::move(_Log)),
+  m_ActionQueue(std::move(_ActionQueue)),
   m_ViewMode(EContentViewMode::Grid),
   m_IsDeleteRequested(false),
-  m_IsItemsDirty(true),
   m_ChangedConnection(0),
   m_RenamedConnection(0)
 {
+  RebuildItems();
+
   m_ChangedConnection = m_AssetManager->GetChangedSignal().Connect([this]
   {
     HandleAssetsChanged();
@@ -221,28 +224,12 @@ void CContentBrowserController::Refresh()
 }
 
 //
-// Interface
-//
-
-void CContentBrowserController::ApplyPendingActions()
-{
-  auto Actions = std::move(m_PendingActions);
-  m_PendingActions.clear();
-
-  for (const auto & Action : Actions)
-    Action();
-
-  if (m_IsItemsDirty)
-    RebuildItems();
-}
-
-//
 // Implementation
 //
 
 void CContentBrowserController::Post(std::function<void()> _Action)
 {
-  m_PendingActions.push_back(std::move(_Action));
+  m_ActionQueue->Post(std::move(_Action));
 }
 
 void CContentBrowserController::ApplyNavigate(const std::filesystem::path & _Folder)
@@ -416,7 +403,6 @@ void CContentBrowserController::HandleAssetRenamed(const std::filesystem::path &
 
 void CContentBrowserController::RebuildItems()
 {
-  m_IsItemsDirty = false;
   m_Items.clear();
 
   if (!m_AssetManager->HasNode(m_CurrentFolder))

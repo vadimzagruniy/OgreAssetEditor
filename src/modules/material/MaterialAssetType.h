@@ -7,14 +7,14 @@
 namespace editor
 {
 
-class CMaterialEditingSession;
+class CMaterialEditorController;
 
 class CMaterialAssetType final:
   public IAssetType
 {
 public: // Constructor
 
-  explicit CMaterialAssetType(std::shared_ptr<CMaterialEditingSession> _Session);
+  explicit CMaterialAssetType(std::shared_ptr<CMaterialEditorController> _Controller);
 
 public: // IAssetType
 
@@ -24,7 +24,7 @@ public: // IAssetType
 
 private: // Attributes
 
-  std::shared_ptr<CMaterialEditingSession> m_Session;
+  std::shared_ptr<CMaterialEditorController> m_Controller;
 };
 
 } // namespace editor

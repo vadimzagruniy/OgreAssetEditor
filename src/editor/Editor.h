@@ -10,6 +10,7 @@ namespace editor
 
 namespace core
 {
+class CActionQueue;
 class CEditorService;
 class CLog;
 } // namespace core
@@ -69,6 +70,7 @@ private: // Implementation
 private: // Attributes
 
   std::shared_ptr<core::CLog>           m_Log;
+  std::shared_ptr<core::CActionQueue>   m_ActionQueue;
   std::shared_ptr<CAssetManager>        m_AssetManager;
   std::shared_ptr<CAssetTypeRegistry>   m_AssetTypes;
   std::shared_ptr<CWorkspaceManager>    m_WorkspaceManager;

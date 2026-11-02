@@ -93,8 +93,8 @@ bool HasExpandedFeatures(const std::string & _Script)
 // Constructor
 //
 
-CMaterialAssetType::CMaterialAssetType(std::shared_ptr<CMaterialEditingSession> _Session):
-  m_Session(std::move(_Session))
+CMaterialAssetType::CMaterialAssetType(std::shared_ptr<CMaterialEditorController> _Controller):
+  m_Controller(std::move(_Controller))
 {
   // Empty
 }
@@ -136,7 +136,7 @@ std::unique_ptr<CEditorWorkspace> CMaterialAssetType::OpenAsset(const TAssetReco
   }
 
   auto Instance = std::make_unique<CMaterialInstance>(_Asset, Materials, HasExpandedFeatures(Script));
-  return std::make_unique<CMaterialWorkspace>(std::move(Instance), m_Session);
+  return std::make_unique<CMaterialWorkspace>(std::move(Instance), m_Controller);
 }
 
 } // namespace editor

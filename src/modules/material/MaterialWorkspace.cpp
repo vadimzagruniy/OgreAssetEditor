@@ -1,10 +1,10 @@
 #include "MaterialWorkspace.h"
 #include "MaterialDocument.h"
-#include "MaterialEditingSession.h"
 #include "MaterialInstance.h"
 #include "editor/render/PreviewScene.h"
 #include "editor/render/PreviewShape.h"
 #include "editor/render/PreviewViewport.h"
+#include "presenter/MaterialEditorController.h"
 #include "views/MaterialInspectorWindow.h"
 #include "views/MaterialOutlineWindow.h"
 #include "ui/elements/ComboBox.h"
@@ -56,9 +56,9 @@ std::optional<std::size_t> FindShapeIndex(EPreviewShape _Shape)
 // Constructor/Destructor
 //
 
-CMaterialWorkspace::CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Instance, std::shared_ptr<CMaterialEditingSession> _Session):
+CMaterialWorkspace::CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Instance, std::shared_ptr<CMaterialEditorController> _Controller):
   CEditorWorkspace(std::move(_Instance)),
-  m_Session(std::move(_Session)),
+  m_Controller(std::move(_Controller)),
   m_Document(std::make_shared<CMaterialDocument>(*static_cast<CMaterialInstance *>(GetInstance()), GetUndoStack())),
   m_Preview(std::make_unique<CPreviewScene>()),
   m_Shape(EPreviewShape::Sphere),
@@ -85,14 +85,14 @@ std::vector<core::TTypeKey> CMaterialWorkspace::GetToolBoxes() const
 
 void CMaterialWorkspace::OnActivated()
 {
-  m_Session->SetDocument(m_Document);
+  m_Controller->SetDocument(m_Document);
   m_Preview->SetActive(true);
 }
 
 void CMaterialWorkspace::OnDeactivated()
 {
   m_Document->CommitPreview();
-  m_Session->ResetDocument(*m_Document);
+  m_Controller->ResetDocument(*m_Document);
   m_Preview->SetActive(false);
 }
 
