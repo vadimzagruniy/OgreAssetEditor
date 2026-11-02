@@ -70,6 +70,7 @@ void CElement::Draw(const ImVec2 & _Size)
   ImGui::EndDisabled();
   PopStyle();
 
+  NotifyEditState();
   ShowTooltip();
 }
 
@@ -163,6 +164,16 @@ void CElement::SetStyleVar(ImGuiStyleVar _Index, const TStyleVar::TValue & _Valu
   m_StyleVars.push_back({_Index, _Value});
 }
 
+void CElement::SetEditBeginCallback(std::function<void()> _Callback)
+{
+  m_EditBeginCallback = std::move(_Callback);
+}
+
+void CElement::SetEditEndCallback(std::function<void()> _Callback)
+{
+  m_EditEndCallback = std::move(_Callback);
+}
+
 //
 // Derived interface
 //
@@ -182,6 +193,11 @@ float CElement::CalcSideLabelWidth() const
     return 0.0f;
 
   return ImGui::GetStyle().ItemInnerSpacing.x + TextWidth;
+}
+
+ImVec2 CElement::CalcDefaultItemSize() const
+{
+  return ImVec2(ImGui::CalcItemWidth() + CalcSideLabelWidth(), ImGui::GetFrameHeight());
 }
 
 //
@@ -228,6 +244,15 @@ void CElement::ShowTooltip() const
     return;
 
   ImGui::SetItemTooltip("%s", m_Tooltip.c_str());
+}
+
+void CElement::NotifyEditState() const
+{
+  if (m_EditBeginCallback && ImGui::IsItemActivated())
+    m_EditBeginCallback();
+
+  if (m_EditEndCallback && ImGui::IsItemDeactivatedAfterEdit())
+    m_EditEndCallback();
 }
 
 } // namespace editor::ui

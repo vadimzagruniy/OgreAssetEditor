@@ -6,6 +6,7 @@
 
 #include <imgui.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -66,6 +67,10 @@ protected: // Setup
 
   void SetStyleVar(ImGuiStyleVar _Index, const TStyleVar::TValue & _Value);
 
+  void SetEditBeginCallback(std::function<void()> _Callback);
+
+  void SetEditEndCallback(std::function<void()> _Callback);
+
 protected: // Derived interface
 
   virtual ImVec2 CalcContentSize() const = 0;
@@ -73,6 +78,8 @@ protected: // Derived interface
   ImVec2 CalcLabelFrameSize() const;
 
   float CalcSideLabelWidth() const;
+
+  ImVec2 CalcDefaultItemSize() const;
 
 private: // Service
 
@@ -86,6 +93,8 @@ private: // Service
 
   void ShowTooltip() const;
 
+  void NotifyEditState() const;
+
 protected: // Events
 
   virtual void OnDraw(const ImVec2 & _Size) = 0;
@@ -98,6 +107,8 @@ private: // Attributes
   TSizeRule                m_Height;
   std::vector<TStyleColor> m_StyleColors;
   std::vector<TStyleVar>   m_StyleVars;
+  std::function<void()>    m_EditBeginCallback;
+  std::function<void()>    m_EditEndCallback;
   bool                     m_IsVisible;
   bool                     m_IsEnabled;
 };

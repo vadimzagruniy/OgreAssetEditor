@@ -1,7 +1,12 @@
 #pragma once
 
 #include "ui/DockedWindow.h"
+#include "ui/elements/CheckBox.h"
+#include "ui/elements/ColorEdit.h"
+#include "ui/elements/ComboBox.h"
+#include "ui/elements/DragFloat.h"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,9 +37,19 @@ private: // CWindow
 
 private: // Implementation
 
-  static bool DrawPassState(TPassState & _State);
+  void SetupPassElements();
 
-  bool DrawTextureUnitState(TTextureUnitState & _State) const;
+  void SetupTextureUnitElements();
+
+  void DrawPassState(const TPassState & _State);
+
+  void DrawTextureUnitState(const TTextureUnitState & _State);
+
+  void EditPassState(const std::function<void(TPassState &)> & _Edit) const;
+
+  void EditTextureUnitState(const std::function<void(TTextureUnitState &)> & _Edit) const;
+
+  void CommitEdit() const;
 
   std::vector<std::string> CollectTextureNames() const;
 
@@ -42,6 +57,16 @@ private: // Attributes
 
   std::shared_ptr<CMaterialEditingSession> m_Session;
   std::shared_ptr<CAssetManager>           m_AssetManager;
+  ui::CColorEdit                           m_AmbientEdit;
+  ui::CColorEdit                           m_DiffuseEdit;
+  ui::CColorEdit                           m_SpecularEdit;
+  ui::CColorEdit                           m_EmissiveEdit;
+  ui::CDragFloat                           m_ShininessDrag;
+  ui::CComboBox                            m_BlendingCombo;
+  ui::CCheckBox                            m_DepthWriteCheck;
+  ui::CComboBox                            m_CullingCombo;
+  ui::CComboBox                            m_ImageCombo;
+  ui::CComboBox                            m_AddressingCombo;
 };
 
 } // namespace editor

@@ -2,6 +2,7 @@
 
 #include "ui/elements/Element.h"
 
+#include <functional>
 #include <string>
 #include <utility>
 
@@ -39,6 +40,10 @@ public: // Setup
   TDerived & SetStyleVar(ImGuiStyleVar _Index, float _Value);
 
   TDerived & SetStyleVar(ImGuiStyleVar _Index, const ImVec2 & _Value);
+
+  TDerived & OnEditBegin(std::function<void()> _Callback);
+
+  TDerived & OnEditEnd(std::function<void()> _Callback);
 
 private: // Service
 
@@ -130,6 +135,20 @@ template <class TDerived>
 TDerived & CElementSetup<TDerived>::SetStyleVar(ImGuiStyleVar _Index, const ImVec2 & _Value)
 {
   CElement::SetStyleVar(_Index, _Value);
+  return GetSelf();
+}
+
+template <class TDerived>
+TDerived & CElementSetup<TDerived>::OnEditBegin(std::function<void()> _Callback)
+{
+  CElement::SetEditBeginCallback(std::move(_Callback));
+  return GetSelf();
+}
+
+template <class TDerived>
+TDerived & CElementSetup<TDerived>::OnEditEnd(std::function<void()> _Callback)
+{
+  CElement::SetEditEndCallback(std::move(_Callback));
   return GetSelf();
 }
 

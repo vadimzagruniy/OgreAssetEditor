@@ -18,8 +18,8 @@
 #include <cctype>
 #include <cstddef>
 #include <filesystem>
+#include <iterator>
 #include <optional>
-#include <string_view>
 #include <utility>
 
 namespace editor
@@ -65,73 +65,77 @@ constexpr std::array<TAddressOption, 3> AddressOptions{{
   {"Mirror", Ogre::TAM_MIRROR}
 }};
 
-const char * GetBlendLabel(const TPassState & _State)
+template <class TOptions>
+std::vector<std::string> CollectLabels(const TOptions & _Options)
 {
-  for (const auto & Option : BlendOptions)
+  std::vector<std::string> Labels;
+  Labels.reserve(_Options.size());
+
+  for (const auto & Option : _Options)
+    Labels.emplace_back(Option.Label);
+
+  return Labels;
+}
+
+std::optional<std::size_t> FindBlendIndex(const TPassState & _State)
+{
+  for (std::size_t OptionIndex = 0; OptionIndex < BlendOptions.size(); ++OptionIndex)
   {
+    const auto & Option = BlendOptions[OptionIndex];
     if (Option.SourceBlend == _State.SourceBlend && Option.DestBlend == _State.DestBlend)
-      return Option.Label;
+      return OptionIndex;
   }
 
-  return "Custom";
+  return std::nullopt;
 }
 
-const char * GetCullingLabel(Ogre::CullingMode _Culling)
+std::optional<std::size_t> FindCullingIndex(Ogre::CullingMode _Culling)
 {
-  for (const auto & Option : CullingOptions)
+  for (std::size_t OptionIndex = 0; OptionIndex < CullingOptions.size(); ++OptionIndex)
   {
-    if (Option.Culling == _Culling)
-      return Option.Label;
+    if (CullingOptions[OptionIndex].Culling == _Culling)
+      return OptionIndex;
   }
 
-  return "Unknown";
+  return std::nullopt;
 }
 
-const char * GetAddressLabel(const TTextureUnitState & _State)
+bool IsAddressingMixed(const TTextureUnitState & _State)
 {
-  if (_State.AddressU != _State.AddressV || _State.AddressU != _State.AddressW)
-    return "Mixed";
-
-  for (const auto & Option : AddressOptions)
-  {
-    if (Option.AddressMode == _State.AddressU)
-      return Option.Label;
-  }
-
-  return "Border";
+  return _State.AddressU != _State.AddressV || _State.AddressU != _State.AddressW;
 }
 
-template <class TOptions, class TGetLabel>
-std::optional<std::size_t> DrawCombo(const char * _Label, const char * _Preview, const TOptions & _Options, TGetLabel _GetLabel)
+std::optional<std::size_t> FindAddressIndex(const TTextureUnitState & _State)
 {
-  if (!ImGui::BeginCombo(_Label, _Preview))
+  if (IsAddressingMixed(_State))
     return std::nullopt;
 
-  std::optional<std::size_t> Choice;
-
-  for (std::size_t OptionIndex = 0; OptionIndex < _Options.size(); ++OptionIndex)
+  for (std::size_t OptionIndex = 0; OptionIndex < AddressOptions.size(); ++OptionIndex)
   {
-    const char * OptionLabel = _GetLabel(_Options[OptionIndex]);
-    const bool   IsSelected  = std::string_view(OptionLabel) == _Preview;
-
-    if (ImGui::Selectable(OptionLabel, IsSelected) && !IsSelected)
-      Choice = OptionIndex;
+    if (AddressOptions[OptionIndex].AddressMode == _State.AddressU)
+      return OptionIndex;
   }
 
-  ImGui::EndCombo();
-
-  return Choice;
+  return std::nullopt;
 }
 
-template <class TOption>
-const char * GetOptionLabel(const TOption & _Option)
+std::optional<std::size_t> FindNameIndex(const std::vector<std::string> & _Names, const std::string & _Name)
 {
-  return _Option.Label;
+  const auto NameIterator = std::ranges::find(_Names, _Name);
+  if (NameIterator == _Names.end())
+    return std::nullopt;
+
+  return static_cast<std::size_t>(std::distance(_Names.begin(), NameIterator));
 }
 
-const char * GetNameLabel(const std::string & _Name)
+ImVec4 ToImVec4(const Ogre::ColourValue & _Colour)
 {
-  return _Name.c_str();
+  return ImVec4(_Colour.r, _Colour.g, _Colour.b, _Colour.a);
+}
+
+Ogre::ColourValue ToColourValue(const ImVec4 & _Colour)
+{
+  return Ogre::ColourValue(_Colour.x, _Colour.y, _Colour.z, _Colour.w);
 }
 
 bool IsImageFile(const std::filesystem::path & _Path)
@@ -170,9 +174,20 @@ void CollectImages(const TAssetNode & _Folder, std::vector<std::string> & _Names
 CMaterialInspectorWindow::CMaterialInspectorWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CMaterialEditingSession> _Session, std::shared_ptr<CAssetManager> _AssetManager):
   CDockedWindow(_Desc.Title, "MaterialInspector", _Desc.Visible),
   m_Session(std::move(_Session)),
-  m_AssetManager(std::move(_AssetManager))
+  m_AssetManager(std::move(_AssetManager)),
+  m_AmbientEdit("Ambient"),
+  m_DiffuseEdit("Diffuse"),
+  m_SpecularEdit("Specular"),
+  m_EmissiveEdit("Emissive"),
+  m_ShininessDrag("Shininess"),
+  m_BlendingCombo("Blending"),
+  m_DepthWriteCheck("Depth Write"),
+  m_CullingCombo("Culling"),
+  m_ImageCombo("Image"),
+  m_AddressingCombo("Addressing")
 {
-  // Empty
+  SetupPassElements();
+  SetupTextureUnitElements();
 }
 
 //
@@ -195,86 +210,192 @@ void CMaterialInspectorWindow::OnGui()
     ImGui::Separator();
   }
 
-  if (auto PassState = Document->GetPassState(Node))
+  if (const auto PassState = Document->GetPassState(Node))
   {
-    if (DrawPassState(*PassState))
-      Document->Preview(Node, *PassState);
+    DrawPassState(*PassState);
   }
   else
-  if (auto TextureUnitState = Document->GetTextureUnitState(Node))
+  if (const auto TextureUnitState = Document->GetTextureUnitState(Node))
   {
-    if (DrawTextureUnitState(*TextureUnitState))
-      Document->Preview(Node, *TextureUnitState);
+    DrawTextureUnitState(*TextureUnitState);
   }
   else
   {
     ImGui::TextDisabled("Select a pass or a texture in the outline.");
   }
-
-  if (!ImGui::IsAnyItemActive() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel))
-    Document->CommitPreview();
 }
 
 //
 // Implementation
 //
 
-bool CMaterialInspectorWindow::DrawPassState(TPassState & _State)
+void CMaterialInspectorWindow::SetupPassElements()
 {
-  bool IsChanged = false;
+  const auto BindColor = [this](ui::CColorEdit & _Edit, Ogre::ColourValue TPassState::* _Field, bool _IsAlphaEnabled)
+  {
+    _Edit.SetAlphaEnabled(_IsAlphaEnabled).OnChanged([this, _Field](const ImVec4 & _Colour)
+    {
+      EditPassState([&_Colour, _Field](TPassState & _State)
+      {
+        _State.*_Field = ToColourValue(_Colour);
+      });
+    }).OnEditEnd([this]
+    {
+      CommitEdit();
+    });
+  };
+
+  BindColor(m_AmbientEdit,  &TPassState::Ambient,  false);
+  BindColor(m_DiffuseEdit,  &TPassState::Diffuse,  true);
+  BindColor(m_SpecularEdit, &TPassState::Specular, false);
+  BindColor(m_EmissiveEdit, &TPassState::Emissive, false);
+
+  m_ShininessDrag.SetRange(0.0f, 128.0f).SetSpeed(0.5f).SetFormat("%.1f").OnChanged([this](float _Shininess)
+  {
+    EditPassState([_Shininess](TPassState & _State)
+    {
+      _State.Shininess = _Shininess;
+    });
+  }).OnEditEnd([this]
+  {
+    CommitEdit();
+  });
+
+  m_BlendingCombo.SetItems(CollectLabels(BlendOptions)).SetPlaceholder("Custom").OnSelected([this](std::size_t _OptionIndex)
+  {
+    EditPassState([_OptionIndex](TPassState & _State)
+    {
+      _State.SourceBlend = BlendOptions[_OptionIndex].SourceBlend;
+      _State.DestBlend   = BlendOptions[_OptionIndex].DestBlend;
+    });
+
+    CommitEdit();
+  });
+
+  m_DepthWriteCheck.OnToggled([this](bool _IsEnabled)
+  {
+    EditPassState([_IsEnabled](TPassState & _State)
+    {
+      _State.IsDepthWriteEnabled = _IsEnabled;
+    });
+
+    CommitEdit();
+  });
+
+  m_CullingCombo.SetItems(CollectLabels(CullingOptions)).SetPlaceholder("Unknown").OnSelected([this](std::size_t _OptionIndex)
+  {
+    EditPassState([_OptionIndex](TPassState & _State)
+    {
+      _State.Culling = CullingOptions[_OptionIndex].Culling;
+    });
+
+    CommitEdit();
+  });
+}
+
+void CMaterialInspectorWindow::SetupTextureUnitElements()
+{
+  m_ImageCombo.OnSelected([this](std::size_t _NameIndex)
+  {
+    const auto & Names = m_ImageCombo.GetItems();
+    if (_NameIndex >= Names.size())
+      return;
+
+    EditTextureUnitState([&Name = Names[_NameIndex]](TTextureUnitState & _State)
+    {
+      _State.TextureName = Name;
+    });
+
+    CommitEdit();
+  });
+
+  m_AddressingCombo.SetItems(CollectLabels(AddressOptions)).OnSelected([this](std::size_t _OptionIndex)
+  {
+    EditTextureUnitState([_OptionIndex](TTextureUnitState & _State)
+    {
+      _State.AddressU = AddressOptions[_OptionIndex].AddressMode;
+      _State.AddressV = AddressOptions[_OptionIndex].AddressMode;
+      _State.AddressW = AddressOptions[_OptionIndex].AddressMode;
+    });
+
+    CommitEdit();
+  });
+}
+
+void CMaterialInspectorWindow::DrawPassState(const TPassState & _State)
+{
+  m_AmbientEdit.SetValue(ToImVec4(_State.Ambient));
+  m_DiffuseEdit.SetValue(ToImVec4(_State.Diffuse));
+  m_SpecularEdit.SetValue(ToImVec4(_State.Specular));
+  m_EmissiveEdit.SetValue(ToImVec4(_State.Emissive));
+  m_ShininessDrag.SetValue(_State.Shininess);
+  m_BlendingCombo.SetSelectedIndex(FindBlendIndex(_State));
+  m_DepthWriteCheck.SetChecked(_State.IsDepthWriteEnabled);
+  m_CullingCombo.SetSelectedIndex(FindCullingIndex(_State.Culling));
 
   ImGui::SeparatorText("Lighting");
 
-  IsChanged |= ImGui::ColorEdit3("Ambient", _State.Ambient.ptr());
-  IsChanged |= ImGui::ColorEdit4("Diffuse", _State.Diffuse.ptr());
-  IsChanged |= ImGui::ColorEdit3("Specular", _State.Specular.ptr());
-  IsChanged |= ImGui::ColorEdit3("Emissive", _State.Emissive.ptr());
-  IsChanged |= ImGui::DragFloat("Shininess", &_State.Shininess, 0.5f, 0.0f, 128.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+  m_AmbientEdit.Draw();
+  m_DiffuseEdit.Draw();
+  m_SpecularEdit.Draw();
+  m_EmissiveEdit.Draw();
+  m_ShininessDrag.Draw();
 
   ImGui::SeparatorText("Output");
 
-  if (const auto Choice = DrawCombo("Blending", GetBlendLabel(_State), BlendOptions, GetOptionLabel<TBlendOption>))
-  {
-    _State.SourceBlend = BlendOptions[*Choice].SourceBlend;
-    _State.DestBlend   = BlendOptions[*Choice].DestBlend;
-    IsChanged          = true;
-  }
-
-  IsChanged |= ImGui::Checkbox("Depth Write", &_State.IsDepthWriteEnabled);
-
-  if (const auto Choice = DrawCombo("Culling", GetCullingLabel(_State.Culling), CullingOptions, GetOptionLabel<TCullingOption>))
-  {
-    _State.Culling = CullingOptions[*Choice].Culling;
-    IsChanged      = true;
-  }
-
-  return IsChanged;
+  m_BlendingCombo.Draw();
+  m_DepthWriteCheck.Draw();
+  m_CullingCombo.Draw();
 }
 
-bool CMaterialInspectorWindow::DrawTextureUnitState(TTextureUnitState & _State) const
+void CMaterialInspectorWindow::DrawTextureUnitState(const TTextureUnitState & _State)
 {
-  bool IsChanged = false;
+  auto TextureNames = CollectTextureNames();
+  const auto NameIndex = FindNameIndex(TextureNames, _State.TextureName);
+
+  m_ImageCombo.SetItems(std::move(TextureNames)).SetSelectedIndex(NameIndex).SetPlaceholder(_State.TextureName.empty() ? "<none>" : _State.TextureName);
+  m_AddressingCombo.SetSelectedIndex(FindAddressIndex(_State)).SetPlaceholder(IsAddressingMixed(_State) ? "Mixed" : "Border");
 
   ImGui::SeparatorText("Texture");
 
-  const char * ImagePreview = _State.TextureName.empty() ? "<none>" : _State.TextureName.c_str();
-  const auto   TextureNames = CollectTextureNames();
+  m_ImageCombo.Draw();
+  m_AddressingCombo.Draw();
+}
 
-  if (const auto Choice = DrawCombo("Image", ImagePreview, TextureNames, GetNameLabel))
-  {
-    _State.TextureName = TextureNames[*Choice];
-    IsChanged          = true;
-  }
+void CMaterialInspectorWindow::EditPassState(const std::function<void(TPassState &)> & _Edit) const
+{
+  const auto Document = m_Session->GetDocument();
+  if (!Document)
+    return;
 
-  if (const auto Choice = DrawCombo("Addressing", GetAddressLabel(_State), AddressOptions, GetOptionLabel<TAddressOption>))
-  {
-    _State.AddressU = AddressOptions[*Choice].AddressMode;
-    _State.AddressV = AddressOptions[*Choice].AddressMode;
-    _State.AddressW = AddressOptions[*Choice].AddressMode;
-    IsChanged       = true;
-  }
+  const TMaterialNode Node  = Document->GetSelection();
+  auto                State = Document->GetPassState(Node);
+  if (!State)
+    return;
 
-  return IsChanged;
+  _Edit(*State);
+  Document->Preview(Node, *State);
+}
+
+void CMaterialInspectorWindow::EditTextureUnitState(const std::function<void(TTextureUnitState &)> & _Edit) const
+{
+  const auto Document = m_Session->GetDocument();
+  if (!Document)
+    return;
+
+  const TMaterialNode Node  = Document->GetSelection();
+  auto                State = Document->GetTextureUnitState(Node);
+  if (!State)
+    return;
+
+  _Edit(*State);
+  Document->Preview(Node, *State);
+}
+
+void CMaterialInspectorWindow::CommitEdit() const
+{
+  if (const auto Document = m_Session->GetDocument())
+    Document->CommitPreview();
 }
 
 std::vector<std::string> CMaterialInspectorWindow::CollectTextureNames() const

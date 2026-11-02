@@ -22,15 +22,7 @@ CComboBox::CComboBox(std::string _Label):
 
 ImVec2 CComboBox::CalcContentSize() const
 {
-  float PreviewWidth = ImGui::CalcTextSize(m_Placeholder.c_str()).x;
-
-  for (const auto & Item : m_Items)
-    PreviewWidth = std::max(PreviewWidth, ImGui::CalcTextSize(Item.c_str()).x);
-
-  const float FrameHeight = ImGui::GetFrameHeight();
-  const float FrameWidth  = PreviewWidth + ImGui::GetStyle().FramePadding.x * 2.0f + FrameHeight;
-
-  return ImVec2(FrameWidth + CalcSideLabelWidth(), FrameHeight);
+  return CalcDefaultItemSize();
 }
 
 void CComboBox::OnDraw(const ImVec2 & _Size)
@@ -84,6 +76,11 @@ CComboBox & CComboBox::OnSelected(std::function<void(std::size_t)> _Callback)
 //
 // Interface
 //
+
+const std::vector<std::string> & CComboBox::GetItems() const noexcept
+{
+  return m_Items;
+}
 
 std::optional<std::size_t> CComboBox::GetSelectedIndex() const noexcept
 {

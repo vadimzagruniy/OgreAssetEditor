@@ -36,6 +36,8 @@ public: // Setup
 
 public: // Interface
 
+  const std::vector<std::string> & GetItems() const noexcept;
+
   std::optional<std::size_t> GetSelectedIndex() const noexcept;
 
 private: // Service

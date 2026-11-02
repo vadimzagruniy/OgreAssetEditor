@@ -40,10 +40,7 @@ CInputText::CInputText(std::string _Label):
 
 ImVec2 CInputText::CalcContentSize() const
 {
-  const float TextWidth  = std::max(ImGui::CalcTextSize(m_Text.c_str()).x, ImGui::CalcTextSize(m_Hint.c_str()).x);
-  const float FrameWidth = TextWidth + ImGui::GetStyle().FramePadding.x * 2.0f;
-
-  return ImVec2(FrameWidth + CalcSideLabelWidth(), ImGui::GetFrameHeight());
+  return CalcDefaultItemSize();
 }
 
 void CInputText::OnDraw(const ImVec2 & _Size)
