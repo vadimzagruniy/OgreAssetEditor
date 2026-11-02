@@ -5,3 +5,6 @@
 
 # ImGui window layout, rewritten on every run
 imgui.ini
+
+# Local rules for Claude, not for the public repository
+CLAUDE.local.md

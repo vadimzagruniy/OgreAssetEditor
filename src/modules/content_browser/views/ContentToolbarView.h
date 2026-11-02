@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui/layout/Layout.h"
+
 namespace editor
 {
 
@@ -18,7 +20,7 @@ public: // Interface
 private: // Attributes
 
   IContentBrowserPresenter & m_Presenter;
-  char                       m_FilterBuffer[128];
+  ui::CLayout                m_Layout;
 };
 
 } // namespace editor

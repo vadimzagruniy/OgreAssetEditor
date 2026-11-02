@@ -1,8 +1,9 @@
 #include "ContentToolbarView.h"
 #include "modules/content_browser/presenter/IContentBrowserPresenter.h"
+#include "ui/elements/Button.h"
+#include "ui/elements/InputText.h"
 
-#include <imgui.h>
-
+#include <string>
 
 namespace editor
 {
@@ -13,9 +14,22 @@ namespace editor
 
 CContentToolbarView::CContentToolbarView(IContentBrowserPresenter & _Presenter):
   m_Presenter(_Presenter),
-  m_FilterBuffer{}
+  m_Layout(ui::ELayoutDirection::Row)
 {
-  // Empty
+  m_Layout.Add(ui::CButton("Refresh")).OnClick([this]
+  {
+    m_Presenter.Refresh();
+  });
+
+  m_Layout.Add(ui::CButton("New Folder")).OnClick([this]
+  {
+    m_Presenter.CreateFolder();
+  });
+
+  m_Layout.Add(ui::CInputText("##Filter")).SetHint("Filter").SetWidth({ui::ESizeMode::Fill}).OnChanged([this](const std::string & _Filter)
+  {
+    m_Presenter.SetFilter(_Filter);
+  });
 }
 
 //
@@ -24,19 +38,7 @@ CContentToolbarView::CContentToolbarView(IContentBrowserPresenter & _Presenter):
 
 void CContentToolbarView::Draw()
 {
-  if (ImGui::Button("Refresh"))
-    m_Presenter.Refresh();
-
-  ImGui::SameLine();
-
-  if (ImGui::Button("New Folder"))
-    m_Presenter.CreateFolder();
-
-  ImGui::SameLine();
-  ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-
-  if (ImGui::InputTextWithHint("##Filter", "Filter", m_FilterBuffer, sizeof(m_FilterBuffer)))
-    m_Presenter.SetFilter(m_FilterBuffer);
+  m_Layout.Draw();
 }
 
 } // namespace editor

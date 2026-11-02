@@ -1,4 +1,5 @@
 #include "ChoiceModal.h"
+#include "ui/elements/Button.h"
 
 #include <imgui.h>
 
@@ -23,9 +24,16 @@ const ImVec4 ErrorColour(1.0f, 0.4f, 0.4f, 1.0f);
 
 CChoiceModal::CChoiceModal(TChoiceModalDesc _Desc):
   CModalWindow(_Desc.Title),
-  m_Desc(std::move(_Desc))
+  m_Desc(std::move(_Desc)),
+  m_ChoicesLayout(ELayoutDirection::Row, ELayoutAlign::Center)
 {
-  // Empty
+  for (std::size_t ChoiceIndex = 0; ChoiceIndex < m_Desc.Choices.size(); ++ChoiceIndex)
+  {
+    m_ChoicesLayout.Add(CButton(m_Desc.Choices[ChoiceIndex].Label)).OnClick([this, ChoiceIndex]
+    {
+      OnChoiceClicked(ChoiceIndex);
+    });
+  }
 }
 
 //
@@ -52,29 +60,27 @@ void CChoiceModal::OnGui()
 
   ImGui::Separator();
 
-  for (std::size_t ChoiceIndex = 0; ChoiceIndex < m_Desc.Choices.size(); ++ChoiceIndex)
-  {
-    if (ChoiceIndex > 0)
-      ImGui::SameLine();
-
-    const auto & Choice = m_Desc.Choices[ChoiceIndex];
-    if (!ImGui::Button(Choice.Label.c_str()))
-      continue;
-
-    m_Error.clear();
-
-    if (!Choice.Action || Choice.Action(m_Error))
-    {
-      Close();
-      break;
-    }
-  }
+  m_ChoicesLayout.Draw();
 }
 
 void CChoiceModal::OnCancel()
 {
   if (m_Desc.CancelAction)
     m_Desc.CancelAction();
+}
+
+//
+// Events
+//
+
+void CChoiceModal::OnChoiceClicked(std::size_t _ChoiceIndex)
+{
+  const auto & Choice = m_Desc.Choices[_ChoiceIndex];
+
+  m_Error.clear();
+
+  if (!Choice.Action || Choice.Action(m_Error))
+    Close();
 }
 
 } // namespace editor::ui
