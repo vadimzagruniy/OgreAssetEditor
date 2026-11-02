@@ -30,9 +30,14 @@ ImVec2 CDragFloat::CalcContentSize() const
   return CalcDefaultItemSize();
 }
 
+float CDragFloat::CalcLabelExtent() const
+{
+  return CalcSideLabelWidth();
+}
+
 void CDragFloat::OnDraw(const ImVec2 & _Size)
 {
-  ImGui::SetNextItemWidth(std::max(_Size.x - CalcSideLabelWidth(), 1.0f));
+  ImGui::SetNextItemWidth(std::max(_Size.x - CalcLabelExtent(), 1.0f));
 
   const ImGuiSliderFlags Flags = m_Minimum < m_Maximum ? ImGuiSliderFlags_AlwaysClamp : ImGuiSliderFlags_None;
   if (!ImGui::DragFloat(GetLabel().c_str(), &m_Value, m_Speed, m_Minimum, m_Maximum, m_Format.c_str(), Flags))

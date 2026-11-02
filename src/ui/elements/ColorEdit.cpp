@@ -27,9 +27,14 @@ ImVec2 CColorEdit::CalcContentSize() const
   return CalcDefaultItemSize();
 }
 
+float CColorEdit::CalcLabelExtent() const
+{
+  return CalcSideLabelWidth();
+}
+
 void CColorEdit::OnDraw(const ImVec2 & _Size)
 {
-  ImGui::SetNextItemWidth(std::max(_Size.x - CalcSideLabelWidth(), 1.0f));
+  ImGui::SetNextItemWidth(std::max(_Size.x - CalcLabelExtent(), 1.0f));
 
   const ImGuiColorEditFlags Flags = m_IsAlphaEnabled ? ImGuiColorEditFlags_None : ImGuiColorEditFlags_NoAlpha;
   if (!ImGui::ColorEdit4(GetLabel().c_str(), &m_Value.x, Flags))

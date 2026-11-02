@@ -22,6 +22,8 @@ protected: // CElement
 
   ImVec2 CalcContentSize() const override;
 
+  float CalcLabelExtent() const override;
+
   void OnDraw(const ImVec2 & _Size) override;
 
 public: // Setup

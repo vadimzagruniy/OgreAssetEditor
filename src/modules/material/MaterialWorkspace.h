@@ -1,11 +1,18 @@
 #pragma once
 
 #include "editor/workspaces/EditorWorkspace.h"
+#include "ui/layout/Layout.h"
 
 #include <memory>
 
 namespace editor
 {
+
+namespace ui
+{
+class CComboBox;
+class CText;
+} // namespace ui
 
 enum class EPreviewShape;
 class CMaterialDocument;
@@ -38,6 +45,8 @@ protected: // CEditorWorkspace
 
 private: // Implementation
 
+  void SetupToolbar();
+
   void DrawToolbar();
 
   void UpdatePreviewMaterial();
@@ -49,6 +58,9 @@ private: // Attributes
   std::unique_ptr<CPreviewScene>           m_Preview;
   EPreviewShape                            m_Shape;
   int                                      m_PreviewMaterialIndex;
+  ui::CLayout                              m_Toolbar;
+  ui::CComboBox &                          m_ShapeCombo;
+  ui::CText &                              m_WarningText;
 };
 
 } // namespace editor

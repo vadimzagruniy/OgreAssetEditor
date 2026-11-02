@@ -32,9 +32,13 @@ const char * GetLevelPrefix(core::ELogLevel _Level)
 
 CConsoleWindow::CConsoleWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<core::CLog> _Log):
   CDockedWindow(_Desc.Title, "Console", _Desc.Visible),
-  m_Log(std::move(_Log))
+  m_Log(std::move(_Log)),
+  m_ClearButton("Clear")
 {
-  // Empty
+  m_ClearButton.OnClick([this]
+  {
+    m_Log->Clear();
+  });
 }
 
 //
@@ -43,8 +47,7 @@ CConsoleWindow::CConsoleWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<c
 
 void CConsoleWindow::OnGui()
 {
-  if (ImGui::Button("Clear"))
-    m_Log->Clear();
+  m_ClearButton.Draw();
 
   ImGui::BeginChild("##ConsoleLog", ImVec2(0, 0), ImGuiChildFlags_Borders);
 

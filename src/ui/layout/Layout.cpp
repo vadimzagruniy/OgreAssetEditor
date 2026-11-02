@@ -81,6 +81,21 @@ void CLayout::OnDraw(const ImVec2 & _Size)
 }
 
 //
+// Interface
+//
+
+void CLayout::Clear() noexcept
+{
+  m_Elements.clear();
+  m_ElementSizes.clear();
+}
+
+ELayoutDirection CLayout::GetDirection() const noexcept
+{
+  return m_Direction;
+}
+
+//
 // Setup
 //
 

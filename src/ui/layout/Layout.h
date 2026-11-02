@@ -32,6 +32,10 @@ public: // Interface
   template <class TElement>
   std::decay_t<TElement> & Add(TElement && _Element);
 
+  void Clear() noexcept;
+
+  ELayoutDirection GetDirection() const noexcept;
+
 public: // Setup
 
   CLayout & SetDirection(ELayoutDirection _Direction) noexcept;

@@ -75,6 +75,8 @@ protected: // Derived interface
 
   virtual ImVec2 CalcContentSize() const = 0;
 
+  virtual float CalcLabelExtent() const;
+
   ImVec2 CalcLabelFrameSize() const;
 
   float CalcSideLabelWidth() const;

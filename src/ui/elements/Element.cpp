@@ -9,11 +9,11 @@ namespace editor::ui
 namespace
 {
 
-float ResolveExtent(const TSizeRule & _Rule, float _ContentExtent, float _AvailableExtent)
+float ResolveExtent(const TSizeRule & _Rule, float _ContentExtent, float _AvailableExtent, float _LabelExtent)
 {
   switch (_Rule.Mode)
   {
-    case ESizeMode::Fixed: return _Rule.Value;
+    case ESizeMode::Fixed: return _Rule.Value + _LabelExtent;
     case ESizeMode::Fill:  return _AvailableExtent;
     case ESizeMode::Auto:  break;
   }
@@ -178,6 +178,11 @@ void CElement::SetEditEndCallback(std::function<void()> _Callback)
 // Derived interface
 //
 
+float CElement::CalcLabelExtent() const
+{
+  return 0.0f;
+}
+
 ImVec2 CElement::CalcLabelFrameSize() const
 {
   const ImVec2   TextSize     = ImGui::CalcTextSize(m_Label.c_str(), nullptr, true);
@@ -215,7 +220,7 @@ ImVec2 CElement::CalcStyledContentSize() const
 
 ImVec2 CElement::ResolveSize(const ImVec2 & _ContentSize, const ImVec2 & _Available) const
 {
-  return ImVec2(ResolveExtent(m_Width, _ContentSize.x, _Available.x), ResolveExtent(m_Height, _ContentSize.y, _Available.y));
+  return ImVec2(ResolveExtent(m_Width, _ContentSize.x, _Available.x, CalcLabelExtent()), ResolveExtent(m_Height, _ContentSize.y, _Available.y, 0.0f));
 }
 
 void CElement::PushStyle() const

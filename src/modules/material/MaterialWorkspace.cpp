@@ -7,12 +7,17 @@
 #include "editor/render/PreviewViewport.h"
 #include "views/MaterialInspectorWindow.h"
 #include "views/MaterialOutlineWindow.h"
+#include "ui/elements/ComboBox.h"
+#include "ui/elements/Text.h"
 
 #include <imgui.h>
 
 #include <array>
 #include <cstddef>
+#include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace editor
 {
@@ -34,15 +39,15 @@ constexpr std::array<TShapeOption, 3> ShapeOptions{{
 
 const ImVec4 WarningColour(0.95f, 0.75f, 0.30f, 1.0f);
 
-const char * GetShapeLabel(EPreviewShape _Shape)
+std::optional<std::size_t> FindShapeIndex(EPreviewShape _Shape)
 {
-  for (const auto & Option : ShapeOptions)
+  for (std::size_t OptionIndex = 0; OptionIndex < ShapeOptions.size(); ++OptionIndex)
   {
-    if (Option.Shape == _Shape)
-      return Option.Label;
+    if (ShapeOptions[OptionIndex].Shape == _Shape)
+      return OptionIndex;
   }
 
-  return ShapeOptions.front().Label;
+  return std::nullopt;
 }
 
 } // namespace
@@ -57,10 +62,14 @@ CMaterialWorkspace::CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Insta
   m_Document(std::make_shared<CMaterialDocument>(*static_cast<CMaterialInstance *>(GetInstance()), GetUndoStack())),
   m_Preview(std::make_unique<CPreviewScene>()),
   m_Shape(EPreviewShape::Sphere),
-  m_PreviewMaterialIndex(-1)
+  m_PreviewMaterialIndex(-1),
+  m_Toolbar(ui::ELayoutDirection::Row),
+  m_ShapeCombo(m_Toolbar.Add(ui::CComboBox("Shape"))),
+  m_WarningText(m_Toolbar.Add(ui::CText("Script uses inheritance, variables or imports: saving writes every material in full.")))
 {
   m_Preview->SetShape(m_Shape);
   UpdatePreviewMaterial();
+  SetupToolbar();
 }
 
 CMaterialWorkspace::~CMaterialWorkspace() = default;
@@ -106,29 +115,29 @@ bool CMaterialWorkspace::OnSave(std::string & _Error)
 // Implementation
 //
 
+void CMaterialWorkspace::SetupToolbar()
+{
+  std::vector<std::string> ShapeLabels;
+  ShapeLabels.reserve(ShapeOptions.size());
+
+  for (const auto & Option : ShapeOptions)
+    ShapeLabels.emplace_back(Option.Label);
+
+  m_ShapeCombo.SetItems(std::move(ShapeLabels)).SetSelectedIndex(FindShapeIndex(m_Shape)).OnSelected([this](std::size_t _OptionIndex)
+  {
+    m_Shape = ShapeOptions[_OptionIndex].Shape;
+    m_Preview->SetShape(m_Shape);
+  });
+
+  m_WarningText.SetColor(ImGuiCol_Text, WarningColour);
+}
+
 void CMaterialWorkspace::DrawToolbar()
 {
-  ImGui::SetNextItemWidth(ImGui::GetFontSize() * 8.0f);
+  m_ShapeCombo.SetWidth(ImGui::GetFontSize() * 8.0f);
+  m_WarningText.SetVisible(m_Document->GetInstance().HasExpandedFeatures());
 
-  if (ImGui::BeginCombo("Shape", GetShapeLabel(m_Shape)))
-  {
-    for (const auto & Option : ShapeOptions)
-    {
-      if (ImGui::Selectable(Option.Label, Option.Shape == m_Shape) && Option.Shape != m_Shape)
-      {
-        m_Shape = Option.Shape;
-        m_Preview->SetShape(m_Shape);
-      }
-    }
-
-    ImGui::EndCombo();
-  }
-
-  if (m_Document->GetInstance().HasExpandedFeatures())
-  {
-    ImGui::SameLine();
-    ImGui::TextColored(WarningColour, "Script uses inheritance, variables or imports: saving writes every material in full.");
-  }
+  m_Toolbar.Draw();
 }
 
 void CMaterialWorkspace::UpdatePreviewMaterial()

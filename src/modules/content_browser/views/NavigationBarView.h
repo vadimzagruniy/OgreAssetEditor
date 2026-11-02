@@ -1,7 +1,19 @@
 #pragma once
 
+#include "ui/layout/Layout.h"
+
+#include <filesystem>
+#include <optional>
+
 namespace editor
 {
+
+namespace ui
+{
+class CArrowButton;
+class CButton;
+class CChildArea;
+} // namespace ui
 
 class IContentBrowserPresenter;
 
@@ -17,13 +29,18 @@ public: // Interface
 
 private: // Implementation
 
-  void DrawBreadcrumbs(float _Width);
+  void RebuildBreadcrumbs(const std::filesystem::path & _Folder);
 
-  void DrawViewModeToggle(float _Width);
+  void UpdateViewModeButton();
 
 private: // Attributes
 
-  IContentBrowserPresenter & m_Presenter;
+  IContentBrowserPresenter &           m_Presenter;
+  ui::CLayout                          m_Layout;
+  ui::CArrowButton &                   m_UpButton;
+  ui::CChildArea &                     m_Breadcrumbs;
+  ui::CButton &                        m_ViewModeButton;
+  std::optional<std::filesystem::path> m_BreadcrumbsFolder;
 };
 
 } // namespace editor

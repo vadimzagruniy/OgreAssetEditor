@@ -25,9 +25,14 @@ ImVec2 CComboBox::CalcContentSize() const
   return CalcDefaultItemSize();
 }
 
+float CComboBox::CalcLabelExtent() const
+{
+  return CalcSideLabelWidth();
+}
+
 void CComboBox::OnDraw(const ImVec2 & _Size)
 {
-  ImGui::SetNextItemWidth(std::max(_Size.x - CalcSideLabelWidth(), 1.0f));
+  ImGui::SetNextItemWidth(std::max(_Size.x - CalcLabelExtent(), 1.0f));
 
   if (!ImGui::BeginCombo(GetLabel().c_str(), GetPreview().c_str()))
     return;

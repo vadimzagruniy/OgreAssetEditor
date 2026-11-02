@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/DockedWindow.h"
+#include "ui/elements/Button.h"
 
 #include <memory>
 
@@ -31,6 +32,7 @@ private: // CWindow
 private: // Attributes
 
   std::shared_ptr<core::CLog> m_Log;
+  ui::CButton                 m_ClearButton;
 };
 
 } // namespace editor

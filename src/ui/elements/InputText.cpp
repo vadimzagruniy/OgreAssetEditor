@@ -43,9 +43,14 @@ ImVec2 CInputText::CalcContentSize() const
   return CalcDefaultItemSize();
 }
 
+float CInputText::CalcLabelExtent() const
+{
+  return CalcSideLabelWidth();
+}
+
 void CInputText::OnDraw(const ImVec2 & _Size)
 {
-  ImGui::SetNextItemWidth(std::max(_Size.x - CalcSideLabelWidth(), 1.0f));
+  ImGui::SetNextItemWidth(std::max(_Size.x - CalcLabelExtent(), 1.0f));
 
   const bool IsChanged = ImGui::InputTextWithHint(GetLabel().c_str(), m_Hint.c_str(), m_Text.data(), m_Text.capacity() + 1,
                                                   ImGuiInputTextFlags_CallbackResize, ResizeTextBuffer, &m_Text);

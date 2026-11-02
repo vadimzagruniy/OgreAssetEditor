@@ -1,10 +1,13 @@
 #include "NavigationBarView.h"
 #include "modules/content_browser/presenter/IContentBrowserPresenter.h"
+#include "ui/elements/ArrowButton.h"
+#include "ui/elements/Button.h"
+#include "ui/elements/Text.h"
+#include "ui/layout/ChildArea.h"
 
 #include <imgui.h>
 
 #include <algorithm>
-#include <filesystem>
 #include <string>
 
 namespace editor
@@ -23,9 +26,24 @@ constexpr const char * GridModeLabel = "Grid";
 //
 
 CNavigationBarView::CNavigationBarView(IContentBrowserPresenter & _Presenter):
-  m_Presenter(_Presenter)
+  m_Presenter(_Presenter),
+  m_Layout(ui::ELayoutDirection::Row),
+  m_UpButton(m_Layout.Add(ui::CArrowButton("##Up", ImGuiDir_Up))),
+  m_Breadcrumbs(m_Layout.Add(ui::CChildArea("##Breadcrumbs", ui::ELayoutDirection::Row))),
+  m_ViewModeButton(m_Layout.Add(ui::CButton(ListModeLabel)))
 {
-  // Empty
+  m_UpButton.SetTooltip("Up").OnClick([this]
+  {
+    m_Presenter.NavigateUp();
+  });
+
+  m_Breadcrumbs.SetWindowFlags(ImGuiWindowFlags_NoScrollbar).SetScrollToEnd(true).SetWidth({ui::ESizeMode::Fill});
+
+  m_ViewModeButton.SetTooltip("Switch view").OnClick([this]
+  {
+    const bool IsGrid = m_Presenter.GetViewMode() == EContentViewMode::Grid;
+    m_Presenter.SetViewMode(IsGrid ? EContentViewMode::List : EContentViewMode::Grid);
+  });
 }
 
 //
@@ -34,75 +52,58 @@ CNavigationBarView::CNavigationBarView(IContentBrowserPresenter & _Presenter):
 
 void CNavigationBarView::Draw()
 {
-  const ImGuiStyle & Style       = ImGui::GetStyle();
-  const float        LabelWidth  = std::max(ImGui::CalcTextSize(ListModeLabel).x, ImGui::CalcTextSize(GridModeLabel).x);
-  const float        ToggleWidth = LabelWidth + Style.FramePadding.x * 2.0f;
+  const auto & CurrentFolder = m_Presenter.GetCurrentFolder();
 
-  ImGui::BeginDisabled(m_Presenter.GetCurrentFolder().empty());
+  if (m_BreadcrumbsFolder != CurrentFolder)
+    RebuildBreadcrumbs(CurrentFolder);
 
-  if (ImGui::ArrowButton("##Up", ImGuiDir_Up))
-    m_Presenter.NavigateUp();
+  m_UpButton.SetEnabled(!CurrentFolder.empty());
+  UpdateViewModeButton();
 
-  ImGui::EndDisabled();
-  ImGui::SetItemTooltip("Up");
-
-  ImGui::SameLine();
-
-  DrawBreadcrumbs(ImGui::GetContentRegionAvail().x - ToggleWidth - Style.ItemSpacing.x);
-
-  ImGui::SameLine();
-
-  DrawViewModeToggle(ToggleWidth);
+  m_Layout.Draw();
 }
 
 //
 // Implementation
 //
 
-void CNavigationBarView::DrawBreadcrumbs(float _Width)
+void CNavigationBarView::RebuildBreadcrumbs(const std::filesystem::path & _Folder)
 {
-  const auto & CurrentFolder = m_Presenter.GetCurrentFolder();
+  m_BreadcrumbsFolder = _Folder;
 
-  if (ImGui::BeginChild("##Breadcrumbs", ImVec2(_Width, ImGui::GetFrameHeight()), ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar))
+  auto & Content = m_Breadcrumbs.GetContent();
+  Content.Clear();
+
+  Content.Add(ui::CButton("Assets")).OnClick([this]
   {
-    if (ImGui::Button("Assets"))
-      m_Presenter.NavigateTo({});
+    m_Presenter.NavigateTo({});
+  });
 
-    std::filesystem::path Folder;
-    int                   ElementIndex = 0;
+  const ImVec4          SeparatorColour = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+  std::filesystem::path Folder;
+  int                   ElementIndex    = 0;
 
-    for (const auto & Element : CurrentFolder)
+  for (const auto & Element : _Folder)
+  {
+    Folder /= Element;
+
+    Content.Add(ui::CText(">")).SetColor(ImGuiCol_Text, SeparatorColour);
+    Content.Add(ui::CButton(Element.string() + "##" + std::to_string(ElementIndex++))).OnClick([this, Folder]
     {
-      Folder /= Element;
-
-      ImGui::SameLine();
-      ImGui::TextDisabled(">");
-      ImGui::SameLine();
-
-      ImGui::PushID(ElementIndex++);
-
-      if (ImGui::Button(Element.string().c_str()))
-        m_Presenter.NavigateTo(Folder);
-
-      ImGui::PopID();
-    }
-
-    ImGui::SetScrollHereX(1.0f);
+      m_Presenter.NavigateTo(Folder);
+    });
   }
 
-  ImGui::EndChild();
-  ImGui::SetItemTooltip("Assets/%s", CurrentFolder.generic_string().c_str());
+  m_Breadcrumbs.SetTooltip("Assets/" + _Folder.generic_string());
 }
 
-void CNavigationBarView::DrawViewModeToggle(float _Width)
+void CNavigationBarView::UpdateViewModeButton()
 {
-  const bool   IsGrid = m_Presenter.GetViewMode() == EContentViewMode::Grid;
-  const char * Label  = IsGrid ? GridModeLabel : ListModeLabel;
+  const ImGuiStyle & Style      = ImGui::GetStyle();
+  const float        LabelWidth = std::max(ImGui::CalcTextSize(ListModeLabel).x, ImGui::CalcTextSize(GridModeLabel).x);
+  const bool         IsGrid     = m_Presenter.GetViewMode() == EContentViewMode::Grid;
 
-  if (ImGui::Button(Label, ImVec2(_Width, 0.0f)))
-    m_Presenter.SetViewMode(IsGrid ? EContentViewMode::List : EContentViewMode::Grid);
-
-  ImGui::SetItemTooltip("Switch view");
+  m_ViewModeButton.SetLabel(std::string(IsGrid ? GridModeLabel : ListModeLabel) + "###ViewMode").SetWidth(LabelWidth + Style.FramePadding.x * 2.0f);
 }
 
 } // namespace editor
