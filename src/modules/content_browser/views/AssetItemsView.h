@@ -10,6 +10,7 @@ namespace editor
 {
 
 class IContentBrowserPresenter;
+struct TAssetMenuEntry;
 struct TContentItem;
 
 class CAssetItemsView
@@ -41,6 +42,8 @@ protected: // Interface
 private: // Implementation
 
   void DrawItemContextMenu(const TContentItem & _Item);
+
+  void DrawMenuEntries(std::vector<TAssetMenuEntry> _Entries);
 
   void DrawEmptySpaceContextMenu();
 

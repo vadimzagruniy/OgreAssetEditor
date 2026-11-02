@@ -1,4 +1,5 @@
 #include "AssetType.h"
+#include "AssetMenuEntry.h"
 
 namespace editor
 {
@@ -8,5 +9,14 @@ namespace editor
 //
 
 IAssetType::~IAssetType() = default;
+
+//
+// Interface
+//
+
+void IAssetType::GetContextActions(const TAssetRecord & /*_Asset*/, std::vector<TAssetMenuEntry> & /*_Entries*/) const
+{
+  // Empty
+}
 
 } // namespace editor

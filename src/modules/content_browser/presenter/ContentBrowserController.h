@@ -49,6 +49,8 @@ public: // IContentBrowserPresenter state
 
   EContentViewMode GetViewMode() const noexcept override;
 
+  std::vector<TAssetMenuEntry> GetContextActions(const std::filesystem::path & _Path) const override;
+
 public: // IContentBrowserPresenter actions
 
   void NavigateTo(const std::filesystem::path & _Folder) override;
@@ -96,6 +98,14 @@ private: // Implementation
   void ApplyDuplicateSelection();
 
   void ApplyDeleteSelection();
+
+  void ApplyRevealInExplorer(const std::filesystem::path & _Path) const;
+
+  void ApplyCopyPaths(const std::set<std::filesystem::path> & _Paths) const;
+
+  std::set<std::filesystem::path> GetActionTargets(const std::filesystem::path & _Path) const;
+
+  void AddAssetTypeActions(const std::filesystem::path & _Path, std::vector<TAssetMenuEntry> & _Entries) const;
 
   void HandleAssetsChanged();
 

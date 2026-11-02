@@ -2,15 +2,18 @@
 #include "core/ActionQueue.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
+#include "editor/assets/AssetMenuEntry.h"
 #include "editor/assets/AssetNode.h"
 #include "editor/assets/AssetPath.h"
 #include "editor/assets/AssetType.h"
 #include "editor/assets/AssetTypeInfo.h"
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/workspaces/WorkspaceManager.h"
+#include "platform/Shell.h"
 
 #include <algorithm>
 #include <cctype>
+#include <string>
 #include <utility>
 
 namespace editor
@@ -27,6 +30,12 @@ std::string ToLower(std::string _Text)
   });
 
   return _Text;
+}
+
+std::string ToUtf8(const std::filesystem::path & _Path)
+{
+  const std::u8string Text = _Path.u8string();
+  return std::string(Text.begin(), Text.end());
 }
 
 } // namespace
@@ -102,6 +111,28 @@ bool CContentBrowserController::IsDeleteRequested() const noexcept
 EContentViewMode CContentBrowserController::GetViewMode() const noexcept
 {
   return m_ViewMode;
+}
+
+std::vector<TAssetMenuEntry> CContentBrowserController::GetContextActions(const std::filesystem::path & _Path) const
+{
+  const auto Targets = GetActionTargets(_Path);
+
+  std::vector<TAssetMenuEntry> Entries;
+
+  Entries.push_back({"Show in Explorer", "", EAssetMenuGroup::Path, Targets.size() == 1, [this, _Path]
+  {
+    m_ActionQueue->Post([this, _Path] { ApplyRevealInExplorer(_Path); });
+  }});
+
+  Entries.push_back({Targets.size() == 1 ? "Copy Path" : "Copy Paths", "", EAssetMenuGroup::Path, true, [this, Targets]
+  {
+    m_ActionQueue->Post([this, Targets] { ApplyCopyPaths(Targets); });
+  }});
+
+  if (Targets.size() == 1)
+    AddAssetTypeActions(_Path, Entries);
+
+  return Entries;
 }
 
 //
@@ -370,6 +401,70 @@ void CContentBrowserController::ApplyDeleteSelection()
 
   m_Selection.clear();
   m_SelectionAnchor.clear();
+}
+
+void CContentBrowserController::ApplyRevealInExplorer(const std::filesystem::path & _Path) const
+{
+  if (!m_AssetManager->HasNode(_Path))
+    return;
+
+  std::string Error;
+  if (!platform::RevealInExplorer(m_AssetManager->GetNode(_Path).Record.AbsolutePath, Error))
+    ReportError(Error);
+}
+
+void CContentBrowserController::ApplyCopyPaths(const std::set<std::filesystem::path> & _Paths) const
+{
+  std::string Text;
+
+  for (const auto & Path : _Paths)
+  {
+    if (!m_AssetManager->HasNode(Path))
+      continue;
+
+    if (!Text.empty())
+      Text += '\n';
+
+    Text += ToUtf8(m_AssetManager->GetNode(Path).Record.AbsolutePath);
+  }
+
+  if (!Text.empty())
+    platform::CopyTextToClipboard(Text);
+}
+
+std::set<std::filesystem::path> CContentBrowserController::GetActionTargets(const std::filesystem::path & _Path) const
+{
+  if (IsSelected(_Path))
+    return m_Selection;
+
+  return {_Path};
+}
+
+void CContentBrowserController::AddAssetTypeActions(const std::filesystem::path & _Path, std::vector<TAssetMenuEntry> & _Entries) const
+{
+  if (!m_AssetManager->HasNode(_Path))
+    return;
+
+  const TAssetNode & Node = m_AssetManager->GetNode(_Path);
+  if (Node.IsDirectory)
+    return;
+
+  const auto AssetType = m_AssetTypes->FindByExtension(Node.Record.RelativePath.extension().string());
+  if (!AssetType)
+    return;
+
+  std::vector<TAssetMenuEntry> TypeEntries;
+  AssetType->GetContextActions(Node.Record, TypeEntries);
+
+  for (auto & Entry : TypeEntries)
+  {
+    Entry.Execute = [ActionQueue = m_ActionQueue, Action = std::move(Entry.Execute)]
+    {
+      ActionQueue->Post(Action);
+    };
+
+    _Entries.push_back(std::move(Entry));
+  }
 }
 
 void CContentBrowserController::HandleAssetsChanged()

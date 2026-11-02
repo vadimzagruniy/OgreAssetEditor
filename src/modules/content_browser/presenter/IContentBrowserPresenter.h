@@ -11,6 +11,7 @@
 namespace editor
 {
 
+struct TAssetMenuEntry;
 struct TAssetNode;
 struct TContentItem;
 
@@ -35,6 +36,8 @@ public: // State
   virtual bool IsDeleteRequested() const noexcept = 0;
 
   virtual EContentViewMode GetViewMode() const noexcept = 0;
+
+  virtual std::vector<TAssetMenuEntry> GetContextActions(const std::filesystem::path & _Path) const = 0;
 
 public: // Actions
 

@@ -1,10 +1,15 @@
 #include "AssetItemsView.h"
+#include "editor/assets/AssetMenuEntry.h"
 #include "modules/content_browser/presenter/ContentItem.h"
 #include "modules/content_browser/presenter/IContentBrowserPresenter.h"
 
 #include <imgui.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdio>
+#include <iterator>
+#include <utility>
 
 namespace editor
 {
@@ -168,21 +173,41 @@ void CAssetItemsView::DrawItemContextMenu(const TContentItem & _Item)
   if (!m_Presenter.IsSelected(_Item.RelativePath))
     m_Presenter.Select(_Item.RelativePath, ESelectionMode::Replace);
 
-  if (ImGui::MenuItem("Open", "Enter"))
-    m_Presenter.Open(_Item.RelativePath);
+  const auto & Path = _Item.RelativePath;
 
-  if (ImGui::MenuItem("Rename", "F2"))
-    BeginRename(_Item.RelativePath);
+  std::vector<TAssetMenuEntry> Entries
+  {
+    {"Open",      "Enter",  EAssetMenuGroup::Open,   true, [this, Path] { m_Presenter.Open(Path);               }},
+    {"Rename",    "F2",     EAssetMenuGroup::Edit,   true, [this, Path] { BeginRename(Path);                    }},
+    {"Duplicate", "Ctrl+D", EAssetMenuGroup::Edit,   true, [this]       { m_Presenter.DuplicateSelection();     }},
+    {"Delete",    "Del",    EAssetMenuGroup::Delete, true, [this]       { m_Presenter.RequestDeleteSelection(); }}
+  };
 
-  if (ImGui::MenuItem("Duplicate", "Ctrl+D"))
-    m_Presenter.DuplicateSelection();
+  auto ContextActions = m_Presenter.GetContextActions(Path);
+  std::move(ContextActions.begin(), ContextActions.end(), std::back_inserter(Entries));
 
-  ImGui::Separator();
-
-  if (ImGui::MenuItem("Delete", "Del"))
-    m_Presenter.RequestDeleteSelection();
+  DrawMenuEntries(std::move(Entries));
 
   ImGui::EndPopup();
+}
+
+void CAssetItemsView::DrawMenuEntries(std::vector<TAssetMenuEntry> _Entries)
+{
+  std::stable_sort(_Entries.begin(), _Entries.end(), [](const TAssetMenuEntry & _Left, const TAssetMenuEntry & _Right)
+  {
+    return _Left.Group < _Right.Group;
+  });
+
+  for (std::size_t Index = 0; Index < _Entries.size(); ++Index)
+  {
+    const auto & Entry = _Entries[Index];
+
+    if (Index > 0 && Entry.Group != _Entries[Index - 1].Group)
+      ImGui::Separator();
+
+    if (ImGui::MenuItem(Entry.Label.c_str(), Entry.Shortcut.c_str(), false, Entry.IsEnabled) && Entry.Execute)
+      Entry.Execute();
+  }
 }
 
 void CAssetItemsView::DrawEmptySpaceContextMenu()
