@@ -3,7 +3,7 @@
 #include "MaterialInstance.h"
 #include "editor/render/PreviewScene.h"
 #include "editor/render/PreviewShape.h"
-#include "editor/render/PreviewViewport.h"
+#include "editor/viewport/Viewport.h"
 #include "presenter/MaterialEditorController.h"
 #include "views/MaterialInspectorWindow.h"
 #include "views/MaterialOutlineWindow.h"
@@ -61,6 +61,7 @@ CMaterialWorkspace::CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Insta
   m_Controller(std::move(_Controller)),
   m_Document(std::make_shared<CMaterialDocument>(*static_cast<CMaterialInstance *>(GetInstance()), GetUndoStack())),
   m_Preview(std::make_unique<CPreviewScene>()),
+  m_Viewport(std::make_unique<CViewport>(*m_Preview)),
   m_Shape(EPreviewShape::Sphere),
   m_PreviewMaterialIndex(-1),
   m_Toolbar(ui::ELayoutDirection::Row),
@@ -101,7 +102,7 @@ void CMaterialWorkspace::OnGui()
   UpdatePreviewMaterial();
 
   DrawToolbar();
-  DrawPreviewViewport("##MaterialViewport", *m_Preview);
+  m_Viewport->Draw("##MaterialViewport");
 }
 
 bool CMaterialWorkspace::OnSave(std::string & _Error)

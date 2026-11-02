@@ -9,6 +9,7 @@ namespace editor
 
 class CMeshInstance;
 class CPreviewScene;
+class CViewport;
 
 class CMeshWorkspace final:
   public CEditorWorkspace
@@ -30,6 +31,7 @@ public: // CEditorWorkspace
 private: // Attributes
 
   std::unique_ptr<CPreviewScene> m_Preview;
+  std::unique_ptr<CViewport>     m_Viewport;
 };
 
 } // namespace editor

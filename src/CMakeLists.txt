@@ -22,7 +22,10 @@ add_custom_command(TARGET OgreResourceEditor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/third_party/imgui/misc/fonts/Roboto-Medium.ttf"
         "$<TARGET_FILE_DIR:OgreResourceEditor>/fonts/Roboto-Medium.ttf"
-    COMMENT "Copying OGRE runtime files and editor fonts beside OgreResourceEditor")
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${PROJECT_SOURCE_DIR}/media"
+        "$<TARGET_FILE_DIR:OgreResourceEditor>/media"
+    COMMENT "Copying OGRE runtime files, editor fonts and editor media beside OgreResourceEditor")
 
 if(MSVC)
     target_sources(OgreResourceEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/platform/OgreResourceEditor.manifest")

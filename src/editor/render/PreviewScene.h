@@ -1,15 +1,15 @@
 #pragma once
 
+#include <OgreAxisAlignedBox.h>
 #include <OgrePrerequisites.h>
 #include <OgreSharedPtr.h>
 
-#include <memory>
+#include <cstdint>
 
 namespace editor
 {
 
 enum class EPreviewShape;
-class COrbitCamera;
 
 class CPreviewScene
 {
@@ -37,7 +37,13 @@ public: // Interface
 
   const Ogre::TexturePtr & GetTexture() const noexcept;
 
-  COrbitCamera & GetCamera() noexcept;
+  Ogre::SceneManager * GetSceneManager() const noexcept;
+
+  Ogre::SceneNode * GetCameraNode() const noexcept;
+
+  Ogre::AxisAlignedBox GetContentBounds() const;
+
+  std::uint64_t GetContentRevision() const noexcept;
 
 private: // Implementation
 
@@ -49,16 +55,17 @@ private: // Implementation
 
 private: // Attributes
 
-  Ogre::SceneManager *          m_SceneManager;
-  Ogre::Camera *                m_Camera;
-  Ogre::SceneNode *             m_MeshNode;
-  Ogre::Entity *                m_Entity;
-  Ogre::MaterialPtr             m_Material;
-  std::unique_ptr<COrbitCamera> m_OrbitCamera;
-  Ogre::TexturePtr              m_RenderTexture;
-  unsigned int                  m_Width;
-  unsigned int                  m_Height;
-  bool                          m_IsActive;
+  Ogre::SceneManager * m_SceneManager;
+  Ogre::Camera *       m_Camera;
+  Ogre::SceneNode *    m_CameraNode;
+  Ogre::SceneNode *    m_MeshNode;
+  Ogre::Entity *       m_Entity;
+  Ogre::MaterialPtr    m_Material;
+  Ogre::TexturePtr     m_RenderTexture;
+  unsigned int         m_Width;
+  unsigned int         m_Height;
+  bool                 m_IsActive;
+  std::uint64_t        m_ContentRevision;
 };
 
 } // namespace editor

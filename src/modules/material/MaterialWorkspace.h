@@ -19,6 +19,7 @@ class CMaterialDocument;
 class CMaterialEditorController;
 class CMaterialInstance;
 class CPreviewScene;
+class CViewport;
 
 class CMaterialWorkspace final:
   public CEditorWorkspace
@@ -56,6 +57,7 @@ private: // Attributes
   std::shared_ptr<CMaterialEditorController> m_Controller;
   std::shared_ptr<CMaterialDocument>         m_Document;
   std::unique_ptr<CPreviewScene>             m_Preview;
+  std::unique_ptr<CViewport>                 m_Viewport;
   EPreviewShape                              m_Shape;
   int                                        m_PreviewMaterialIndex;
   ui::CLayout                                m_Toolbar;

@@ -9,12 +9,15 @@
 #include <OgreOverlayManager.h>
 #include <OgreOverlaySystem.h>
 #include <OgreRenderWindow.h>
+#include <OgreResourceGroupManager.h>
 #include <OgreRoot.h>
 #include <OgreSceneManager.h>
 #include <OgreShaderGenerator.h>
 #include <OgreViewport.h>
 #include <imgui.h>
 
+#include <filesystem>
+#include <system_error>
 #include <utility>
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
@@ -57,6 +60,14 @@ bool CApplication::Initialize(std::string & _Error)
 void CApplication::locateResources()
 {
   OgreBites::ApplicationContext::locateResources();
+
+  const std::filesystem::path EditorMedia = getFSLayer().getConfigFilePath("media");
+  std::error_code             ErrorCode;
+
+  if (std::filesystem::is_directory(EditorMedia, ErrorCode))
+    Ogre::ResourceGroupManager::getSingleton().addResourceLocation(EditorMedia.string(), "FileSystem", Ogre::RGN_INTERNAL);
+  else
+    m_Editor->GetLog()->Write(core::ELogLevel::Warning, "Editor media folder not found, the viewport grid is disabled.");
 
   if (!m_Editor->GetAssetManager()->MountResources())
     m_Editor->GetLog()->Write(core::ELogLevel::Error, "Could not mount project Assets folder.");

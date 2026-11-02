@@ -1,0 +1,47 @@
+vertex_program Editor/GridVP glsl hlsl
+{
+    source Grid.vert
+
+    default_params
+    {
+        param_named_auto worldMatrix    world_matrix
+        param_named_auto viewProjMatrix viewproj_matrix
+    }
+}
+
+fragment_program Editor/GridFP glsl hlsl
+{
+    source Grid.frag
+
+    default_params
+    {
+        param_named_auto gridLayout     custom 0
+        param_named_auto levelAlpha     custom 1
+        param_named_auto cameraPosition camera_position
+        param_named      lineColor      float4 0.62 0.64 0.68 1.0
+        param_named      axisXColor     float4 0.88 0.31 0.37 0.9
+        param_named      axisZColor     float4 0.24 0.56 0.87 0.9
+    }
+}
+
+material Editor/Grid
+{
+    technique
+    {
+        pass
+        {
+            lighting off
+            scene_blend alpha_blend
+            depth_write off
+            cull_hardware none
+
+            vertex_program_ref Editor/GridVP
+            {
+            }
+
+            fragment_program_ref Editor/GridFP
+            {
+            }
+        }
+    }
+}

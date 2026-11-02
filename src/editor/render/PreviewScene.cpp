@@ -1,5 +1,4 @@
 #include "PreviewScene.h"
-#include "OrbitCamera.h"
 #include "PreviewShape.h"
 
 #include <OgreCamera.h>
@@ -46,11 +45,13 @@ const char * GetShapeMeshName(EPreviewShape _Shape)
 CPreviewScene::CPreviewScene():
   m_SceneManager(Ogre::Root::getSingleton().createSceneManager()),
   m_Camera(nullptr),
+  m_CameraNode(nullptr),
   m_MeshNode(nullptr),
   m_Entity(nullptr),
   m_Width(0),
   m_Height(0),
-  m_IsActive(true)
+  m_IsActive(true),
+  m_ContentRevision(0)
 {
   Ogre::RTShader::ShaderGenerator::getSingleton().addSceneManager(m_SceneManager);
 
@@ -61,11 +62,9 @@ CPreviewScene::CPreviewScene():
   m_Camera = m_SceneManager->createCamera("PreviewCamera");
   m_Camera->setAutoAspectRatio(true);
 
-  auto * CameraNode = m_SceneManager->getRootSceneNode()->createChildSceneNode();
-  CameraNode->attachObject(m_Camera);
-  CameraNode->attachObject(m_SceneManager->createLight(Ogre::Light::LT_DIRECTIONAL));
-
-  m_OrbitCamera = std::make_unique<COrbitCamera>(CameraNode);
+  m_CameraNode = m_SceneManager->getRootSceneNode()->createChildSceneNode();
+  m_CameraNode->attachObject(m_Camera);
+  m_CameraNode->attachObject(m_SceneManager->createLight(Ogre::Light::LT_DIRECTIONAL));
 }
 
 CPreviewScene::~CPreviewScene()
@@ -125,9 +124,27 @@ const Ogre::TexturePtr & CPreviewScene::GetTexture() const noexcept
   return m_RenderTexture;
 }
 
-COrbitCamera & CPreviewScene::GetCamera() noexcept
+Ogre::SceneManager * CPreviewScene::GetSceneManager() const noexcept
 {
-  return *m_OrbitCamera;
+  return m_SceneManager;
+}
+
+Ogre::SceneNode * CPreviewScene::GetCameraNode() const noexcept
+{
+  return m_CameraNode;
+}
+
+Ogre::AxisAlignedBox CPreviewScene::GetContentBounds() const
+{
+  if (!m_Entity)
+    return Ogre::AxisAlignedBox::BOX_NULL;
+
+  return m_Entity->getWorldBoundingBox(true);
+}
+
+std::uint64_t CPreviewScene::GetContentRevision() const noexcept
+{
+  return m_ContentRevision;
 }
 
 //
@@ -148,13 +165,12 @@ void CPreviewScene::ShowEntity(Ogre::Entity * _Entity)
   if (m_Material)
     m_Entity->setMaterial(m_Material);
 
-  const auto & Mesh   = m_Entity->getMesh();
-  const float  Radius = Mesh->getBoundingSphereRadius();
+  const float Radius = m_Entity->getMesh()->getBoundingSphereRadius();
 
   m_Camera->setNearClipDistance(Radius * 0.01f);
-  m_Camera->setFarClipDistance(Radius * 100.0f);
+  m_Camera->setFarClipDistance(Radius * 1000.0f);
 
-  m_OrbitCamera->Focus(Mesh->getBounds().getCenter(), Radius);
+  ++m_ContentRevision;
 }
 
 void CPreviewScene::CreateRenderTarget(unsigned int _Width, unsigned int _Height)
