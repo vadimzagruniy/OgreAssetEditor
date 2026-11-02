@@ -21,6 +21,19 @@ CTextInstance::CTextInstance(TAssetRecord _Record, std::string _Content):
 }
 
 //
+// CAssetInstance
+//
+
+std::vector<TAssetProperty> CTextInstance::GetProperties() const
+{
+  const auto LineCount = 1 + std::count(m_Content.begin(), m_Content.end(), '\n');
+
+  return {{"Bytes",    std::to_string(m_Content.size())},
+          {"Lines",    std::to_string(LineCount)       },
+          {"Modified", m_Dirty ? "Yes" : "No"          }};
+}
+
+//
 // Interface
 //
 
@@ -50,19 +63,6 @@ bool CTextInstance::Save()
   m_Dirty = false;
 
   return true;
-}
-
-//
-// CAssetInstance
-//
-
-std::vector<TAssetProperty> CTextInstance::GetProperties() const
-{
-  const auto LineCount = 1 + std::count(m_Content.begin(), m_Content.end(), '\n');
-
-  return {{"Bytes",    std::to_string(m_Content.size())},
-          {"Lines",    std::to_string(LineCount)       },
-          {"Modified", m_Dirty ? "Yes" : "No"          }};
 }
 
 } // namespace editor

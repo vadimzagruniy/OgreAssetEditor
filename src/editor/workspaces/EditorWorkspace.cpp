@@ -20,6 +20,20 @@ CEditorWorkspace::CEditorWorkspace(std::unique_ptr<CAssetInstance> _Instance):
 CEditorWorkspace::~CEditorWorkspace() = default;
 
 //
+// IWorkspaceContext
+//
+
+CEditorWorkspace * CEditorWorkspace::GetWorkspace() const noexcept
+{
+  return const_cast<CEditorWorkspace *>(this);
+}
+
+CAssetInstance * CEditorWorkspace::GetAssetInstance() const noexcept
+{
+  return m_Instance.get();
+}
+
+//
 // Interface
 //
 
@@ -66,20 +80,6 @@ bool CEditorWorkspace::Save(std::string & _Error)
 std::vector<core::TTypeKey> CEditorWorkspace::GetToolBoxes() const
 {
   return {};
-}
-
-//
-// IWorkspaceContext
-//
-
-CEditorWorkspace * CEditorWorkspace::GetWorkspace() const noexcept
-{
-  return const_cast<CEditorWorkspace *>(this);
-}
-
-CAssetInstance * CEditorWorkspace::GetAssetInstance() const noexcept
-{
-  return m_Instance.get();
 }
 
 //

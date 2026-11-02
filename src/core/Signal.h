@@ -9,7 +9,8 @@
 namespace editor::core
 {
 
-template <class... TArgs> class CSignal
+template <class... TArgs>
+class CSignal
 {
 public: // Types
 
@@ -42,7 +43,8 @@ private: // Attributes
 // Template implementation
 //
 
-template <class... TArgs> typename CSignal<TArgs...>::TConnectionId CSignal<TArgs...>::Connect(TSlot _Slot)
+template <class... TArgs>
+typename CSignal<TArgs...>::TConnectionId CSignal<TArgs...>::Connect(TSlot _Slot)
 {
   const TConnectionId ConnectionId = m_NextConnectionId++;
   m_Connections.push_back({ConnectionId, std::move(_Slot)});
@@ -50,7 +52,8 @@ template <class... TArgs> typename CSignal<TArgs...>::TConnectionId CSignal<TArg
   return ConnectionId;
 }
 
-template <class... TArgs> void CSignal<TArgs...>::Disconnect(TConnectionId _ConnectionId)
+template <class... TArgs>
+void CSignal<TArgs...>::Disconnect(TConnectionId _ConnectionId)
 {
   std::erase_if(m_Connections, [_ConnectionId](const TConnection & _Connection)
   {
@@ -58,7 +61,8 @@ template <class... TArgs> void CSignal<TArgs...>::Disconnect(TConnectionId _Conn
   });
 }
 
-template <class... TArgs> void CSignal<TArgs...>::Emit(TArgs... _Args) const
+template <class... TArgs>
+void CSignal<TArgs...>::Emit(TArgs... _Args) const
 {
   for (const auto & Connection : m_Connections)
     Connection.Slot(_Args...);

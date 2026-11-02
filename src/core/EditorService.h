@@ -17,15 +17,20 @@ public: // Constructor
 
 public: // Interface
 
-  template <class TService> void Register(const std::shared_ptr<TService> & _Service);
+  template <class TService>
+  void Register(const std::shared_ptr<TService> & _Service);
 
-  template <class TService> void Unregister();
+  template <class TService>
+  void Unregister();
 
-  template <class TService> std::shared_ptr<TService> GetService() const;
+  template <class TService>
+  std::shared_ptr<TService> GetService() const;
 
-  template <class TService> std::shared_ptr<TService> RequireService() const;
+  template <class TService>
+  std::shared_ptr<TService> RequireService() const;
 
-  template <class TService> bool HasService() const;
+  template <class TService>
+  bool HasService() const;
 
 private: // Attributes
 
@@ -37,7 +42,8 @@ private: // Attributes
 // Template implementation
 //
 
-template <class TService> void CEditorService::Register(const std::shared_ptr<TService> & _Service)
+template <class TService>
+void CEditorService::Register(const std::shared_ptr<TService> & _Service)
 {
   assert(_Service && "Cannot register an empty service");
 
@@ -46,12 +52,14 @@ template <class TService> void CEditorService::Register(const std::shared_ptr<TS
   assert(WasInserted && "Service already registered");
 }
 
-template <class TService> void CEditorService::Unregister()
+template <class TService>
+void CEditorService::Unregister()
 {
   m_Services.erase(TypeOf<TService>());
 }
 
-template <class TService> std::shared_ptr<TService> CEditorService::GetService() const
+template <class TService>
+std::shared_ptr<TService> CEditorService::GetService() const
 {
   const auto ServiceIterator = m_Services.find(TypeOf<TService>());
   if (ServiceIterator != m_Services.end())
@@ -63,7 +71,8 @@ template <class TService> std::shared_ptr<TService> CEditorService::GetService()
   return m_Parent ? m_Parent->GetService<TService>() : nullptr;
 }
 
-template <class TService> std::shared_ptr<TService> CEditorService::RequireService() const
+template <class TService>
+std::shared_ptr<TService> CEditorService::RequireService() const
 {
   auto Service = GetService<TService>();
   assert(Service && "Required service is missing");
@@ -71,7 +80,8 @@ template <class TService> std::shared_ptr<TService> CEditorService::RequireServi
   return Service;
 }
 
-template <class TService> bool CEditorService::HasService() const
+template <class TService>
+bool CEditorService::HasService() const
 {
   return static_cast<bool>(GetService<TService>());
 }

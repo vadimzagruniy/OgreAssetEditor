@@ -25,6 +25,10 @@ public: // Constructor/Destructor
 
   CMaterialInstance & operator=(const CMaterialInstance &) = delete;
 
+public: // CAssetInstance
+
+  std::vector<TAssetProperty> GetProperties() const override;
+
 public: // Interface
 
   std::size_t GetMaterialCount() const noexcept;
@@ -36,10 +40,6 @@ public: // Interface
   bool HasExpandedFeatures() const noexcept;
 
   bool Save(std::string & _Error);
-
-public: // CAssetInstance
-
-  std::vector<TAssetProperty> GetProperties() const override;
 
 private: // Types
 

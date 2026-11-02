@@ -32,10 +32,6 @@ public: // Constructor/Destructor
 
   CContentBrowserController & operator=(const CContentBrowserController &) = delete;
 
-public: // Interface
-
-  void ApplyPendingActions();
-
 public: // IContentBrowserPresenter state
 
   const TAssetNode & GetRootFolder() const override;
@@ -81,6 +77,10 @@ public: // IContentBrowserPresenter actions
   void SetViewMode(EContentViewMode _ViewMode) override;
 
   void Refresh() override;
+
+public: // Interface
+
+  void ApplyPendingActions();
 
 private: // Implementation
 

@@ -28,15 +28,6 @@ CMeshInstance::~CMeshInstance()
 }
 
 //
-// Interface
-//
-
-const Ogre::MeshPtr & CMeshInstance::GetMesh() const noexcept
-{
-  return m_Mesh;
-}
-
-//
 // CAssetInstance
 //
 
@@ -45,6 +36,15 @@ std::vector<TAssetProperty> CMeshInstance::GetProperties() const
   return {{"Submeshes",   std::to_string(m_Mesh->getNumSubMeshes())          },
           {"Vertex data", m_Mesh->sharedVertexData ? "Shared" : "Per submesh"},
           {"Animations",  std::to_string(m_Mesh->getNumAnimations())         }};
+}
+
+//
+// Interface
+//
+
+const Ogre::MeshPtr & CMeshInstance::GetMesh() const noexcept
+{
+  return m_Mesh;
 }
 
 } // namespace editor

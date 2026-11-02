@@ -19,6 +19,10 @@ public: // Constructor
 
   CTextInstance(TAssetRecord _Record, std::string _Content);
 
+public: // CAssetInstance
+
+  std::vector<TAssetProperty> GetProperties() const override;
+
 public: // Interface
 
   std::string & GetContent() noexcept;
@@ -28,10 +32,6 @@ public: // Interface
   void MarkDirty() noexcept;
 
   bool Save();
-
-public: // CAssetInstance
-
-  std::vector<TAssetProperty> GetProperties() const override;
 
 private: // Attributes
 

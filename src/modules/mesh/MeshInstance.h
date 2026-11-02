@@ -17,13 +17,13 @@ public: // Constructor/Destructor
 
   ~CMeshInstance() override;
 
-public: // Interface
-
-  const Ogre::MeshPtr & GetMesh() const noexcept;
-
 public: // CAssetInstance
 
   std::vector<TAssetProperty> GetProperties() const override;
+
+public: // Interface
+
+  const Ogre::MeshPtr & GetMesh() const noexcept;
 
 private: // Attributes
 

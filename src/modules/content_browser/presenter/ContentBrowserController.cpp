@@ -63,22 +63,6 @@ CContentBrowserController::~CContentBrowserController()
 }
 
 //
-// Interface
-//
-
-void CContentBrowserController::ApplyPendingActions()
-{
-  auto Actions = std::move(m_PendingActions);
-  m_PendingActions.clear();
-
-  for (const auto & Action : Actions)
-    Action();
-
-  if (m_IsItemsDirty)
-    RebuildItems();
-}
-
-//
 // IContentBrowserPresenter state
 //
 
@@ -234,6 +218,22 @@ void CContentBrowserController::Refresh()
   {
     m_AssetManager->Refresh();
   });
+}
+
+//
+// Interface
+//
+
+void CContentBrowserController::ApplyPendingActions()
+{
+  auto Actions = std::move(m_PendingActions);
+  m_PendingActions.clear();
+
+  for (const auto & Action : Actions)
+    Action();
+
+  if (m_IsItemsDirty)
+    RebuildItems();
 }
 
 //

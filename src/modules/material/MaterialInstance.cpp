@@ -79,6 +79,16 @@ CMaterialInstance::~CMaterialInstance()
 }
 
 //
+// CAssetInstance
+//
+
+std::vector<TAssetProperty> CMaterialInstance::GetProperties() const
+{
+  return {{"Materials",     std::to_string(m_Materials.size())                               },
+          {"Script layout", m_HasExpandedFeatures ? "Uses inheritance or variables" : "Plain"}};
+}
+
+//
 // Interface
 //
 
@@ -128,16 +138,6 @@ bool CMaterialInstance::Save(std::string & _Error)
   m_HasExpandedFeatures = false;
 
   return true;
-}
-
-//
-// CAssetInstance
-//
-
-std::vector<TAssetProperty> CMaterialInstance::GetProperties() const
-{
-  return {{"Materials",     std::to_string(m_Materials.size())                               },
-          {"Script layout", m_HasExpandedFeatures ? "Uses inheritance or variables" : "Plain"}};
 }
 
 //

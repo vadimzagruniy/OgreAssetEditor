@@ -22,6 +22,12 @@ public: // Constructor/Destructor
 
   ~CEditorWorkspace() override;
 
+public: // IWorkspaceContext
+
+  CEditorWorkspace * GetWorkspace() const noexcept override;
+
+  CAssetInstance * GetAssetInstance() const noexcept override;
+
 public: // Interface
 
   CAssetInstance * GetInstance() const noexcept;
@@ -39,12 +45,6 @@ public: // Interface
   bool Save(std::string & _Error);
 
   virtual std::vector<core::TTypeKey> GetToolBoxes() const;
-
-public: // IWorkspaceContext
-
-  CEditorWorkspace * GetWorkspace() const noexcept override;
-
-  CAssetInstance * GetAssetInstance() const noexcept override;
 
 public: // Events
 

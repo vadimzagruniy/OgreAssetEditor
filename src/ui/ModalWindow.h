@@ -11,15 +11,15 @@ public: // Destructor
 
   virtual ~CModalWindow();
 
+protected: // Constructor
+
+  explicit CModalWindow(std::string _Title);
+
 public: // Interface
 
   bool Draw();
 
   const std::string & GetTitle() const noexcept;
-
-protected: // Constructor
-
-  explicit CModalWindow(std::string _Title);
 
 protected: // Interface
 

@@ -17,13 +17,13 @@ public: // Constructor/Destructor
 
   ~CTextureInstance() override;
 
-public: // Interface
-
-  const Ogre::TexturePtr & GetTexture() const noexcept;
-
 public: // CAssetInstance
 
   std::vector<TAssetProperty> GetProperties() const override;
+
+public: // Interface
+
+  const Ogre::TexturePtr & GetTexture() const noexcept;
 
 private: // Attributes
 

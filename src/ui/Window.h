@@ -11,6 +11,10 @@ public: // Destructor
 
   virtual ~CWindow();
 
+protected: // Constructor
+
+  CWindow(std::string _Title, std::string _StableId, bool _Visible = true);
+
 public: // Interface
 
   void Draw();
@@ -25,11 +29,7 @@ public: // Interface
 
   const std::string & GetLabel() const noexcept;
 
-protected: // Constructor
-
-  CWindow(std::string _Title, std::string _StableId, bool _Visible = true);
-
-protected: // Interface
+protected: // Events
 
   virtual void OnGui() = 0;
 

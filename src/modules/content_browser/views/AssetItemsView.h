@@ -18,13 +18,13 @@ public: // Destructor
 
   virtual ~CAssetItemsView();
 
-public: // Interface
-
-  void Draw();
-
 protected: // Constructor
 
   explicit CAssetItemsView(IContentBrowserPresenter & _Presenter);
+
+public: // Interface
+
+  void Draw();
 
 protected: // Interface
 

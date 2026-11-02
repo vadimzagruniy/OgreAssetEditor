@@ -28,15 +28,6 @@ CTextureInstance::~CTextureInstance()
 }
 
 //
-// Interface
-//
-
-const Ogre::TexturePtr & CTextureInstance::GetTexture() const noexcept
-{
-  return m_Texture;
-}
-
-//
 // CAssetInstance
 //
 
@@ -45,6 +36,15 @@ std::vector<TAssetProperty> CTextureInstance::GetProperties() const
   return {{"Width",      std::to_string(m_Texture->getWidth())  + " px"},
           {"Height",     std::to_string(m_Texture->getHeight()) + " px"},
           {"Mip levels", std::to_string(m_Texture->getNumMipmaps())    }};
+}
+
+//
+// Interface
+//
+
+const Ogre::TexturePtr & CTextureInstance::GetTexture() const noexcept
+{
+  return m_Texture;
 }
 
 } // namespace editor
