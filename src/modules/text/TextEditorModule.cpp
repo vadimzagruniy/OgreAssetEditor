@@ -1,9 +1,12 @@
 #include "TextEditorModule.h"
 #include "TextAssetType.h"
 #include "core/EditorService.h"
+#include "core/Log.h"
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/modules/ModuleInfo.h"
 #include "editor/modules/ModuleRegistry.h"
+
+#include <utility>
 
 namespace editor
 {
@@ -21,13 +24,15 @@ const TModuleInfo & CTextEditorModule::GetInfo() const noexcept
 bool CTextEditorModule::Startup(core::CEditorService & _Services, std::string & _Error)
 {
   auto AssetTypes = _Services.GetService<CAssetTypeRegistry>();
-  if (!AssetTypes)
+  auto EditorLog  = _Services.GetService<core::CLog>();
+
+  if (!AssetTypes || !EditorLog)
   {
-    _Error = "Text Editor module requires the asset type registry service.";
+    _Error = "Text Editor module requires the asset type registry and log services.";
     return false;
   }
 
-  AssetTypes->Register(std::make_shared<CTextAssetType>());
+  AssetTypes->Register(std::make_shared<CTextAssetType>(std::move(EditorLog)));
 
   return true;
 }

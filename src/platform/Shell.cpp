@@ -8,16 +8,37 @@
 namespace editor::platform
 {
 
+namespace
+{
+
+bool RunShell(const wchar_t * _File, const wchar_t * _Parameters)
+{
+  const auto Result = ShellExecuteW(nullptr, L"open", _File, _Parameters, nullptr, SW_SHOWNORMAL);
+
+  // ShellExecute reports success with a value greater than 32.
+  return reinterpret_cast<INT_PTR>(Result) > 32;
+}
+
+} // namespace
+
 bool RevealInExplorer(const std::filesystem::path & _Path, std::string & _Error)
 {
   const std::wstring Parameters = L"/select,\"" + _Path.native() + L"\"";
-  const auto         Result     = ShellExecuteW(nullptr, L"open", L"explorer.exe", Parameters.c_str(), nullptr, SW_SHOWNORMAL);
 
-  // ShellExecute reports success with a value greater than 32.
-  if (reinterpret_cast<INT_PTR>(Result) > 32)
+  if (RunShell(L"explorer.exe", Parameters.c_str()))
     return true;
 
   _Error = "Could not open Explorer for " + _Path.string();
+
+  return false;
+}
+
+bool OpenWithDefaultApp(const std::filesystem::path & _Path, std::string & _Error)
+{
+  if (RunShell(_Path.c_str(), nullptr))
+    return true;
+
+  _Error = "No application is associated with " + _Path.string();
 
   return false;
 }
