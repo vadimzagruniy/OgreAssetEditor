@@ -104,6 +104,11 @@ Ogre::SceneManager * CRenderScene::GetSceneManager() const noexcept
   return m_SceneManager;
 }
 
+Ogre::Camera * CRenderScene::GetCamera() const noexcept
+{
+  return m_Camera;
+}
+
 Ogre::SceneNode * CRenderScene::GetCameraNode() const noexcept
 {
   return m_CameraNode;

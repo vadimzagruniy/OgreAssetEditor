@@ -32,6 +32,8 @@ public: // Interface
 
   Ogre::SceneManager * GetSceneManager() const noexcept;
 
+  Ogre::Camera * GetCamera() const noexcept;
+
   Ogre::SceneNode * GetCameraNode() const noexcept;
 
   Ogre::SceneNode * GetContentRoot() const noexcept;

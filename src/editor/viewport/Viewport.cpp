@@ -1,6 +1,7 @@
 #include "Viewport.h"
 #include "ViewAxisGizmo.h"
 #include "ViewportCamera.h"
+#include "ViewportFrame.h"
 #include "ViewportGrid.h"
 #include "ViewportInput.h"
 #include "ViewportNavigation.h"
@@ -101,9 +102,16 @@ void CViewport::Draw(const char * _Id)
   ImGui::SetNextItemAllowOverlap();
   ImGui::InvisibleButton(_Id, Available, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
 
-  const TViewportInput Input = ReadInput();
+  TViewportInput Input = ReadInput();
 
   DrawImage(Origin, Available);
+
+  if (m_OverlayCallback && m_OverlayCallback({Origin, Available, Input}))
+  {
+    Input.IsClicked  = false;
+    Input.IsLeftDown = false;
+  }
+
   DrawToolbar(Origin);
 
   if (const auto AlignDirection = DrawViewAxisGizmo(Origin, Available, m_Camera->GetOrientation()))
@@ -120,6 +128,11 @@ void CViewport::Draw(const char * _Id)
 void CViewport::OnPick(std::function<void(const Ogre::Ray &)> _Callback)
 {
   m_PickCallback = std::move(_Callback);
+}
+
+void CViewport::OnOverlay(std::function<bool(const TViewportFrame &)> _Callback)
+{
+  m_OverlayCallback = std::move(_Callback);
 }
 
 //

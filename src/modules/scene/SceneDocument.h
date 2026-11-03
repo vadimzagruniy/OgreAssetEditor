@@ -1,7 +1,12 @@
 #pragma once
 
+#include "model/SceneNodeProperties.h"
+
+#include <OgrePrerequisites.h>
+
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace editor
@@ -41,9 +46,21 @@ public: // Interface
 
   void RenameNode(const std::string & _Name, const std::string & _NewName);
 
+  void PreviewWorldTransform(const std::string & _Name, const Ogre::Affine3 & _World);
+
+  void CommitPreview();
+
+  void CancelPreview();
+
 private: // Types
 
   using TEdit = std::function<void(CSceneDocument &)>;
+
+  struct TPreview
+  {
+    std::string          Name;
+    TSceneNodeProperties Before;
+  };
 
 private: // Implementation
 
@@ -51,9 +68,10 @@ private: // Implementation
 
 private: // Attributes
 
-  CSceneInstance &   m_Instance;
-  core::CUndoStack & m_UndoStack;
-  std::string        m_Selection;
+  CSceneInstance &        m_Instance;
+  core::CUndoStack &      m_UndoStack;
+  std::string             m_Selection;
+  std::optional<TPreview> m_Preview;
 };
 
 } // namespace editor

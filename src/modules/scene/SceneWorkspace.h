@@ -1,6 +1,7 @@
 #pragma once
 
 #include "editor/workspaces/EditorWorkspace.h"
+#include "ui/layout/Layout.h"
 
 #include <memory>
 
@@ -12,12 +13,19 @@ namespace core
 class CLog;
 } // namespace core
 
+namespace ui
+{
+class CComboBox;
+} // namespace ui
+
 class CRenderScene;
 class CSceneDocument;
 class CSceneEditorController;
 class CSceneInstance;
 class CSceneSync;
+class CTransformGizmo;
 class CViewport;
+struct TViewportFrame;
 
 class CSceneWorkspace final:
   public CEditorWorkspace
@@ -46,6 +54,16 @@ private: // Implementation
 
   CSceneInstance & GetScene() const;
 
+  void SetupViewport();
+
+  void SetupToolbar();
+
+  void DrawToolbar();
+
+  void HandleShortcuts();
+
+  bool DrawGizmo(const TViewportFrame & _Frame);
+
 private: // Attributes
 
   std::shared_ptr<CSceneEditorController> m_Controller;
@@ -53,6 +71,10 @@ private: // Attributes
   std::unique_ptr<CRenderScene>           m_RenderScene;
   std::unique_ptr<CSceneSync>             m_Sync;
   std::unique_ptr<CViewport>              m_Viewport;
+  std::unique_ptr<CTransformGizmo>        m_Gizmo;
+  ui::CLayout                             m_Toolbar;
+  ui::CComboBox &                         m_ModeCombo;
+  ui::CComboBox &                         m_SpaceCombo;
 };
 
 } // namespace editor

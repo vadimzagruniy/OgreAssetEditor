@@ -1,4 +1,5 @@
 #include "ViewAxisGizmo.h"
+#include "AxisColors.h"
 
 #include <imgui.h>
 
@@ -26,10 +27,7 @@ constexpr float HandleRadiusScale = 0.55f;
 constexpr float MarginScale       = 0.8f;
 constexpr float LineThickness     = 2.0f;
 
-const ImU32 AxisXColor       = IM_COL32(224, 79, 95, 255);
-const ImU32 AxisYColor       = IM_COL32(124, 179, 66, 255);
-const ImU32 AxisZColor       = IM_COL32(62, 142, 222, 255);
-const ImU32 LabelColor       = IM_COL32(20, 21, 24, 255);
+const ImU32 LabelColor      = IM_COL32(20, 21, 24, 255);
 const ImU32 HoverHandleColor = IM_COL32(255, 255, 255, 255);
 const ImU32 BackgroundColor  = IM_COL32(255, 255, 255, 18);
 
@@ -43,7 +41,6 @@ ImU32 FadeColor(ImU32 _Color, float _Alpha)
 std::array<TAxisHandle, 6> BuildHandles(const ImVec2 & _Center, float _Radius, const Ogre::Quaternion & _CameraOrientation)
 {
   const std::array<Ogre::Vector3, 3> Axes{Ogre::Vector3::UNIT_X, Ogre::Vector3::UNIT_Y, Ogre::Vector3::UNIT_Z};
-  const std::array<ImU32, 3>         Colors{AxisXColor, AxisYColor, AxisZColor};
   const std::array<const char *, 3>  Labels{"X", "Y", "Z"};
 
   const Ogre::Quaternion ToView = _CameraOrientation.Inverse();
@@ -63,7 +60,7 @@ std::array<TAxisHandle, 6> BuildHandles(const ImVec2 & _Center, float _Radius, c
         Axis,
         ImVec2(_Center.x + ViewAxis.x * _Radius, _Center.y - ViewAxis.y * _Radius),
         ViewAxis.z,
-        Colors[AxisIndex],
+        GetAxisColor(AxisIndex),
         IsPositive ? Labels[AxisIndex] : nullptr
       };
     }

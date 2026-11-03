@@ -18,13 +18,13 @@ void ExpectSuccess(bool _IsDone)
   (void)_IsDone;
 }
 
-TSceneNodeProperties KeepWorldTransform(const CSceneInstance & _Instance, const std::string & _Name, const std::string & _NewParentName)
+TSceneNodeProperties WithWorldTransform(const CSceneInstance & _Instance, const std::string & _Name, const std::string & _ParentName, const Ogre::Affine3 & _World)
 {
   auto Properties = _Instance.GetNode(_Name).Properties;
 
-  Ogre::Affine3 Local = _Instance.GetWorldTransform(_Name);
-  if (!_NewParentName.empty())
-    Local = _Instance.GetWorldTransform(_NewParentName).inverse() * Local;
+  Ogre::Affine3 Local = _World;
+  if (!_ParentName.empty())
+    Local = _Instance.GetWorldTransform(_ParentName).inverse() * Local;
 
   auto & Transform = Properties.Transform;
   Local.decomposition(Transform.Position, Transform.Scale, Transform.Orientation);
@@ -148,7 +148,7 @@ void CSceneDocument::MoveNode(const std::string & _Name, const std::string & _Ne
   const std::string OldParentName = Node.ParentName;
   const std::size_t OldIndex      = m_Instance.GetSiblingIndex(_Name);
   const auto        OldProperties = Node.Properties;
-  const auto        NewProperties = KeepWorldTransform(m_Instance, _Name, _NewParentName);
+  const auto        NewProperties = WithWorldTransform(m_Instance, _Name, _NewParentName, m_Instance.GetWorldTransform(_Name));
 
   const std::size_t NewIndex = m_Instance.GetChildren(_NewParentName).size() - (OldParentName == _NewParentName ? 1 : 0);
   if (OldParentName == _NewParentName && OldIndex == NewIndex)
@@ -188,16 +188,78 @@ void CSceneDocument::RenameNode(const std::string & _Name, const std::string & _
   ExecuteCommand("Rename Node", Rename(_Name, _NewName), Rename(_NewName, _Name));
 }
 
+void CSceneDocument::PreviewWorldTransform(const std::string & _Name, const Ogre::Affine3 & _World)
+{
+  if (!m_Instance.HasNode(_Name))
+    return;
+
+  if (m_Preview && m_Preview->Name != _Name)
+    CommitPreview();
+
+  const auto & Node = m_Instance.GetNode(_Name);
+  if (!m_Preview)
+    m_Preview = TPreview{_Name, Node.Properties};
+
+  std::string Error;
+  ExpectSuccess(m_Instance.SetProperties(_Name, WithWorldTransform(m_Instance, _Name, Node.ParentName, _World), Error));
+}
+
+void CSceneDocument::CommitPreview()
+{
+  if (!m_Preview)
+    return;
+
+  const TPreview Preview = std::move(*m_Preview);
+  m_Preview.reset();
+
+  if (!m_Instance.HasNode(Preview.Name))
+    return;
+
+  const auto After = m_Instance.GetNode(Preview.Name).Properties;
+  if (After == Preview.Before)
+    return;
+
+  auto Apply = [Name = Preview.Name](const TSceneNodeProperties & _Properties)
+  {
+    return [Name, _Properties](CSceneDocument & _Document)
+    {
+      std::string Error;
+      ExpectSuccess(_Document.m_Instance.SetProperties(Name, _Properties, Error));
+      _Document.m_Selection = Name;
+    };
+  };
+
+  ExecuteCommand("Transform Node", Apply(After), Apply(Preview.Before));
+}
+
+void CSceneDocument::CancelPreview()
+{
+  if (!m_Preview)
+    return;
+
+  const TPreview Preview = std::move(*m_Preview);
+  m_Preview.reset();
+
+  std::string Error;
+  if (m_Instance.HasNode(Preview.Name))
+    ExpectSuccess(m_Instance.SetProperties(Preview.Name, Preview.Before, Error));
+}
+
 //
 // Implementation
 //
 
 void CSceneDocument::ExecuteCommand(std::string _CommandName, TEdit _Execute, TEdit _Undo)
 {
+  CommitPreview();
+
   auto Apply = [Document = weak_from_this()](const TEdit & _Edit)
   {
     if (const auto LockedDocument = Document.lock())
+    {
+      LockedDocument->m_Preview.reset();
       _Edit(*LockedDocument);
+    }
   };
 
   m_UndoStack.Execute(std::make_unique<core::CFunctionCommand>(std::move(_CommandName),
