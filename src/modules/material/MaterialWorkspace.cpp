@@ -2,6 +2,7 @@
 #include "MaterialDocument.h"
 #include "MaterialInstance.h"
 #include "editor/render/PreviewScene.h"
+#include "editor/render/RenderScene.h"
 #include "editor/render/PreviewShape.h"
 #include "editor/viewport/Viewport.h"
 #include "presenter/MaterialEditorController.h"
@@ -61,7 +62,7 @@ CMaterialWorkspace::CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Insta
   m_Controller(std::move(_Controller)),
   m_Document(std::make_shared<CMaterialDocument>(*static_cast<CMaterialInstance *>(GetInstance()), GetUndoStack())),
   m_Preview(std::make_unique<CPreviewScene>()),
-  m_Viewport(std::make_unique<CViewport>(*m_Preview)),
+  m_Viewport(std::make_unique<CViewport>(m_Preview->GetRenderScene())),
   m_Shape(EPreviewShape::Sphere),
   m_PreviewMaterialIndex(-1),
   m_Toolbar(ui::ELayoutDirection::Row),
@@ -87,14 +88,14 @@ std::vector<core::TTypeKey> CMaterialWorkspace::GetToolBoxes() const
 void CMaterialWorkspace::OnActivated()
 {
   m_Controller->SetDocument(m_Document);
-  m_Preview->SetActive(true);
+  m_Preview->GetRenderScene().SetActive(true);
 }
 
 void CMaterialWorkspace::OnDeactivated()
 {
   m_Document->CommitPreview();
   m_Controller->ResetDocument(*m_Document);
-  m_Preview->SetActive(false);
+  m_Preview->GetRenderScene().SetActive(false);
 }
 
 void CMaterialWorkspace::OnGui()

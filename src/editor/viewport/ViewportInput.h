@@ -14,6 +14,7 @@ struct TViewportInput
   float MoveForward  = 0.0f;
   bool  IsHovered    = false;
   bool  IsCaptured   = false;
+  bool  IsClicked    = false;
   bool  IsLeftDown   = false;
   bool  IsRightDown  = false;
   bool  IsMiddleDown = false;

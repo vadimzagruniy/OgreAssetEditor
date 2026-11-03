@@ -4,12 +4,15 @@
 #include "ViewportGrid.h"
 #include "ViewportInput.h"
 #include "ViewportNavigation.h"
-#include "editor/render/PreviewScene.h"
+#include "editor/render/RenderScene.h"
 #include "ui/elements/Button.h"
 #include "ui/elements/CheckBox.h"
 
+#include <OgreRay.h>
 #include <OgreTexture.h>
 #include <imgui.h>
+
+#include <utility>
 
 namespace editor
 {
@@ -20,6 +23,12 @@ namespace
 float ReadKeyAxis(ImGuiKey _Positive, ImGuiKey _Negative)
 {
   return (ImGui::IsKeyDown(_Positive) ? 1.0f : 0.0f) - (ImGui::IsKeyDown(_Negative) ? 1.0f : 0.0f);
+}
+
+bool IsLeftDragged(const ImGuiIO & _InputState)
+{
+  const float Threshold = _InputState.MouseDragThreshold;
+  return _InputState.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] > Threshold * Threshold;
 }
 
 TViewportInput ReadInput()
@@ -33,6 +42,7 @@ TViewportInput ReadInput()
   Input.Wheel        = InputState.MouseWheel;
   Input.IsHovered    = ImGui::IsItemHovered();
   Input.IsCaptured   = ImGui::IsItemActive();
+  Input.IsClicked    = ImGui::IsItemDeactivated() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !InputState.KeyAlt && !IsLeftDragged(InputState);
   Input.IsLeftDown   = ImGui::IsMouseDown(ImGuiMouseButton_Left);
   Input.IsRightDown  = ImGui::IsMouseDown(ImGuiMouseButton_Right);
   Input.IsMiddleDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
@@ -56,7 +66,7 @@ TViewportInput ReadInput()
 // Constructor/Destructor
 //
 
-CViewport::CViewport(CPreviewScene & _Scene):
+CViewport::CViewport(CRenderScene & _Scene):
   m_Scene(_Scene),
   m_Camera(std::make_unique<CViewportCamera>(_Scene.GetCameraNode())),
   m_Navigation(std::make_unique<CViewportNavigation>()),
@@ -101,9 +111,15 @@ void CViewport::Draw(const char * _Id)
 
   m_Navigation->Update(Input, *m_Camera);
   HandleShortcuts(Input);
+  HandlePick(Input, Origin, Available);
 
   m_Camera->Update(Input.DeltaTime);
   m_Grid->Update(m_Camera->GetPosition(), m_Camera->GetPose().Distance);
+}
+
+void CViewport::OnPick(std::function<void(const Ogre::Ray &)> _Callback)
+{
+  m_PickCallback = std::move(_Callback);
 }
 
 //
@@ -148,6 +164,18 @@ void CViewport::HandleShortcuts(const TViewportInput & _Input)
 
   if (ImGui::IsKeyPressed(ImGuiKey_F, false))
     m_Camera->Frame(m_Scene.GetContentBounds());
+}
+
+void CViewport::HandlePick(const TViewportInput & _Input, const ImVec2 & _Origin, const ImVec2 & _Size) const
+{
+  if (!_Input.IsClicked || !m_PickCallback)
+    return;
+
+  const ImVec2 MousePosition = ImGui::GetMousePos();
+  const float  NormalizedX   = (MousePosition.x - _Origin.x) / _Size.x;
+  const float  NormalizedY   = (MousePosition.y - _Origin.y) / _Size.y;
+
+  m_PickCallback(m_Scene.GetViewportRay(NormalizedX, NormalizedY));
 }
 
 void CViewport::DrawImage(const ImVec2 & _Origin, const ImVec2 & _Size) const

@@ -1,7 +1,12 @@
 #include "SceneInstance.h"
 #include "SceneSerializer.h"
 #include "editor/assets/AssetRecord.h"
+#include "editor/assets/ResourceRelease.h"
 #include "editor/workspaces/AssetProperty.h"
+
+#include <OgreMesh.h>
+#include <OgreMeshManager.h>
+#include <OgreResourceGroupManager.h>
 
 #include <algorithm>
 #include <cassert>
@@ -35,13 +40,18 @@ std::string GetNameStem(const std::string & _Name)
 // Constructor/Destructor
 //
 
-CSceneInstance::CSceneInstance(TAssetRecord _Record):
-  CAssetInstance(std::move(_Record), "Scene")
+CSceneInstance::CSceneInstance(TAssetRecord _Record, std::string _ResourceGroup):
+  CAssetInstance(std::move(_Record), "Scene"),
+  m_ResourceGroup(std::move(_ResourceGroup))
 {
   // Empty
 }
 
-CSceneInstance::~CSceneInstance() = default;
+CSceneInstance::~CSceneInstance()
+{
+  for (auto & Entry : m_Meshes)
+    ReleaseOgreResource(std::move(Entry.second));
+}
 
 //
 // CAssetInstance
@@ -100,6 +110,82 @@ std::string CSceneInstance::MakeUniqueName(const std::string & _BaseName) const
   }
 }
 
+std::size_t CSceneInstance::GetSiblingIndex(const std::string & _Name) const
+{
+  const auto & Siblings = GetChildren(GetNode(_Name).ParentName);
+  return static_cast<std::size_t>(std::find(Siblings.begin(), Siblings.end(), _Name) - Siblings.begin());
+}
+
+bool CSceneInstance::IsSameOrDescendant(const std::string & _Name, const std::string & _Ancestor) const
+{
+  for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).ParentName)
+  {
+    if (Current == _Ancestor)
+      return true;
+  }
+
+  return false;
+}
+
+Ogre::Affine3 CSceneInstance::GetWorldTransform(const std::string & _Name) const
+{
+  Ogre::Affine3 World = Ogre::Affine3::IDENTITY;
+
+  for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).ParentName)
+  {
+    const auto & Transform = GetNode(Current).Properties.Transform;
+
+    Ogre::Affine3 Local;
+    Local.makeTransform(Transform.Position, Transform.Scale, Transform.Orientation);
+
+    World = Local * World;
+  }
+
+  return World;
+}
+
+TSceneSubtree CSceneInstance::CaptureSubtree(const std::string & _Name) const
+{
+  TSceneSubtree Subtree;
+  Subtree.Index = GetSiblingIndex(_Name);
+
+  CaptureNode(_Name, Subtree);
+
+  return Subtree;
+}
+
+bool CSceneInstance::InsertSubtree(const TSceneSubtree & _Subtree, std::string & _Error)
+{
+  for (std::size_t NodeIndex = 0; NodeIndex < _Subtree.Nodes.size(); ++NodeIndex)
+  {
+    const auto &      Node  = _Subtree.Nodes[NodeIndex];
+    const std::size_t Index = NodeIndex == 0 ? _Subtree.Index : GetChildren(Node.ParentName).size();
+
+    if (!InsertNode(Node.Name, Node.ParentName, Index, Node.Properties, _Error))
+      return false;
+  }
+
+  return true;
+}
+
+bool CSceneInstance::RemoveSubtree(const std::string & _Name, std::string & _Error)
+{
+  if (!HasNode(_Name))
+  {
+    _Error = "Cannot remove node '" + _Name + "': it does not exist.";
+    return false;
+  }
+
+  const auto Children = GetNode(_Name).Children;
+  for (const auto & ChildName : Children)
+  {
+    if (!RemoveSubtree(ChildName, _Error))
+      return false;
+  }
+
+  return RemoveNode(_Name, _Error);
+}
+
 bool CSceneInstance::InsertNode(const std::string & _Name, const std::string & _ParentName, std::size_t _Index, TSceneNodeProperties _Properties, std::string & _Error)
 {
   if (!CheckNewName(_Name, _Error) || !CheckParent(_ParentName, _Error))
@@ -114,6 +200,8 @@ bool CSceneInstance::InsertNode(const std::string & _Name, const std::string & _
 
   Siblings.insert(Siblings.begin() + static_cast<std::ptrdiff_t>(_Index), _Name);
   m_Nodes.emplace(_Name, TSceneNode{_Name, _ParentName, {}, std::move(_Properties)});
+
+  MarkDirty(_Name);
 
   return true;
 }
@@ -135,6 +223,8 @@ bool CSceneInstance::RemoveNode(const std::string & _Name, std::string & _Error)
 
   std::erase(GetSiblings(Node.ParentName), _Name);
   m_Nodes.erase(_Name);
+
+  MarkDirty(_Name);
 
   return true;
 }
@@ -163,6 +253,8 @@ bool CSceneInstance::MoveNode(const std::string & _Name, const std::string & _Ne
   NewSiblings.insert(NewSiblings.begin() + static_cast<std::ptrdiff_t>(std::min(_Index, NewSiblings.size())), _Name);
   Node.ParentName = _NewParentName;
 
+  MarkDirty(_Name);
+
   return true;
 }
 
@@ -190,7 +282,13 @@ bool CSceneInstance::RenameNode(const std::string & _Name, const std::string & _
   std::replace(Siblings.begin(), Siblings.end(), _Name, _NewName);
 
   for (const auto & ChildName : Node.Children)
+  {
     m_Nodes.find(ChildName)->second.ParentName = _NewName;
+    MarkDirty(ChildName);
+  }
+
+  MarkDirty(_Name);
+  MarkDirty(_NewName);
 
   return true;
 }
@@ -205,6 +303,8 @@ bool CSceneInstance::SetProperties(const std::string & _Name, TSceneNodeProperti
   }
 
   NodeIterator->second.Properties = std::move(_Properties);
+
+  MarkDirty(_Name);
 
   return true;
 }
@@ -224,9 +324,45 @@ bool CSceneInstance::Save(std::string & _Error) const
   return true;
 }
 
+bool CSceneInstance::AcquireMesh(const std::string & _MeshName, Ogre::MeshPtr & _Mesh, std::string & _Error)
+{
+  if (const auto MeshIterator = m_Meshes.find(_MeshName); MeshIterator != m_Meshes.end())
+  {
+    _Mesh = MeshIterator->second;
+    return true;
+  }
+
+  if (!Ogre::ResourceGroupManager::getSingleton().resourceExists(m_ResourceGroup, _MeshName))
+  {
+    _Error = "Mesh '" + _MeshName + "' is not found in the project resources.";
+    return false;
+  }
+
+  _Mesh = Ogre::MeshManager::getSingleton().load(_MeshName, m_ResourceGroup);
+  if (!_Mesh)
+  {
+    _Error = "OGRE returned an empty mesh: " + _MeshName;
+    return false;
+  }
+
+  m_Meshes.emplace(_MeshName, _Mesh);
+
+  return true;
+}
+
+std::unordered_set<std::string> CSceneInstance::TakeDirtyNodes()
+{
+  return std::exchange(m_DirtyNodes, {});
+}
+
 //
 // Implementation
 //
+
+void CSceneInstance::MarkDirty(const std::string & _Name)
+{
+  m_DirtyNodes.insert(_Name);
+}
 
 std::vector<std::string> & CSceneInstance::GetSiblings(const std::string & _ParentName)
 {
@@ -265,15 +401,13 @@ bool CSceneInstance::CheckParent(const std::string & _ParentName, std::string & 
   return false;
 }
 
-bool CSceneInstance::IsSameOrDescendant(const std::string & _Name, const std::string & _Ancestor) const
+void CSceneInstance::CaptureNode(const std::string & _Name, TSceneSubtree & _Subtree) const
 {
-  for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).ParentName)
-  {
-    if (Current == _Ancestor)
-      return true;
-  }
+  const auto & Node = GetNode(_Name);
+  _Subtree.Nodes.push_back({Node.Name, Node.ParentName, Node.Properties});
 
-  return false;
+  for (const auto & ChildName : Node.Children)
+    CaptureNode(ChildName, _Subtree);
 }
 
 } // namespace editor
