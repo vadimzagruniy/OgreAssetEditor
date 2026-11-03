@@ -1,3 +1,5 @@
+<img width="1919" height="1046" alt="image" src="https://github.com/user-attachments/assets/c1d0af06-5dba-4c21-b0d7-db12e32f7b79" />
+
 # Ogre Asset Editor
 
 A modular asset editor for [OGRE 3D](https://www.ogre3d.org/) built with [Dear ImGui](https://github.com/ocornut/imgui) (docking branch).
