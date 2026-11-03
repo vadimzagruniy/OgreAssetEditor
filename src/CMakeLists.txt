@@ -8,8 +8,8 @@ add_executable(OgreResourceEditor ${EDITOR_SOURCES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${EDITOR_SOURCES})
 
 target_include_directories(OgreResourceEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(OgreResourceEditor PRIVATE OgreMain OgreBites OgreOverlay)
-target_compile_definitions(OgreResourceEditor PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+target_link_libraries(OgreResourceEditor PRIVATE OgreMain OgreBites OgreOverlay nlohmann_json::nlohmann_json)
+target_compile_definitions(OgreResourceEditor PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN JSON_NOEXCEPTION)
 set_target_properties(OgreResourceEditor PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")

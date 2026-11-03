@@ -41,5 +41,9 @@ set(EDITOR_IMGUI_BUILD_DIR "${CMAKE_BINARY_DIR}/third_party/imgui")
 file(COPY "${CMAKE_SOURCE_DIR}/third_party/imgui/" DESTINATION "${EDITOR_IMGUI_BUILD_DIR}")
 set(IMGUI_DIR "${EDITOR_IMGUI_BUILD_DIR}" CACHE PATH "Dear ImGui docking source used by Ogre Overlay" FORCE)
 
+set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+set(JSON_Install OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(third_party/ogre)
+add_subdirectory(third_party/json)
 add_subdirectory(src)
