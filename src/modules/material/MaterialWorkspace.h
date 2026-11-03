@@ -18,7 +18,9 @@ enum class EPreviewShape;
 class CMaterialDocument;
 class CMaterialEditorController;
 class CMaterialInstance;
+class CPassPropertySource;
 class CPreviewScene;
+class CTextureUnitPropertySource;
 class CViewport;
 
 class CMaterialWorkspace final:
@@ -33,6 +35,8 @@ public: // Constructor/Destructor
 public: // CEditorWorkspace
 
   std::vector<core::TTypeKey> GetToolBoxes() const override;
+
+  std::shared_ptr<IPropertySource> GetInspected() const override;
 
   void OnActivated() override;
 
@@ -54,15 +58,17 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<CMaterialEditorController> m_Controller;
-  std::shared_ptr<CMaterialDocument>         m_Document;
-  std::unique_ptr<CPreviewScene>             m_Preview;
-  std::unique_ptr<CViewport>                 m_Viewport;
-  EPreviewShape                              m_Shape;
-  int                                        m_PreviewMaterialIndex;
-  ui::CLayout                                m_Toolbar;
-  ui::CComboBox &                            m_ShapeCombo;
-  ui::CText &                                m_WarningText;
+  std::shared_ptr<CMaterialEditorController>  m_Controller;
+  std::shared_ptr<CMaterialDocument>          m_Document;
+  std::shared_ptr<CPassPropertySource>        m_PassProperties;
+  std::shared_ptr<CTextureUnitPropertySource> m_TextureUnitProperties;
+  std::unique_ptr<CPreviewScene>              m_Preview;
+  std::unique_ptr<CViewport>                  m_Viewport;
+  EPreviewShape                               m_Shape;
+  int                                         m_PreviewMaterialIndex;
+  ui::CLayout                                 m_Toolbar;
+  ui::CComboBox &                             m_ShapeCombo;
+  ui::CText &                                 m_WarningText;
 };
 
 } // namespace editor

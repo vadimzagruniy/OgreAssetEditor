@@ -5,8 +5,9 @@
 #include "editor/render/RenderScene.h"
 #include "editor/render/PreviewShape.h"
 #include "editor/viewport/Viewport.h"
+#include "inspector/PassPropertySource.h"
+#include "inspector/TextureUnitPropertySource.h"
 #include "presenter/MaterialEditorController.h"
-#include "views/MaterialInspectorWindow.h"
 #include "views/MaterialOutlineWindow.h"
 #include "ui/elements/ComboBox.h"
 #include "ui/elements/Text.h"
@@ -61,6 +62,8 @@ CMaterialWorkspace::CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Insta
   CEditorWorkspace(std::move(_Instance)),
   m_Controller(std::move(_Controller)),
   m_Document(std::make_shared<CMaterialDocument>(*static_cast<CMaterialInstance *>(GetInstance()), GetUndoStack())),
+  m_PassProperties(std::make_shared<CPassPropertySource>(m_Controller)),
+  m_TextureUnitProperties(std::make_shared<CTextureUnitPropertySource>(m_Controller)),
   m_Preview(std::make_unique<CPreviewScene>()),
   m_Viewport(std::make_unique<CViewport>(m_Preview->GetRenderScene())),
   m_Shape(EPreviewShape::Sphere),
@@ -82,7 +85,20 @@ CMaterialWorkspace::~CMaterialWorkspace() = default;
 
 std::vector<core::TTypeKey> CMaterialWorkspace::GetToolBoxes() const
 {
-  return {core::TypeOf<CMaterialOutlineWindow>(), core::TypeOf<CMaterialInspectorWindow>()};
+  return {core::TypeOf<CMaterialOutlineWindow>()};
+}
+
+std::shared_ptr<IPropertySource> CMaterialWorkspace::GetInspected() const
+{
+  const TMaterialNode & Selection = m_Document->GetSelection();
+
+  if (m_Document->GetPassState(Selection))
+    return m_PassProperties;
+
+  if (m_Document->GetTextureUnitState(Selection))
+    return m_TextureUnitProperties;
+
+  return nullptr;
 }
 
 void CMaterialWorkspace::OnActivated()

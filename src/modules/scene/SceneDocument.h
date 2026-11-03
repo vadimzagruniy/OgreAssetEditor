@@ -46,6 +46,8 @@ public: // Interface
 
   void RenameNode(const std::string & _Name, const std::string & _NewName);
 
+  void PreviewProperties(const std::string & _Name, const TSceneNodeProperties & _Properties, const std::string & _CommandName);
+
   void PreviewWorldTransform(const std::string & _Name, const Ogre::Affine3 & _World);
 
   void CommitPreview();
@@ -59,6 +61,7 @@ private: // Types
   struct TPreview
   {
     std::string          Name;
+    std::string          CommandName;
     TSceneNodeProperties Before;
   };
 

@@ -24,6 +24,7 @@ class CRenderScene;
 class CSceneDocument;
 class CSceneEditorController;
 class CSceneInstance;
+class CSceneNodePropertySource;
 class CSceneSync;
 class CTransformGizmo;
 class CViewport;
@@ -41,6 +42,8 @@ public: // Constructor/Destructor
 public: // CEditorWorkspace
 
   std::vector<core::TTypeKey> GetToolBoxes() const override;
+
+  std::shared_ptr<IPropertySource> GetInspected() const override;
 
   void OnActivated() override;
 
@@ -74,15 +77,16 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<CSceneEditorController> m_Controller;
-  std::shared_ptr<CSceneDocument>         m_Document;
-  std::unique_ptr<CRenderScene>           m_RenderScene;
-  std::unique_ptr<CSceneSync>             m_Sync;
-  std::unique_ptr<CViewport>              m_Viewport;
-  std::unique_ptr<CTransformGizmo>        m_Gizmo;
-  ui::CLayout                             m_Toolbar;
-  ui::CComboBox &                         m_ModeCombo;
-  ui::CComboBox &                         m_SpaceCombo;
+  std::shared_ptr<CSceneEditorController>   m_Controller;
+  std::shared_ptr<CSceneDocument>           m_Document;
+  std::shared_ptr<CSceneNodePropertySource> m_NodeProperties;
+  std::unique_ptr<CRenderScene>             m_RenderScene;
+  std::unique_ptr<CSceneSync>               m_Sync;
+  std::unique_ptr<CViewport>                m_Viewport;
+  std::unique_ptr<CTransformGizmo>          m_Gizmo;
+  ui::CLayout                               m_Toolbar;
+  ui::CComboBox &                           m_ModeCombo;
+  ui::CComboBox &                           m_SpaceCombo;
 };
 
 } // namespace editor

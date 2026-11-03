@@ -82,6 +82,11 @@ std::vector<core::TTypeKey> CEditorWorkspace::GetToolBoxes() const
   return {};
 }
 
+std::shared_ptr<IPropertySource> CEditorWorkspace::GetInspected() const
+{
+  return nullptr;
+}
+
 //
 // Events
 //

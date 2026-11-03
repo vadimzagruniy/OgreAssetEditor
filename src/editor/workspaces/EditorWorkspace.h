@@ -12,6 +12,7 @@ namespace editor
 {
 
 class CAssetInstance;
+class IPropertySource;
 
 class CEditorWorkspace:
   public IWorkspaceContext
@@ -45,6 +46,8 @@ public: // Interface
   bool Save(std::string & _Error);
 
   virtual std::vector<core::TTypeKey> GetToolBoxes() const;
+
+  virtual std::shared_ptr<IPropertySource> GetInspected() const;
 
 public: // Events
 

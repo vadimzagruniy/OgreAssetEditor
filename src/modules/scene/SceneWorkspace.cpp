@@ -6,6 +6,7 @@
 #include "editor/viewport/gizmo/TransformGizmo.h"
 #include "editor/viewport/Viewport.h"
 #include "editor/viewport/ViewportFrame.h"
+#include "inspector/SceneNodePropertySource.h"
 #include "presenter/SceneEditorController.h"
 #include "render/SceneSync.h"
 #include "ui/DragPayload.h"
@@ -45,6 +46,7 @@ CSceneWorkspace::CSceneWorkspace(std::unique_ptr<CSceneInstance> _Instance, std:
   CEditorWorkspace(std::move(_Instance)),
   m_Controller(std::move(_Controller)),
   m_Document(std::make_shared<CSceneDocument>(GetScene(), GetUndoStack())),
+  m_NodeProperties(std::make_shared<CSceneNodePropertySource>(m_Document)),
   m_RenderScene(std::make_unique<CRenderScene>()),
   m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_Log))),
   m_Viewport(std::make_unique<CViewport>(*m_RenderScene)),
@@ -69,6 +71,14 @@ CSceneWorkspace::~CSceneWorkspace() = default;
 std::vector<core::TTypeKey> CSceneWorkspace::GetToolBoxes() const
 {
   return {core::TypeOf<CSceneOutlinerWindow>()};
+}
+
+std::shared_ptr<IPropertySource> CSceneWorkspace::GetInspected() const
+{
+  if (m_Document->GetSelection().empty())
+    return nullptr;
+
+  return m_NodeProperties;
 }
 
 void CSceneWorkspace::OnActivated()

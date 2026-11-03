@@ -188,20 +188,29 @@ void CSceneDocument::RenameNode(const std::string & _Name, const std::string & _
   ExecuteCommand("Rename Node", Rename(_Name, _NewName), Rename(_NewName, _Name));
 }
 
+void CSceneDocument::PreviewProperties(const std::string & _Name, const TSceneNodeProperties & _Properties, const std::string & _CommandName)
+{
+  if (!m_Instance.HasNode(_Name))
+    return;
+
+  if (m_Preview && (m_Preview->Name != _Name || m_Preview->CommandName != _CommandName))
+    CommitPreview();
+
+  if (!m_Preview)
+    m_Preview = TPreview{_Name, _CommandName, m_Instance.GetNode(_Name).Properties};
+
+  std::string Error;
+  ExpectSuccess(m_Instance.SetProperties(_Name, _Properties, Error));
+}
+
 void CSceneDocument::PreviewWorldTransform(const std::string & _Name, const Ogre::Affine3 & _World)
 {
   if (!m_Instance.HasNode(_Name))
     return;
 
-  if (m_Preview && m_Preview->Name != _Name)
-    CommitPreview();
-
   const auto & Node = m_Instance.GetNode(_Name);
-  if (!m_Preview)
-    m_Preview = TPreview{_Name, Node.Properties};
 
-  std::string Error;
-  ExpectSuccess(m_Instance.SetProperties(_Name, WithWorldTransform(m_Instance, _Name, Node.ParentName, _World), Error));
+  PreviewProperties(_Name, WithWorldTransform(m_Instance, _Name, Node.ParentName, _World), "Transform Node");
 }
 
 void CSceneDocument::CommitPreview()
@@ -229,7 +238,7 @@ void CSceneDocument::CommitPreview()
     };
   };
 
-  ExecuteCommand("Transform Node", Apply(After), Apply(Preview.Before));
+  ExecuteCommand(Preview.CommandName, Apply(After), Apply(Preview.Before));
 }
 
 void CSceneDocument::CancelPreview()
