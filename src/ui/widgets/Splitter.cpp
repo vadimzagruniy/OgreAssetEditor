@@ -13,6 +13,10 @@ void HorizontalSplitter(const char * _Id, float & _Ratio, float _TotalHeight, fl
   const ImVec2 Position  = ImGui::GetCursorScreenPos();
   const float  Width     = ImGui::GetContentRegionAvail().x;
 
+  // A docked window can be laid out with no width for a frame, e.g. before OGRE reports the viewport size.
+  if (Width <= 0.0f)
+    return;
+
   ImGui::InvisibleButton(_Id, ImVec2(Width, Thickness));
 
   const bool IsHovered = ImGui::IsItemHovered();
