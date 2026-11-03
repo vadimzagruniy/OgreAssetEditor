@@ -51,9 +51,16 @@ private: // Types
   {
     std::string              Module;
     std::shared_ptr<CWindow> Window;
-    EDockSlot                DockSlot  = EDockSlot::None;
-    int                      DockOrder = 0;
+    EDockSlot                DockSlot           = EDockSlot::None;
+    int                      DockOrder          = 0;
+    bool                     IsPlacementChecked = false;
   };
+
+private: // Implementation
+
+  void PlaceNewWindow(TWindowEntry & _Entry) const;
+
+  unsigned int FindSlotDockId(const TWindowEntry & _Entry) const;
 
 private: // Attributes
 

@@ -5,6 +5,7 @@
 #include "ui/dock_layout/DockLayoutBuilder.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <algorithm>
 #include <typeinfo>
@@ -108,8 +109,13 @@ void CWindowManager::OpenModal(std::unique_ptr<CModalWindow> _Modal)
 
 void CWindowManager::Draw()
 {
-  for (const auto & WindowEntry : m_Windows)
+  for (auto & WindowEntry : m_Windows)
+  {
+    if (!WindowEntry.IsPlacementChecked && WindowEntry.Window->IsVisible())
+      PlaceNewWindow(WindowEntry);
+
     WindowEntry.Window->Draw();
+  }
 
   if (!m_Modals.empty() && !m_Modals.front()->Draw())
     m_Modals.pop_front();
@@ -129,6 +135,40 @@ void CWindowManager::AddDefaultDocking(CDockLayoutBuilder & _Builder) const
 {
   for (const auto & WindowEntry : m_Windows)
     _Builder.DockWindow(WindowEntry.Window->GetLabel(), WindowEntry.DockSlot);
+}
+
+//
+// Implementation
+//
+
+void CWindowManager::PlaceNewWindow(TWindowEntry & _Entry) const
+{
+  _Entry.IsPlacementChecked = true;
+
+  if (_Entry.DockSlot == EDockSlot::None || ImGui::FindWindowSettingsByID(ImHashStr(_Entry.Window->GetLabel().c_str())))
+    return;
+
+  if (const unsigned int DockId = FindSlotDockId(_Entry); DockId != 0)
+    ImGui::SetNextWindowDockID(DockId, ImGuiCond_FirstUseEver);
+}
+
+unsigned int CWindowManager::FindSlotDockId(const TWindowEntry & _Entry) const
+{
+  for (const auto & WindowEntry : m_Windows)
+  {
+    if (WindowEntry.DockSlot != _Entry.DockSlot || WindowEntry.Window == _Entry.Window)
+      continue;
+
+    const char * Label = WindowEntry.Window->GetLabel().c_str();
+
+    if (const auto * Window = ImGui::FindWindowByName(Label); Window && Window->DockId != 0)
+      return Window->DockId;
+
+    if (const auto * Settings = ImGui::FindWindowSettingsByID(ImHashStr(Label)); Settings && Settings->DockId != 0)
+      return Settings->DockId;
+  }
+
+  return 0;
 }
 
 } // namespace editor::ui
