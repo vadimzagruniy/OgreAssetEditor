@@ -9,7 +9,7 @@ material Ogre/Earring
 
 			texture_unit
 			{
-				texture spheremap.png
+				texture Characters/OgreHead/spheremap.png
 				colour_op_ex add src_texture src_current
 				colour_op_multipass_fallback one one
 				env_map spherical
@@ -28,7 +28,7 @@ material Ogre/Skin
 
 			texture_unit
 			{
-				texture GreenSkin.jpg
+				texture Characters/OgreHead/GreenSkin.jpg
 				tex_address_mode mirror
 			}
 		}
@@ -45,7 +45,7 @@ material Ogre/Tusks
 
 			texture_unit
 			{
-				texture tusk.jpg
+				texture Characters/OgreHead/tusk.jpg
 				scale 0.2 0.2
 			}
 		}
