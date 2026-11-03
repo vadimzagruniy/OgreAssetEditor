@@ -5,11 +5,15 @@
 
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 
 namespace editor
 {
+
+class CAssetFactoryRegistry;
+class CAssetTypeRegistry;
 
 class CAssetManager
 {
@@ -25,7 +29,7 @@ public: // Types
 
 public: // Constructor/Destructor
 
-  CAssetManager();
+  CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories);
 
   ~CAssetManager();
 
@@ -40,6 +44,8 @@ public: // Interface
 public: // Operations
 
   bool CreateFolder(const std::filesystem::path & _ParentFolder, std::filesystem::path & _CreatedPath, std::string & _Error);
+
+  bool CreateAsset(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, std::filesystem::path & _CreatedPath, std::string & _Error);
 
   bool Rename(const std::filesystem::path & _Path, const std::string & _NewName, std::filesystem::path & _RenamedPath, std::string & _Error);
 
@@ -81,14 +87,16 @@ private: // Implementation
 
 private: // Attributes
 
-  std::filesystem::path m_ProjectRoot;
-  std::filesystem::path m_AssetsRoot;
-  TAssetNode            m_RootNode;
-  std::string           m_LastError;
-  bool                  m_IsResourcesMounted;
-  TChangedSignal        m_ChangedSignal;
-  TRemovedSignal        m_RemovedSignal;
-  TRenamedSignal        m_RenamedSignal;
+  std::shared_ptr<CAssetTypeRegistry>    m_AssetTypes;
+  std::shared_ptr<CAssetFactoryRegistry> m_AssetFactories;
+  std::filesystem::path                  m_ProjectRoot;
+  std::filesystem::path                  m_AssetsRoot;
+  TAssetNode                             m_RootNode;
+  std::string                            m_LastError;
+  bool                                   m_IsResourcesMounted;
+  TChangedSignal                         m_ChangedSignal;
+  TRemovedSignal                         m_RemovedSignal;
+  TRenamedSignal                         m_RenamedSignal;
 };
 
 } // namespace editor

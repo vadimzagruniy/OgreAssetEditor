@@ -1,10 +1,17 @@
 #include "AssetManager.h"
+#include "AssetFactory.h"
+#include "AssetFactoryInfo.h"
+#include "AssetFactoryRegistry.h"
+#include "AssetType.h"
+#include "AssetTypeInfo.h"
+#include "AssetTypeRegistry.h"
 
 #include <OgreResourceGroupManager.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <fstream>
 #include <system_error>
 #include <utility>
 
@@ -54,13 +61,29 @@ std::filesystem::path MakeUniquePath(const std::filesystem::path & _Folder, cons
   return Candidate;
 }
 
+bool WriteContent(const std::filesystem::path & _Path, const std::string & _Content, std::string & _Error)
+{
+  std::ofstream File(_Path, std::ios::binary);
+  File.write(_Content.data(), static_cast<std::streamsize>(_Content.size()));
+
+  if (!File)
+  {
+    _Error = "Cannot write asset: " + _Path.string();
+    return false;
+  }
+
+  return true;
+}
+
 } // namespace
 
 //
 // Constructor/Destructor
 //
 
-CAssetManager::CAssetManager():
+CAssetManager::CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories):
+  m_AssetTypes(std::move(_AssetTypes)),
+  m_AssetFactories(std::move(_AssetFactories)),
   m_IsResourcesMounted(false)
 {
   // Empty
@@ -157,6 +180,48 @@ bool CAssetManager::CreateFolder(const std::filesystem::path & _ParentFolder, st
   }
 
   _CreatedPath = _ParentFolder / AbsolutePath.filename();
+
+  Refresh();
+
+  return true;
+}
+
+bool CAssetManager::CreateAsset(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, std::filesystem::path & _CreatedPath, std::string & _Error)
+{
+  if (!HasNode(_Folder) || !GetNode(_Folder).IsDirectory)
+  {
+    _Error = "Folder does not exist: " + _Folder.generic_string();
+    return false;
+  }
+
+  const auto Factory = m_AssetFactories->FindByIdentifier(_FactoryIdentifier);
+  if (!Factory)
+  {
+    _Error = "Unknown asset factory: " + _FactoryIdentifier;
+    return false;
+  }
+
+  const auto & FactoryInfo = Factory->GetInfo();
+  const auto & AssetTypes  = m_AssetTypes->GetTypes();
+
+  const auto AssetTypeIterator = AssetTypes.find(FactoryInfo.TypeIdentifier);
+  if (AssetTypeIterator == AssetTypes.end() || AssetTypeIterator->second->GetInfo().Extensions.empty())
+  {
+    _Error = "Asset factory '" + _FactoryIdentifier + "' creates an unknown asset type: " + FactoryInfo.TypeIdentifier;
+    return false;
+  }
+
+  std::string Content;
+  if (!Factory->CreateContent(Content, _Error))
+    return false;
+
+  const std::string &         Extension    = AssetTypeIterator->second->GetInfo().Extensions.front();
+  const std::filesystem::path AbsolutePath = MakeUniquePath(ToAbsolute(_Folder), FactoryInfo.DefaultName, Extension);
+
+  if (!WriteContent(AbsolutePath, Content, _Error))
+    return false;
+
+  _CreatedPath = _Folder / AbsolutePath.filename();
 
   Refresh();
 

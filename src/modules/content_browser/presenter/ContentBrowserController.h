@@ -16,6 +16,7 @@ class CActionQueue;
 class CLog;
 } // namespace core
 
+class CAssetFactoryRegistry;
 class CAssetManager;
 class CAssetTypeRegistry;
 class CWorkspaceManager;
@@ -25,7 +26,7 @@ class CContentBrowserController final:
 {
 public: // Constructor/Destructor
 
-  CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue);
+  CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue);
 
   ~CContentBrowserController() override;
 
@@ -51,6 +52,8 @@ public: // IContentBrowserPresenter state
 
   std::vector<TAssetMenuEntry> GetContextActions(const std::filesystem::path & _Path) const override;
 
+  std::vector<TAssetFactoryInfo> GetAssetFactories() const override;
+
 public: // IContentBrowserPresenter actions
 
   void NavigateTo(const std::filesystem::path & _Folder) override;
@@ -64,6 +67,8 @@ public: // IContentBrowserPresenter actions
   void Open(const std::filesystem::path & _Path) override;
 
   void CreateFolder() override;
+
+  void CreateAsset(const std::string & _FactoryIdentifier) override;
 
   void Rename(const std::filesystem::path & _Path, const std::string & _NewName) override;
 
@@ -93,6 +98,8 @@ private: // Implementation
 
   void ApplyCreateFolder();
 
+  void ApplyCreateAsset(const std::string & _FactoryIdentifier);
+
   void ApplyRename(const std::filesystem::path & _Path, const std::string & _NewName);
 
   void ApplyDuplicateSelection();
@@ -119,20 +126,21 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<CAssetManager>      m_AssetManager;
-  std::shared_ptr<CAssetTypeRegistry> m_AssetTypes;
-  std::shared_ptr<CWorkspaceManager>  m_WorkspaceManager;
-  std::shared_ptr<core::CLog>         m_Log;
-  std::shared_ptr<core::CActionQueue> m_ActionQueue;
-  std::filesystem::path               m_CurrentFolder;
-  std::vector<TContentItem>           m_Items;
-  std::set<std::filesystem::path>     m_Selection;
-  std::filesystem::path               m_SelectionAnchor;
-  std::string                         m_Filter;
-  EContentViewMode                    m_ViewMode;
-  bool                                m_IsDeleteRequested;
-  std::size_t                         m_ChangedConnection;
-  std::size_t                         m_RenamedConnection;
+  std::shared_ptr<CAssetManager>         m_AssetManager;
+  std::shared_ptr<CAssetTypeRegistry>    m_AssetTypes;
+  std::shared_ptr<CAssetFactoryRegistry> m_AssetFactories;
+  std::shared_ptr<CWorkspaceManager>     m_WorkspaceManager;
+  std::shared_ptr<core::CLog>            m_Log;
+  std::shared_ptr<core::CActionQueue>    m_ActionQueue;
+  std::filesystem::path                  m_CurrentFolder;
+  std::vector<TContentItem>              m_Items;
+  std::set<std::filesystem::path>        m_Selection;
+  std::filesystem::path                  m_SelectionAnchor;
+  std::string                            m_Filter;
+  EContentViewMode                       m_ViewMode;
+  bool                                   m_IsDeleteRequested;
+  std::size_t                            m_ChangedConnection;
+  std::size_t                            m_RenamedConnection;
 };
 
 } // namespace editor

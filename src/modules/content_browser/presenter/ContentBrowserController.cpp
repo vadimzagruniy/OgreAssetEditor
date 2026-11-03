@@ -1,6 +1,9 @@
 #include "ContentBrowserController.h"
 #include "core/ActionQueue.h"
 #include "core/Log.h"
+#include "editor/assets/AssetFactory.h"
+#include "editor/assets/AssetFactoryInfo.h"
+#include "editor/assets/AssetFactoryRegistry.h"
 #include "editor/assets/AssetManager.h"
 #include "editor/assets/AssetMenuEntry.h"
 #include "editor/assets/AssetNode.h"
@@ -44,9 +47,10 @@ std::string ToUtf8(const std::filesystem::path & _Path)
 // Constructor/Destructor
 //
 
-CContentBrowserController::CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue):
+CContentBrowserController::CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_AssetManager(std::move(_AssetManager)),
   m_AssetTypes(std::move(_AssetTypes)),
+  m_AssetFactories(std::move(_AssetFactories)),
   m_WorkspaceManager(std::move(_WorkspaceManager)),
   m_Log(std::move(_Log)),
   m_ActionQueue(std::move(_ActionQueue)),
@@ -135,6 +139,16 @@ std::vector<TAssetMenuEntry> CContentBrowserController::GetContextActions(const 
   return Entries;
 }
 
+std::vector<TAssetFactoryInfo> CContentBrowserController::GetAssetFactories() const
+{
+  std::vector<TAssetFactoryInfo> Factories;
+
+  for (const auto & Factory : m_AssetFactories->GetFactories())
+    Factories.push_back(Factory->GetInfo());
+
+  return Factories;
+}
+
 //
 // IContentBrowserPresenter actions
 //
@@ -186,6 +200,14 @@ void CContentBrowserController::CreateFolder()
   Post([this]
   {
     ApplyCreateFolder();
+  });
+}
+
+void CContentBrowserController::CreateAsset(const std::string & _FactoryIdentifier)
+{
+  Post([this, _FactoryIdentifier]
+  {
+    ApplyCreateAsset(_FactoryIdentifier);
   });
 }
 
@@ -337,6 +359,21 @@ void CContentBrowserController::ApplyCreateFolder()
   std::string           Error;
 
   if (!m_AssetManager->CreateFolder(m_CurrentFolder, CreatedPath, Error))
+  {
+    ReportError(Error);
+    return;
+  }
+
+  m_Selection       = {CreatedPath};
+  m_SelectionAnchor = CreatedPath;
+}
+
+void CContentBrowserController::ApplyCreateAsset(const std::string & _FactoryIdentifier)
+{
+  std::filesystem::path CreatedPath;
+  std::string           Error;
+
+  if (!m_AssetManager->CreateAsset(_FactoryIdentifier, m_CurrentFolder, CreatedPath, Error))
   {
     ReportError(Error);
     return;

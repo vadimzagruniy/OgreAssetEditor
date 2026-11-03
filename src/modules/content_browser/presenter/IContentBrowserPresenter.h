@@ -11,6 +11,7 @@
 namespace editor
 {
 
+struct TAssetFactoryInfo;
 struct TAssetMenuEntry;
 struct TAssetNode;
 struct TContentItem;
@@ -39,6 +40,8 @@ public: // State
 
   virtual std::vector<TAssetMenuEntry> GetContextActions(const std::filesystem::path & _Path) const = 0;
 
+  virtual std::vector<TAssetFactoryInfo> GetAssetFactories() const = 0;
+
 public: // Actions
 
   virtual void NavigateTo(const std::filesystem::path & _Folder) = 0;
@@ -52,6 +55,8 @@ public: // Actions
   virtual void Open(const std::filesystem::path & _Path) = 0;
 
   virtual void CreateFolder() = 0;
+
+  virtual void CreateAsset(const std::string & _FactoryIdentifier) = 0;
 
   virtual void Rename(const std::filesystem::path & _Path, const std::string & _NewName) = 0;
 

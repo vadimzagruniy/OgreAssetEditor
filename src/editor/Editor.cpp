@@ -2,6 +2,7 @@
 #include "core/ActionQueue.h"
 #include "core/EditorService.h"
 #include "core/Log.h"
+#include "editor/assets/AssetFactoryRegistry.h"
 #include "editor/assets/AssetManager.h"
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/modules/ModulesManager.h"
@@ -27,8 +28,9 @@ namespace editor
 CEditor::CEditor(std::filesystem::path _ProjectRoot):
   m_Log(std::make_shared<core::CLog>()),
   m_ActionQueue(std::make_shared<core::CActionQueue>()),
-  m_AssetManager(std::make_shared<CAssetManager>()),
   m_AssetTypes(std::make_shared<CAssetTypeRegistry>()),
+  m_AssetFactories(std::make_shared<CAssetFactoryRegistry>()),
+  m_AssetManager(std::make_shared<CAssetManager>(m_AssetTypes, m_AssetFactories)),
   m_WorkspaceManager(std::make_shared<CWorkspaceManager>(m_AssetTypes, m_Log)),
   m_WindowManager(std::make_shared<ui::CWindowManager>()),
   m_WorkspaceController(std::make_unique<CWorkspaceController>(m_WorkspaceManager, m_WindowManager, m_Log)),
@@ -52,6 +54,7 @@ CEditor::CEditor(std::filesystem::path _ProjectRoot):
 
   m_Services->Register(m_AssetManager);
   m_Services->Register(m_AssetTypes);
+  m_Services->Register(m_AssetFactories);
   m_Services->Register(m_WorkspaceManager);
   m_Services->Register(m_WindowManager);
   m_Services->Register(m_Log);

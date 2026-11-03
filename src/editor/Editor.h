@@ -20,6 +20,7 @@ namespace ui
 class CWindowManager;
 } // namespace ui
 
+class CAssetFactoryRegistry;
 class CAssetManager;
 class CAssetTypeRegistry;
 class CModulesManager;
@@ -69,19 +70,20 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<core::CLog>           m_Log;
-  std::shared_ptr<core::CActionQueue>   m_ActionQueue;
-  std::shared_ptr<CAssetManager>        m_AssetManager;
-  std::shared_ptr<CAssetTypeRegistry>   m_AssetTypes;
-  std::shared_ptr<CWorkspaceManager>    m_WorkspaceManager;
-  std::shared_ptr<ui::CWindowManager>   m_WindowManager;
-  std::unique_ptr<CWorkspaceController> m_WorkspaceController;
-  std::unique_ptr<CWorkspaceWindow>     m_WorkspaceWindow;
-  std::unique_ptr<core::CEditorService> m_Services;
-  std::unique_ptr<CModulesManager>      m_Modules;
-  std::function<void()>                 m_QuitCallback;
-  bool                                  m_IsLayoutChecked;
-  bool                                  m_ResetLayoutRequested;
+  std::shared_ptr<core::CLog>            m_Log;
+  std::shared_ptr<core::CActionQueue>    m_ActionQueue;
+  std::shared_ptr<CAssetTypeRegistry>    m_AssetTypes;
+  std::shared_ptr<CAssetFactoryRegistry> m_AssetFactories;
+  std::shared_ptr<CAssetManager>         m_AssetManager;
+  std::shared_ptr<CWorkspaceManager>     m_WorkspaceManager;
+  std::shared_ptr<ui::CWindowManager>    m_WindowManager;
+  std::unique_ptr<CWorkspaceController>  m_WorkspaceController;
+  std::unique_ptr<CWorkspaceWindow>      m_WorkspaceWindow;
+  std::unique_ptr<core::CEditorService>  m_Services;
+  std::unique_ptr<CModulesManager>       m_Modules;
+  std::function<void()>                  m_QuitCallback;
+  bool                                   m_IsLayoutChecked;
+  bool                                   m_ResetLayoutRequested;
 };
 
 } // namespace editor
