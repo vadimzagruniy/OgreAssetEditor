@@ -20,6 +20,8 @@ public: // Interface
 
   void Frame(const Ogre::AxisAlignedBox & _Bounds);
 
+  void SetSceneBounds(const Ogre::AxisAlignedBox & _Bounds);
+
   void AlignTo(const Ogre::Vector3 & _Direction);
 
   void Orbit(float _DeltaX, float _DeltaY);

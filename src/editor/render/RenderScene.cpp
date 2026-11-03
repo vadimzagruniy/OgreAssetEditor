@@ -44,7 +44,8 @@ CRenderScene::CRenderScene():
   m_Width(0),
   m_Height(0),
   m_IsActive(true),
-  m_ContentRevision(0)
+  m_ContentRevision(0),
+  m_BoundsRevision(0)
 {
   Ogre::RTShader::ShaderGenerator::getSingleton().addSceneManager(m_SceneManager);
 
@@ -140,6 +141,16 @@ std::uint64_t CRenderScene::GetContentRevision() const noexcept
 void CRenderScene::MarkContentReplaced()
 {
   ++m_ContentRevision;
+}
+
+std::uint64_t CRenderScene::GetBoundsRevision() const noexcept
+{
+  return m_BoundsRevision;
+}
+
+void CRenderScene::MarkContentChanged()
+{
+  ++m_BoundsRevision;
 }
 
 //

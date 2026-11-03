@@ -79,7 +79,8 @@ CViewport::CViewport(CRenderScene & _Scene):
   m_Toolbar(ui::ELayoutDirection::Row),
   m_GridCheckBox(m_Toolbar.Add(ui::CCheckBox("Grid"))),
   m_FrameButton(m_Toolbar.Add(ui::CButton("Frame"))),
-  m_ContentRevision(0)
+  m_ContentRevision(0),
+  m_BoundsRevision(0)
 {
   SetupToolbar();
 }
@@ -168,12 +169,22 @@ void CViewport::DrawToolbar(const ImVec2 & _Origin)
 
 void CViewport::SyncContent()
 {
-  const std::uint64_t Revision = m_Scene.GetContentRevision();
-  if (Revision == m_ContentRevision)
+  const std::uint64_t ContentRevision = m_Scene.GetContentRevision();
+  const std::uint64_t BoundsRevision  = m_Scene.GetBoundsRevision();
+
+  if (ContentRevision != m_ContentRevision)
+  {
+    m_ContentRevision = ContentRevision;
+    m_BoundsRevision  = BoundsRevision;
+    m_Camera->Reset(m_Scene.GetContentBounds());
+    return;
+  }
+
+  if (BoundsRevision == m_BoundsRevision)
     return;
 
-  m_ContentRevision = Revision;
-  m_Camera->Reset(m_Scene.GetContentBounds());
+  m_BoundsRevision = BoundsRevision;
+  m_Camera->SetSceneBounds(m_Scene.GetContentBounds());
 }
 
 void CViewport::HandleShortcuts(const TViewportInput & _Input)

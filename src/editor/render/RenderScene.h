@@ -46,6 +46,10 @@ public: // Interface
 
   void MarkContentReplaced();
 
+  std::uint64_t GetBoundsRevision() const noexcept;
+
+  void MarkContentChanged();
+
 private: // Implementation
 
   void CreateRenderTarget(unsigned int _Width, unsigned int _Height);
@@ -63,6 +67,7 @@ private: // Attributes
   unsigned int         m_Height;
   bool                 m_IsActive;
   std::uint64_t        m_ContentRevision;
+  std::uint64_t        m_BoundsRevision;
 };
 
 } // namespace editor

@@ -86,7 +86,9 @@ void CSceneWorkspace::OnDeactivated()
 
 void CSceneWorkspace::OnGui()
 {
-  m_Sync->Update(GetScene());
+  if (m_Sync->Update(GetScene()))
+    m_RenderScene->MarkContentChanged();
+
   m_Sync->SetHighlightedNode(m_Document->GetSelection());
 
   HandleShortcuts();

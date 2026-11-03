@@ -72,6 +72,7 @@ private: // Attributes
   ui::CCheckBox &                             m_GridCheckBox;
   ui::CButton &                               m_FrameButton;
   std::uint64_t                               m_ContentRevision;
+  std::uint64_t                               m_BoundsRevision;
   std::function<void(const Ogre::Ray &)>      m_PickCallback;
   std::function<bool(const TViewportFrame &)> m_OverlayCallback;
 };

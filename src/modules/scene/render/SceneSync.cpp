@@ -43,11 +43,11 @@ CSceneSync::~CSceneSync()
 // Interface
 //
 
-void CSceneSync::Update(CSceneInstance & _Scene)
+bool CSceneSync::Update(CSceneInstance & _Scene)
 {
   const auto DirtyNodes = _Scene.TakeDirtyNodes();
   if (DirtyNodes.empty())
-    return;
+    return false;
 
   DestroyRemovedNodes(_Scene, DirtyNodes);
   CreateAddedNodes(_Scene, DirtyNodes);
@@ -57,6 +57,8 @@ void CSceneSync::Update(CSceneInstance & _Scene)
     if (_Scene.HasNode(Name))
       ApplyNode(_Scene, Name);
   }
+
+  return true;
 }
 
 void CSceneSync::SetHighlightedNode(const std::string & _Name)

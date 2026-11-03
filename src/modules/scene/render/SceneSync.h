@@ -34,7 +34,7 @@ public: // Constructor/Destructor
 
 public: // Interface
 
-  void Update(CSceneInstance & _Scene);
+  bool Update(CSceneInstance & _Scene);
 
   void SetHighlightedNode(const std::string & _Name);
 
