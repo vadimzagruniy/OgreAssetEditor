@@ -9,6 +9,7 @@
 #include "ui/elements/Button.h"
 #include "ui/elements/CheckBox.h"
 
+#include <OgreCamera.h>
 #include <OgreRay.h>
 #include <OgreTexture.h>
 #include <imgui.h>
@@ -20,6 +21,9 @@ namespace editor
 
 namespace
 {
+
+constexpr float NearClipFactor = 0.01f;
+constexpr float FarClipFactor  = 1000.0f;
 
 float ReadKeyAxis(ImGuiKey _Positive, ImGuiKey _Negative)
 {
@@ -123,6 +127,8 @@ void CViewport::Draw(const char * _Id)
 
   m_Camera->Update(Input.DeltaTime);
   m_Grid->Update(m_Camera->GetPosition(), m_Camera->GetPose().Distance);
+
+  UpdateClipRange();
 }
 
 void CViewport::OnPick(std::function<void(const Ogre::Ray &)> _Callback)
@@ -189,6 +195,15 @@ void CViewport::HandlePick(const TViewportInput & _Input, const ImVec2 & _Origin
   const float  NormalizedY   = (MousePosition.y - _Origin.y) / _Size.y;
 
   m_PickCallback(m_Scene.GetViewportRay(NormalizedX, NormalizedY));
+}
+
+void CViewport::UpdateClipRange() const
+{
+  const float Distance = m_Camera->GetPose().Distance;
+  auto *      Camera   = m_Scene.GetCamera();
+
+  Camera->setNearClipDistance(Distance * NearClipFactor);
+  Camera->setFarClipDistance(Distance * FarClipFactor);
 }
 
 void CViewport::DrawImage(const ImVec2 & _Origin, const ImVec2 & _Size) const

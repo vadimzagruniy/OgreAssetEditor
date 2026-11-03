@@ -139,15 +139,6 @@ std::uint64_t CRenderScene::GetContentRevision() const noexcept
 
 void CRenderScene::MarkContentReplaced()
 {
-  const auto Bounds = GetContentBounds();
-  if (Bounds.isFinite())
-  {
-    const float Radius = Bounds.getHalfSize().length();
-
-    m_Camera->setNearClipDistance(Radius * 0.01f);
-    m_Camera->setFarClipDistance(Radius * 1000.0f);
-  }
-
   ++m_ContentRevision;
 }
 

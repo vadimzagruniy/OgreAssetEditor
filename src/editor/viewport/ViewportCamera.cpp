@@ -85,6 +85,7 @@ void CViewportCamera::Reset(const Ogre::AxisAlignedBox & _Bounds)
 void CViewportCamera::Frame(const Ogre::AxisAlignedBox & _Bounds)
 {
   const float Radius = CalcRadius(_Bounds);
+  SetSceneRadius(Radius);
 
   TCameraPose Target = m_Pose;
   Target.Pivot    = CalcCenter(_Bounds);

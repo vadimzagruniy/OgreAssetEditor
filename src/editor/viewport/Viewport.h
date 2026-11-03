@@ -58,6 +58,8 @@ private: // Implementation
 
   void HandlePick(const TViewportInput & _Input, const ImVec2 & _Origin, const ImVec2 & _Size) const;
 
+  void UpdateClipRange() const;
+
   void DrawImage(const ImVec2 & _Origin, const ImVec2 & _Size) const;
 
 private: // Attributes
