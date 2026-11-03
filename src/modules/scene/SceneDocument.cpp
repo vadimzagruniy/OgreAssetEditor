@@ -95,16 +95,16 @@ bool CSceneDocument::CanMove(const std::string & _Name, const std::string & _New
   return m_Instance.HasNode(_NewParentName) && !m_Instance.IsSameOrDescendant(_NewParentName, _Name);
 }
 
-void CSceneDocument::CreateNode(const std::string & _ParentName)
+void CSceneDocument::CreateNode(const std::string & _ParentName, const std::string & _BaseName, const TSceneNodeProperties & _Properties)
 {
   if (!_ParentName.empty() && !m_Instance.HasNode(_ParentName))
     return;
 
-  const std::string Name = m_Instance.MakeUniqueName("Node");
+  const std::string Name = m_Instance.MakeUniqueName(_BaseName);
 
   TSceneSubtree Subtree;
   Subtree.Index = m_Instance.GetChildren(_ParentName).size();
-  Subtree.Nodes.push_back({Name, _ParentName, {}});
+  Subtree.Nodes.push_back({Name, _ParentName, _Properties});
 
   ExecuteCommand("Create Node",
     [Subtree](CSceneDocument & _Document)

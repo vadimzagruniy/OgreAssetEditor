@@ -1,7 +1,10 @@
 #include "AssetItemsView.h"
+#include "editor/assets/AssetFactoryInfo.h"
 #include "editor/assets/AssetMenuEntry.h"
+#include "editor/assets/AssetPayload.h"
 #include "modules/content_browser/presenter/ContentItem.h"
 #include "modules/content_browser/presenter/IContentBrowserPresenter.h"
+#include "ui/DragPayload.h"
 
 #include <imgui.h>
 
@@ -118,6 +121,7 @@ void CAssetItemsView::DrawItemButton(const TContentItem & _Item, const ImVec2 & 
   }
 
   DrawItemContextMenu(_Item);
+  DrawItemDragSource(_Item);
 }
 
 void CAssetItemsView::DrawItemIcon(const TContentItem & _Item, const ImVec2 & _Position, float _Size) const
@@ -191,6 +195,17 @@ void CAssetItemsView::DrawItemContextMenu(const TContentItem & _Item)
   ImGui::EndPopup();
 }
 
+void CAssetItemsView::DrawItemDragSource(const TContentItem & _Item) const
+{
+  if (_Item.IsDirectory || !ImGui::BeginDragDropSource())
+    return;
+
+  GetAssetPayload().Set(_Item.RelativePath.generic_string());
+  ImGui::TextUnformatted(_Item.Name.c_str());
+
+  ImGui::EndDragDropSource();
+}
+
 void CAssetItemsView::DrawMenuEntries(std::vector<TAssetMenuEntry> _Entries)
 {
   std::stable_sort(_Entries.begin(), _Entries.end(), [](const TAssetMenuEntry & _Left, const TAssetMenuEntry & _Right)
@@ -218,7 +233,24 @@ void CAssetItemsView::DrawEmptySpaceContextMenu()
   if (ImGui::MenuItem("New Folder"))
     m_Presenter.CreateFolder();
 
+  DrawCreateMenu();
+
   ImGui::EndPopup();
+}
+
+void CAssetItemsView::DrawCreateMenu()
+{
+  const auto Factories = m_Presenter.GetAssetFactories();
+  if (Factories.empty() || !ImGui::BeginMenu("Create"))
+    return;
+
+  for (const auto & Factory : Factories)
+  {
+    if (ImGui::MenuItem(Factory.Label.c_str()))
+      m_Presenter.CreateAsset(Factory.Identifier);
+  }
+
+  ImGui::EndMenu();
 }
 
 void CAssetItemsView::DrawRenameField(const TContentItem & _Item, const ImVec2 & _Position, float _Width)

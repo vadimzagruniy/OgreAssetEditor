@@ -38,7 +38,7 @@ private: // Implementation
 
   void DrawEmptySpace(const CSceneDocument & _Document);
 
-  void AcceptNodeDrop(const CSceneDocument & _Document, const std::string & _NewParentName) const;
+  void AcceptDrop(const CSceneDocument & _Document, const std::string & _ParentName) const;
 
   void HandleShortcuts(const CSceneDocument & _Document);
 

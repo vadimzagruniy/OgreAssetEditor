@@ -3,6 +3,7 @@
 #include "OgreNodeBinding.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -39,7 +40,11 @@ public: // Interface
 
   std::string Pick(const Ogre::Ray & _Ray) const;
 
+  std::optional<float> PickDistance(const Ogre::Ray & _Ray) const;
+
 private: // Implementation
+
+  bool FindHit(const Ogre::Ray & _Ray, std::string & _Name, float & _Distance) const;
 
   void ShowBounds(const std::string & _Name, bool _IsVisible);
 

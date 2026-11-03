@@ -1,14 +1,21 @@
 #include "SceneWorkspace.h"
 #include "SceneDocument.h"
 #include "SceneInstance.h"
+#include "editor/assets/AssetPayload.h"
 #include "editor/render/RenderScene.h"
 #include "editor/viewport/gizmo/TransformGizmo.h"
 #include "editor/viewport/Viewport.h"
+#include "editor/viewport/ViewportFrame.h"
 #include "presenter/SceneEditorController.h"
 #include "render/SceneSync.h"
+#include "ui/DragPayload.h"
+#include "ui/DropPayload.h"
 #include "ui/elements/ComboBox.h"
 #include "views/SceneOutlinerWindow.h"
 
+#include <OgreCamera.h>
+#include <OgrePlane.h>
+#include <OgreRay.h>
 #include <imgui.h>
 
 #include <array>
@@ -113,7 +120,7 @@ void CSceneWorkspace::SetupViewport()
 
   m_Viewport->OnOverlay([this](const TViewportFrame & _Frame)
   {
-    return DrawGizmo(_Frame);
+    return DrawOverlay(_Frame);
   });
 
   m_Gizmo->OnDrag([this](const Ogre::Affine3 & _Transform)
@@ -172,6 +179,51 @@ void CSceneWorkspace::HandleShortcuts()
 
   if (ImGui::IsKeyPressed(ImGuiKey_R, false))
     m_Gizmo->SetMode(EGizmoMode::Scale);
+}
+
+bool CSceneWorkspace::DrawOverlay(const TViewportFrame & _Frame)
+{
+  HandleAssetDrop(_Frame);
+
+  return DrawGizmo(_Frame);
+}
+
+void CSceneWorkspace::HandleAssetDrop(const TViewportFrame & _Frame)
+{
+  const auto AssetPath = GetAssetPayload().Peek();
+  if (!AssetPath || !ImGui::IsMouseHoveringRect(_Frame.Origin, ImVec2(_Frame.Origin.x + _Frame.Size.x, _Frame.Origin.y + _Frame.Size.y)))
+    return;
+
+  const TViewportDropTarget Target{FindDropPosition(_Frame)};
+
+  const auto Hint = m_Controller->GetDropHint(*AssetPath, Target);
+  if (!Hint || !ImGui::BeginDragDropTarget())
+    return;
+
+  if (const auto Payload = GetAssetPayload().AcceptBeforeDelivery())
+  {
+    ImGui::SetTooltip("%s", Hint->c_str());
+
+    if (Payload->IsDelivered)
+      m_Controller->DropAsset(Payload->Data, Target);
+  }
+
+  ImGui::EndDragDropTarget();
+}
+
+Ogre::Vector3 CSceneWorkspace::FindDropPosition(const TViewportFrame & _Frame) const
+{
+  const ImVec2    Mouse = ImGui::GetIO().MousePos;
+  const Ogre::Ray Ray   = m_RenderScene->GetViewportRay((Mouse.x - _Frame.Origin.x) / _Frame.Size.x, (Mouse.y - _Frame.Origin.y) / _Frame.Size.y);
+
+  if (const auto Distance = m_Sync->PickDistance(Ray))
+    return Ray.getPoint(*Distance);
+
+  const auto GroundHit = Ray.intersects(Ogre::Plane(Ogre::Vector3::UNIT_Y, 0.0f));
+  if (GroundHit.first)
+    return Ray.getPoint(GroundHit.second);
+
+  return Ray.getPoint(m_RenderScene->GetCamera()->getDerivedPosition().length());
 }
 
 bool CSceneWorkspace::DrawGizmo(const TViewportFrame & _Frame)

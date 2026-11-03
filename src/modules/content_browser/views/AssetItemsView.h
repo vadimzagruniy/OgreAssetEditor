@@ -43,9 +43,13 @@ private: // Implementation
 
   void DrawItemContextMenu(const TContentItem & _Item);
 
+  void DrawItemDragSource(const TContentItem & _Item) const;
+
   void DrawMenuEntries(std::vector<TAssetMenuEntry> _Entries);
 
   void DrawEmptySpaceContextMenu();
+
+  void DrawCreateMenu();
 
   void DrawRenameField(const TContentItem & _Item, const ImVec2 & _Position, float _Width);
 

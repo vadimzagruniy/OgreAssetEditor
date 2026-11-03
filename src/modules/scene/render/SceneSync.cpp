@@ -72,11 +72,36 @@ void CSceneSync::SetHighlightedNode(const std::string & _Name)
 
 std::string CSceneSync::Pick(const Ogre::Ray & _Ray) const
 {
+  std::string PickedName;
+  float       Distance = 0.0f;
+
+  FindHit(_Ray, PickedName, Distance);
+
+  return PickedName;
+}
+
+std::optional<float> CSceneSync::PickDistance(const Ogre::Ray & _Ray) const
+{
+  std::string PickedName;
+  float       Distance = 0.0f;
+
+  if (!FindHit(_Ray, PickedName, Distance))
+    return std::nullopt;
+
+  return Distance;
+}
+
+//
+// Implementation
+//
+
+bool CSceneSync::FindHit(const Ogre::Ray & _Ray, std::string & _Name, float & _Distance) const
+{
   auto * SceneManager = m_RenderScene.GetSceneManager();
   auto * Query        = SceneManager->createRayQuery(_Ray);
   Query->setSortByDistance(true);
 
-  std::string PickedName;
+  bool IsHit = false;
 
   for (const auto & Entry : Query->execute())
   {
@@ -86,19 +111,17 @@ std::string CSceneSync::Pick(const Ogre::Ray & _Ray) const
     const auto & Binding = Entry.movable->getUserObjectBindings().getUserAny(NodeNameBinding);
     if (const auto * Name = Ogre::any_cast<std::string>(&Binding))
     {
-      PickedName = *Name;
+      _Name     = *Name;
+      _Distance = Entry.distance;
+      IsHit     = true;
       break;
     }
   }
 
   SceneManager->destroyQuery(Query);
 
-  return PickedName;
+  return IsHit;
 }
-
-//
-// Implementation
-//
 
 void CSceneSync::ShowBounds(const std::string & _Name, bool _IsVisible)
 {

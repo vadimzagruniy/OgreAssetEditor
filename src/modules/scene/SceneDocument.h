@@ -38,7 +38,7 @@ public: // Interface
 
   bool CanMove(const std::string & _Name, const std::string & _NewParentName) const;
 
-  void CreateNode(const std::string & _ParentName);
+  void CreateNode(const std::string & _ParentName, const std::string & _BaseName, const TSceneNodeProperties & _Properties);
 
   void DeleteNode(const std::string & _Name);
 

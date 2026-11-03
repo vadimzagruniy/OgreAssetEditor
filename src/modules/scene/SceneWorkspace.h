@@ -3,6 +3,8 @@
 #include "editor/workspaces/EditorWorkspace.h"
 #include "ui/layout/Layout.h"
 
+#include <OgreVector.h>
+
 #include <memory>
 
 namespace editor
@@ -61,6 +63,12 @@ private: // Implementation
   void DrawToolbar();
 
   void HandleShortcuts();
+
+  bool DrawOverlay(const TViewportFrame & _Frame);
+
+  void HandleAssetDrop(const TViewportFrame & _Frame);
+
+  Ogre::Vector3 FindDropPosition(const TViewportFrame & _Frame) const;
 
   bool DrawGizmo(const TViewportFrame & _Frame);
 

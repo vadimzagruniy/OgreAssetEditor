@@ -1,13 +1,17 @@
 #include "SceneOutlinerWindow.h"
+#include "editor/assets/AssetPayload.h"
 #include "modules/scene/SceneDocument.h"
 #include "modules/scene/SceneInstance.h"
 #include "modules/scene/presenter/ISceneEditorPresenter.h"
+#include "ui/DragPayload.h"
+#include "ui/DropPayload.h"
 #include "ui/ToolBoxDesc.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 
 namespace editor
@@ -16,7 +20,11 @@ namespace editor
 namespace
 {
 
-constexpr const char * NodePayloadType = "SCENE_NODE";
+const ui::CDragPayload & GetNodePayload()
+{
+  static const ui::CDragPayload Payload("SCENE_NODE");
+  return Payload;
+}
 
 constexpr ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
 
@@ -97,12 +105,12 @@ void CSceneOutlinerWindow::DrawNode(const CSceneDocument & _Document, const std:
 
   if (ImGui::BeginDragDropSource())
   {
-    ImGui::SetDragDropPayload(NodePayloadType, _Name.data(), _Name.size());
+    GetNodePayload().Set(_Name);
     ImGui::TextUnformatted(_Name.c_str());
     ImGui::EndDragDropSource();
   }
 
-  AcceptNodeDrop(_Document, _Name);
+  AcceptDrop(_Document, _Name);
   DrawNodeContextMenu(_Name);
 
   if (IsRenaming)
@@ -178,7 +186,7 @@ void CSceneOutlinerWindow::DrawEmptySpace(const CSceneDocument & _Document)
   const ImVec2 Available = ImGui::GetContentRegionAvail();
   ImGui::Dummy(ImVec2(Available.x, std::max(Available.y, ImGui::GetFrameHeight())));
 
-  AcceptNodeDrop(_Document, {});
+  AcceptDrop(_Document, {});
 
   if (!ImGui::BeginPopupContextWindow("##EmptySpaceMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
     return;
@@ -189,17 +197,31 @@ void CSceneOutlinerWindow::DrawEmptySpace(const CSceneDocument & _Document)
   ImGui::EndPopup();
 }
 
-void CSceneOutlinerWindow::AcceptNodeDrop(const CSceneDocument & _Document, const std::string & _NewParentName) const
+void CSceneOutlinerWindow::AcceptDrop(const CSceneDocument & _Document, const std::string & _ParentName) const
 {
+  const auto                AssetPath = GetAssetPayload().Peek();
+  const TOutlinerDropTarget AssetTarget{_ParentName};
+
+  std::optional<std::string> AssetHint;
+  if (AssetPath)
+  {
+    AssetHint = m_Presenter->GetDropHint(*AssetPath, AssetTarget);
+    if (!AssetHint)
+      return;
+  }
+
   if (!ImGui::BeginDragDropTarget())
     return;
 
-  if (const auto * Payload = ImGui::AcceptDragDropPayload(NodePayloadType))
-  {
-    const std::string Name(static_cast<const char *>(Payload->Data), static_cast<std::size_t>(Payload->DataSize));
+  if (const auto Name = GetNodePayload().Accept(); Name && _Document.CanMove(*Name, _ParentName))
+    m_Presenter->MoveNode(*Name, _ParentName);
 
-    if (_Document.CanMove(Name, _NewParentName))
-      m_Presenter->MoveNode(Name, _NewParentName);
+  if (const auto Payload = GetAssetPayload().AcceptBeforeDelivery(); Payload && AssetHint)
+  {
+    ImGui::SetTooltip("%s", AssetHint->c_str());
+
+    if (Payload->IsDelivered)
+      m_Presenter->DropAsset(Payload->Data, AssetTarget);
   }
 
   ImGui::EndDragDropTarget();
