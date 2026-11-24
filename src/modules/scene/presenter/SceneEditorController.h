@@ -16,6 +16,7 @@ class CActionQueue;
 
 class CAssetTypeRegistry;
 class CSceneDropHandlers;
+class CSceneNodeTemplates;
 class CSceneSelection;
 struct TSceneDrop;
 
@@ -24,7 +25,7 @@ class CSceneEditorController final:
 {
 public: // Constructor
 
-  CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CSceneDropHandlers> _DropHandlers);
+  CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CSceneDropHandlers> _DropHandlers, std::shared_ptr<const CSceneNodeTemplates> _Templates);
 
 public: // ISceneEditorPresenter state
 
@@ -34,13 +35,15 @@ public: // ISceneEditorPresenter state
 
   bool CanPaste() const override;
 
+  const std::vector<TSceneNodeTemplate> & GetTemplates() const override;
+
   std::optional<std::string> GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const override;
 
 public: // ISceneEditorPresenter actions
 
   void Select(const std::string & _Name) override;
 
-  void CreateNode(const std::string & _ParentName) override;
+  void CreateFromTemplate(const std::string & _TemplateId, const TSceneDropTarget & _Target) override;
 
   void DeleteNode(const std::string & _Name) override;
 
@@ -70,12 +73,13 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<core::CActionQueue> m_ActionQueue;
-  std::shared_ptr<CAssetTypeRegistry> m_AssetTypes;
-  std::shared_ptr<CSceneDropHandlers> m_DropHandlers;
-  std::weak_ptr<CSceneDocument>       m_Document;
-  std::weak_ptr<CSceneSelection>      m_Selection;
-  CSceneClipboard                     m_Clipboard;
+  std::shared_ptr<core::CActionQueue>        m_ActionQueue;
+  std::shared_ptr<CAssetTypeRegistry>        m_AssetTypes;
+  std::shared_ptr<CSceneDropHandlers>        m_DropHandlers;
+  std::shared_ptr<const CSceneNodeTemplates> m_Templates;
+  std::weak_ptr<CSceneDocument>              m_Document;
+  std::weak_ptr<CSceneSelection>             m_Selection;
+  CSceneClipboard                            m_Clipboard;
 };
 
 } // namespace editor

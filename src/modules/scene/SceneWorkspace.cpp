@@ -2,6 +2,7 @@
 #include "SceneChange.h"
 #include "SceneDocument.h"
 #include "SceneSelection.h"
+#include "SceneTemplatePayload.h"
 #include "editor/assets/AssetPayload.h"
 #include "editor/render/RenderScene.h"
 #include "editor/viewport/gizmo/TransformGizmo.h"
@@ -13,6 +14,7 @@
 #include "ui/DragPayload.h"
 #include "ui/DropPayload.h"
 #include "ui/elements/ComboBox.h"
+#include "views/SceneObjectsWindow.h"
 #include "views/SceneOutlinerWindow.h"
 
 #include <OgreCamera.h>
@@ -36,6 +38,11 @@ constexpr std::array<const char *, 3> ModeLabels{"Move", "Rotate", "Scale"};
 constexpr std::array<const char *, 2> SpaceLabels{"World", "Local"};
 
 constexpr float ComboWidthScale = 6.0f;
+
+bool IsMouseInFrame(const TViewportFrame & _Frame)
+{
+  return ImGui::IsMouseHoveringRect(_Frame.Origin, ImVec2(_Frame.Origin.x + _Frame.Size.x, _Frame.Origin.y + _Frame.Size.y));
+}
 
 } // namespace
 
@@ -81,7 +88,7 @@ CSceneWorkspace::~CSceneWorkspace()
 
 std::vector<core::TTypeKey> CSceneWorkspace::GetToolBoxes() const
 {
-  return {core::TypeOf<CSceneOutlinerWindow>()};
+  return {core::TypeOf<CSceneOutlinerWindow>(), core::TypeOf<CSceneObjectsWindow>()};
 }
 
 std::shared_ptr<IPropertySource> CSceneWorkspace::GetInspected() const
@@ -216,6 +223,7 @@ void CSceneWorkspace::HandleEditShortcuts()
 bool CSceneWorkspace::DrawOverlay(const TViewportFrame & _Frame)
 {
   HandleAssetDrop(_Frame);
+  HandleTemplateDrop(_Frame);
 
   return DrawGizmo(_Frame);
 }
@@ -223,7 +231,7 @@ bool CSceneWorkspace::DrawOverlay(const TViewportFrame & _Frame)
 void CSceneWorkspace::HandleAssetDrop(const TViewportFrame & _Frame)
 {
   const auto AssetPath = GetAssetPayload().Peek();
-  if (!AssetPath || !ImGui::IsMouseHoveringRect(_Frame.Origin, ImVec2(_Frame.Origin.x + _Frame.Size.x, _Frame.Origin.y + _Frame.Size.y)))
+  if (!AssetPath || !IsMouseInFrame(_Frame))
     return;
 
   const TViewportDropTarget Target{FindDropPosition(_Frame)};
@@ -239,6 +247,17 @@ void CSceneWorkspace::HandleAssetDrop(const TViewportFrame & _Frame)
     if (Payload->IsDelivered)
       m_Controller->DropAsset(Payload->Data, Target);
   }
+
+  ImGui::EndDragDropTarget();
+}
+
+void CSceneWorkspace::HandleTemplateDrop(const TViewportFrame & _Frame)
+{
+  if (!GetTemplatePayload().Peek() || !IsMouseInFrame(_Frame) || !ImGui::BeginDragDropTarget())
+    return;
+
+  if (const auto Payload = GetTemplatePayload().AcceptBeforeDelivery(); Payload && Payload->IsDelivered)
+    m_Controller->CreateFromTemplate(Payload->Data, TViewportDropTarget{FindDropPosition(_Frame)});
 
   ImGui::EndDragDropTarget();
 }

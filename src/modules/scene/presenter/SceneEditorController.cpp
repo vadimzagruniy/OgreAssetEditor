@@ -11,6 +11,7 @@
 #include "modules/scene/model/SceneGraph.h"
 #include "modules/scene/model/SceneNode.h"
 #include "modules/scene/model/SceneNodeSnapshot.h"
+#include "modules/scene/model/SceneNodeTemplates.h"
 
 #include <utility>
 
@@ -21,10 +22,11 @@ namespace editor
 // Constructor
 //
 
-CSceneEditorController::CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CSceneDropHandlers> _DropHandlers):
+CSceneEditorController::CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CSceneDropHandlers> _DropHandlers, std::shared_ptr<const CSceneNodeTemplates> _Templates):
   m_ActionQueue(std::move(_ActionQueue)),
   m_AssetTypes(std::move(_AssetTypes)),
-  m_DropHandlers(std::move(_DropHandlers))
+  m_DropHandlers(std::move(_DropHandlers)),
+  m_Templates(std::move(_Templates))
 {
   // Empty
 }
@@ -47,6 +49,11 @@ std::string CSceneEditorController::GetSelection() const
 bool CSceneEditorController::CanPaste() const
 {
   return !m_Clipboard.IsEmpty();
+}
+
+const std::vector<TSceneNodeTemplate> & CSceneEditorController::GetTemplates() const
+{
+  return m_Templates->GetTemplates();
 }
 
 std::optional<std::string> CSceneEditorController::GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const
@@ -73,11 +80,23 @@ void CSceneEditorController::Select(const std::string & _Name)
     Selection->Select(_Name);
 }
 
-void CSceneEditorController::CreateNode(const std::string & _ParentName)
+void CSceneEditorController::CreateFromTemplate(const std::string & _TemplateId, const TSceneDropTarget & _Target)
 {
-  Post([_ParentName](CSceneDocument & _Document)
+  auto Template = m_Templates->Find(_TemplateId);
+  if (!Template)
+    return;
+
+  std::string ParentName;
+
+  if (const auto * OutlinerTarget = std::get_if<TOutlinerDropTarget>(&_Target))
+    ParentName = OutlinerTarget->ParentName;
+
+  if (const auto * ViewportTarget = std::get_if<TViewportDropTarget>(&_Target))
+    Template->Snapshot.Transform.Position = ViewportTarget->Position;
+
+  Post([Template = std::move(*Template), ParentName](CSceneDocument & _Document)
   {
-    _Document.CreateNode(_ParentName, "Node", TSceneNodeSnapshot{std::string(CSceneNode::TypeId)});
+    _Document.CreateNode(ParentName, Template.BaseName, Template.Snapshot);
   });
 }
 

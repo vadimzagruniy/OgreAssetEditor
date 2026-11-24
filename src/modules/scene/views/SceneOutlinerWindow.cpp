@@ -1,6 +1,7 @@
 #include "SceneOutlinerWindow.h"
 #include "editor/assets/AssetPayload.h"
 #include "modules/scene/SceneDocument.h"
+#include "modules/scene/SceneTemplatePayload.h"
 #include "modules/scene/model/SceneGraph.h"
 #include "modules/scene/model/SceneNode.h"
 #include "modules/scene/presenter/ISceneEditorPresenter.h"
@@ -170,8 +171,7 @@ void CSceneOutlinerWindow::DrawNodeContextMenu(const std::string & _Name)
   if (!ImGui::BeginPopupContextItem("##NodeMenu"))
     return;
 
-  if (ImGui::MenuItem("Create Child"))
-    m_Presenter->CreateNode(_Name);
+  DrawCreateMenu("Create Child", _Name);
 
   ImGui::Separator();
 
@@ -198,6 +198,30 @@ void CSceneOutlinerWindow::DrawNodeContextMenu(const std::string & _Name)
   ImGui::EndPopup();
 }
 
+void CSceneOutlinerWindow::DrawCreateMenu(const char * _Label, const std::string & _ParentName) const
+{
+  if (!ImGui::BeginMenu(_Label))
+    return;
+
+  std::string Category;
+
+  for (const auto & Template : m_Presenter->GetTemplates())
+  {
+    if (Template.Category != Category)
+    {
+      if (!Category.empty())
+        ImGui::Separator();
+
+      Category = Template.Category;
+    }
+
+    if (ImGui::MenuItem(Template.Label.c_str()))
+      m_Presenter->CreateFromTemplate(Template.Identifier, TOutlinerDropTarget{_ParentName});
+  }
+
+  ImGui::EndMenu();
+}
+
 void CSceneOutlinerWindow::DrawEmptySpace(const CSceneDocument & _Document)
 {
   const ImVec2 Available = ImGui::GetContentRegionAvail();
@@ -208,8 +232,7 @@ void CSceneOutlinerWindow::DrawEmptySpace(const CSceneDocument & _Document)
   if (!ImGui::BeginPopupContextWindow("##EmptySpaceMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
     return;
 
-  if (ImGui::MenuItem("Create Node"))
-    m_Presenter->CreateNode({});
+  DrawCreateMenu("Create", {});
 
   if (ImGui::MenuItem("Paste", "Ctrl+V", false, m_Presenter->CanPaste()))
     m_Presenter->PasteNode({}, false);
@@ -220,12 +243,12 @@ void CSceneOutlinerWindow::DrawEmptySpace(const CSceneDocument & _Document)
 void CSceneOutlinerWindow::AcceptDrop(const CSceneDocument & _Document, const std::string & _ParentName) const
 {
   const auto                AssetPath = GetAssetPayload().Peek();
-  const TOutlinerDropTarget AssetTarget{_ParentName};
+  const TOutlinerDropTarget DropTarget{_ParentName};
 
   std::optional<std::string> AssetHint;
   if (AssetPath)
   {
-    AssetHint = m_Presenter->GetDropHint(*AssetPath, AssetTarget);
+    AssetHint = m_Presenter->GetDropHint(*AssetPath, DropTarget);
     if (!AssetHint)
       return;
   }
@@ -236,12 +259,15 @@ void CSceneOutlinerWindow::AcceptDrop(const CSceneDocument & _Document, const st
   if (const auto Name = GetNodePayload().Accept(); Name && _Document.CanMove(*Name, _ParentName))
     m_Presenter->MoveNode(*Name, _ParentName);
 
+  if (const auto TemplateId = GetTemplatePayload().Accept())
+    m_Presenter->CreateFromTemplate(*TemplateId, DropTarget);
+
   if (const auto Payload = GetAssetPayload().AcceptBeforeDelivery(); Payload && AssetHint)
   {
     ImGui::SetTooltip("%s", AssetHint->c_str());
 
     if (Payload->IsDelivered)
-      m_Presenter->DropAsset(Payload->Data, AssetTarget);
+      m_Presenter->DropAsset(Payload->Data, DropTarget);
   }
 
   ImGui::EndDragDropTarget();

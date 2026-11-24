@@ -71,6 +71,8 @@ private: // Implementation
 
   void HandleAssetDrop(const TViewportFrame & _Frame);
 
+  void HandleTemplateDrop(const TViewportFrame & _Frame);
+
   Ogre::Vector3 FindDropPosition(const TViewportFrame & _Frame) const;
 
   bool DrawGizmo(const TViewportFrame & _Frame);

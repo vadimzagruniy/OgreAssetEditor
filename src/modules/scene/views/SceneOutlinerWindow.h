@@ -36,6 +36,8 @@ private: // Implementation
 
   void DrawNodeContextMenu(const std::string & _Name);
 
+  void DrawCreateMenu(const char * _Label, const std::string & _ParentName) const;
+
   void DrawEmptySpace(const CSceneDocument & _Document);
 
   void AcceptDrop(const CSceneDocument & _Document, const std::string & _ParentName) const;
