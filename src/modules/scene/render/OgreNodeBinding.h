@@ -1,8 +1,10 @@
 #pragma once
 
+#include "ISceneNodeBinding.h"
+
 #include <OgrePrerequisites.h>
 
-#include <optional>
+#include <memory>
 #include <string>
 
 namespace editor
@@ -10,9 +12,9 @@ namespace editor
 
 struct TOgreNodeBinding
 {
-  Ogre::SceneNode *          Node   = nullptr;
-  Ogre::Entity *             Entity = nullptr;
-  std::optional<std::string> MeshName;
+  Ogre::SceneNode *                  Node = nullptr;
+  std::string                        TypeId;
+  std::unique_ptr<ISceneNodeBinding> Object;
 };
 
 } // namespace editor

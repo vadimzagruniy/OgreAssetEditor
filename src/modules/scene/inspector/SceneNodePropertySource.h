@@ -10,7 +10,6 @@ namespace editor
 
 class CSceneDocument;
 class CSceneSelection;
-struct TSceneNodeProperties;
 
 class CSceneNodePropertySource final:
   public IPropertySource
@@ -33,7 +32,7 @@ public: // IPropertySource
 
 private: // Implementation
 
-  void PreviewMesh(const std::string & _Name, TSceneNodeProperties & _Properties, const TPropertyValue & _Value);
+  bool HasSelectedNode() const;
 
 private: // Attributes
 

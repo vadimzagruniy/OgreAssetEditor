@@ -1,9 +1,9 @@
 #pragma once
 
 #include "OgreNodeBinding.h"
+#include "SceneMeshCache.h"
 
 #include <OgrePrerequisites.h>
-#include <OgreSharedPtr.h>
 
 #include <memory>
 #include <optional>
@@ -22,13 +22,14 @@ class CLog;
 class CRenderScene;
 class CSceneDocument;
 class CSceneGraph;
-struct TSceneNode;
+class CSceneNode;
+class CSceneNodeBindings;
 
 class CSceneSync
 {
 public: // Constructor/Destructor
 
-  CSceneSync(CRenderScene & _RenderScene, std::string _ResourceGroup, std::shared_ptr<core::CLog> _Log);
+  CSceneSync(CRenderScene & _RenderScene, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log);
 
   ~CSceneSync();
 
@@ -58,23 +59,19 @@ private: // Implementation
 
   void ApplyNode(const CSceneGraph & _Graph, const std::string & _Name);
 
-  void ApplyParent(TOgreNodeBinding & _Binding, const TSceneNode & _Node);
+  void ApplyParent(TOgreNodeBinding & _Binding, const CSceneNode & _Node);
 
-  void ApplyMesh(TOgreNodeBinding & _Binding, const TSceneNode & _Node);
-
-  bool AcquireMesh(const std::string & _MeshName, Ogre::MeshPtr & _Mesh, std::string & _Error);
-
-  void DestroyEntity(TOgreNodeBinding & _Binding);
+  void ApplyObject(TOgreNodeBinding & _Binding, const CSceneNode & _Node);
 
   void DestroyBinding(TOgreNodeBinding & _Binding);
 
 private: // Attributes
 
   CRenderScene &                                    m_RenderScene;
-  std::string                                       m_ResourceGroup;
+  std::shared_ptr<const CSceneNodeBindings>         m_NodeBindings;
   std::shared_ptr<core::CLog>                       m_Log;
+  CSceneMeshCache                                   m_MeshCache;
   std::unordered_map<std::string, TOgreNodeBinding> m_Bindings;
-  std::unordered_map<std::string, Ogre::MeshPtr>    m_Meshes;
   std::string                                       m_HighlightedNode;
 };
 

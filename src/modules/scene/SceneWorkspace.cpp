@@ -43,14 +43,14 @@ constexpr float ComboWidthScale = 6.0f;
 // Constructor/Destructor
 //
 
-CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneEditorController> _Controller, std::string _ResourceGroup, std::shared_ptr<core::CLog> _Log):
+CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneEditorController> _Controller, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log):
   CEditorWorkspace(_Document),
   m_Document(std::move(_Document)),
   m_Selection(std::make_shared<CSceneSelection>()),
   m_Controller(std::move(_Controller)),
   m_NodeProperties(std::make_shared<CSceneNodePropertySource>(m_Document, m_Selection)),
   m_RenderScene(std::make_unique<CRenderScene>()),
-  m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_ResourceGroup), std::move(_Log))),
+  m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_ResourceGroup), std::move(_NodeBindings), std::move(_Log))),
   m_Viewport(std::make_unique<CViewport>(*m_RenderScene)),
   m_Gizmo(std::make_unique<CTransformGizmo>(*m_RenderScene)),
   m_Toolbar(ui::ELayoutDirection::Row),

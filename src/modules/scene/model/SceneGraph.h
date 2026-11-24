@@ -1,11 +1,12 @@
 #pragma once
 
-#include "SceneNode.h"
 #include "SceneSubtree.h"
 
 #include <OgreMatrix4.h>
 
 #include <cstddef>
+#include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -14,17 +15,32 @@
 namespace editor
 {
 
+class CSceneNode;
+class CSceneNodeTypes;
+struct TSceneNodeSnapshot;
+
 class CSceneGraph final
 {
+public: // Constructor/Destructor
+
+  explicit CSceneGraph(std::shared_ptr<const CSceneNodeTypes> _NodeTypes);
+
+  ~CSceneGraph();
+
+  CSceneGraph(const CSceneGraph &) = delete;
+
+  CSceneGraph & operator=(const CSceneGraph &) = delete;
+
 public: // Interface
+
+  const CSceneNodeTypes & GetNodeTypes() const noexcept;
+
 
   std::size_t GetNodeCount() const noexcept;
 
-  std::size_t GetMeshNodeCount() const;
-
   bool HasNode(const std::string & _Name) const;
 
-  const TSceneNode & GetNode(const std::string & _Name) const;
+  const CSceneNode & GetNode(const std::string & _Name) const;
 
   const std::vector<std::string> & GetRootNodes() const noexcept;
 
@@ -44,7 +60,7 @@ public: // Interface
 
   bool RemoveSubtree(const std::string & _Name, std::string & _Error);
 
-  bool InsertNode(const std::string & _Name, const std::string & _ParentName, std::size_t _Index, TSceneNodeProperties _Properties, std::string & _Error);
+  bool InsertNode(const std::string & _Name, const std::string & _ParentName, std::size_t _Index, const TSceneNodeSnapshot & _Snapshot, std::string & _Error);
 
   bool RemoveNode(const std::string & _Name, std::string & _Error);
 
@@ -52,13 +68,19 @@ public: // Interface
 
   bool RenameNode(const std::string & _Name, const std::string & _NewName, std::string & _Error);
 
-  bool SetProperties(const std::string & _Name, TSceneNodeProperties _Properties, std::string & _Error);
+  bool ApplySnapshot(const std::string & _Name, const TSceneNodeSnapshot & _Snapshot, std::string & _Error);
+
+  bool EditNode(const std::string & _Name, const std::function<bool(CSceneNode &)> & _Edit);
 
   std::unordered_set<std::string> TakeDirtyNodes();
 
 private: // Implementation
 
   void MarkDirty(const std::string & _Name);
+
+  std::unique_ptr<CSceneNode> CreateNode(const TSceneNodeSnapshot & _Snapshot, std::string & _Error) const;
+
+  CSceneNode & GetMutableNode(const std::string & _Name);
 
   std::vector<std::string> & GetSiblings(const std::string & _ParentName);
 
@@ -70,9 +92,10 @@ private: // Implementation
 
 private: // Attributes
 
-  std::unordered_map<std::string, TSceneNode> m_Nodes;
-  std::vector<std::string>                    m_RootNodes;
-  std::unordered_set<std::string>             m_DirtyNodes;
+  std::shared_ptr<const CSceneNodeTypes>                       m_NodeTypes;
+  std::unordered_map<std::string, std::unique_ptr<CSceneNode>> m_Nodes;
+  std::vector<std::string>                                     m_RootNodes;
+  std::unordered_set<std::string>                              m_DirtyNodes;
 };
 
 } // namespace editor

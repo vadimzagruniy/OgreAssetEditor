@@ -3,6 +3,8 @@
 #include "modules/scene/SceneDocument.h"
 #include "modules/scene/SceneSelection.h"
 #include "modules/scene/model/SceneGraph.h"
+#include "modules/scene/model/SceneNode.h"
+#include "modules/scene/model/SceneNodeTypes.h"
 
 #include <utility>
 
@@ -12,42 +14,7 @@ namespace editor
 namespace
 {
 
-const std::string PositionIdentifier = "Transform.Position";
-const std::string RotationIdentifier = "Transform.Rotation";
-const std::string ScaleIdentifier    = "Transform.Scale";
-const std::string MeshIdentifier     = "Render.Mesh";
-
-TPropertySchema MakeNodeSchema()
-{
-  TPropertyDesc Transform{"Transform", "Transform", EPropertyType::Group};
-  Transform.Children.push_back({PositionIdentifier, "Position", EPropertyType::Vector3,  {.Speed = 0.1f,  .Format = "%.2f"}});
-  Transform.Children.push_back({RotationIdentifier, "Rotation", EPropertyType::Rotation, {.Speed = 0.5f,  .Format = "%.1f"}});
-  Transform.Children.push_back({ScaleIdentifier,    "Scale",    EPropertyType::Vector3,  {.Speed = 0.01f, .Format = "%.3f"}});
-
-  TPropertyDesc Render{"Render", "Render", EPropertyType::Group};
-  Render.Children.push_back({MeshIdentifier, "Mesh", EPropertyType::Asset, {.AssetType = "mesh"}});
-
-  return {"scene.node", {std::move(Transform), std::move(Render)}};
-}
-
-bool ApplyValue(TSceneTransform & _Transform, const std::string & _Identifier, const TPropertyValue & _Value)
-{
-  const auto * Vector      = std::get_if<Ogre::Vector3>(&_Value);
-  const auto * Orientation = std::get_if<Ogre::Quaternion>(&_Value);
-
-  if (_Identifier == PositionIdentifier && Vector)
-    _Transform.Position = *Vector;
-  else
-  if (_Identifier == RotationIdentifier && Orientation)
-    _Transform.Orientation = *Orientation;
-  else
-  if (_Identifier == ScaleIdentifier && Vector)
-    _Transform.Scale = *Vector;
-  else
-    return false;
-
-  return true;
-}
+const std::string TransformPrefix = "Transform.";
 
 } // namespace
 
@@ -73,50 +40,31 @@ std::string CSceneNodePropertySource::GetTitle() const
 
 const TPropertySchema & CSceneNodePropertySource::GetSchema() const
 {
-  static const TPropertySchema Schema = MakeNodeSchema();
-  return Schema;
+  static const TPropertySchema EmptySchema;
+
+  if (!HasSelectedNode())
+    return EmptySchema;
+
+  const auto & Graph = m_Document->GetGraph();
+  return Graph.GetNodeTypes().GetSchema(std::string(Graph.GetNode(m_Selection->GetNode()).GetTypeId()));
 }
 
 TPropertyValue CSceneNodePropertySource::GetValue(const std::string & _Identifier) const
 {
-  const std::string Selection = m_Selection->GetNode();
-  if (Selection.empty())
+  if (!HasSelectedNode())
     return {};
 
-  const auto & Properties = m_Document->GetGraph().GetNode(Selection).Properties;
-  const auto & Transform  = Properties.Transform;
-
-  if (_Identifier == PositionIdentifier)
-    return Transform.Position;
-
-  if (_Identifier == RotationIdentifier)
-    return Transform.Orientation;
-
-  if (_Identifier == ScaleIdentifier)
-    return Transform.Scale;
-
-  if (_Identifier == MeshIdentifier)
-    return Properties.MeshName.value_or(std::string());
-
-  return {};
+  return m_Document->GetGraph().GetNode(m_Selection->GetNode()).GetValue(_Identifier);
 }
 
 void CSceneNodePropertySource::Preview(const std::string & _Identifier, const TPropertyValue & _Value)
 {
-  const std::string Selection = m_Selection->GetNode();
-  if (Selection.empty())
+  if (!HasSelectedNode())
     return;
 
-  auto Properties = m_Document->GetGraph().GetNode(Selection).Properties;
+  const bool IsTransform = _Identifier.starts_with(TransformPrefix);
 
-  if (_Identifier == MeshIdentifier)
-  {
-    PreviewMesh(Selection, Properties, _Value);
-    return;
-  }
-
-  if (ApplyValue(Properties.Transform, _Identifier, _Value))
-    m_Document->PreviewProperties(Selection, Properties, "Edit Transform");
+  m_Document->PreviewValue(m_Selection->GetNode(), _Identifier, _Value, IsTransform ? "Edit Transform" : "Edit Properties");
 }
 
 void CSceneNodePropertySource::Commit()
@@ -128,15 +76,10 @@ void CSceneNodePropertySource::Commit()
 // Implementation
 //
 
-void CSceneNodePropertySource::PreviewMesh(const std::string & _Name, TSceneNodeProperties & _Properties, const TPropertyValue & _Value)
+bool CSceneNodePropertySource::HasSelectedNode() const
 {
-  const auto * MeshName = std::get_if<std::string>(&_Value);
-  if (!MeshName)
-    return;
-
-  _Properties.MeshName = MeshName->empty() ? std::nullopt : std::optional<std::string>(*MeshName);
-
-  m_Document->PreviewProperties(_Name, _Properties, "Change Mesh");
+  const auto & Selection = m_Selection->GetNode();
+  return !Selection.empty() && m_Document->GetGraph().HasNode(Selection);
 }
 
 } // namespace editor

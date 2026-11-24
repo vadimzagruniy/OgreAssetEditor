@@ -2,6 +2,7 @@
 #include "editor/assets/AssetPayload.h"
 #include "modules/scene/SceneDocument.h"
 #include "modules/scene/model/SceneGraph.h"
+#include "modules/scene/model/SceneNode.h"
 #include "modules/scene/presenter/ISceneEditorPresenter.h"
 #include "ui/DragPayload.h"
 #include "ui/DropPayload.h"
@@ -82,7 +83,7 @@ void CSceneOutlinerWindow::DrawNode(const CSceneDocument & _Document, const std:
   const auto & Node = _Document.GetGraph().GetNode(_Name);
 
   ImGuiTreeNodeFlags Flags = NodeFlags;
-  if (Node.Children.empty())
+  if (Node.GetChildren().empty())
     Flags |= ImGuiTreeNodeFlags_Leaf;
 
   if (m_Presenter->GetSelection() == _Name)
@@ -121,7 +122,7 @@ void CSceneOutlinerWindow::DrawNode(const CSceneDocument & _Document, const std:
 
   if (IsOpen)
   {
-    for (const auto & ChildName : Node.Children)
+    for (const auto & ChildName : Node.GetChildren())
       DrawNode(_Document, ChildName);
 
     ImGui::TreePop();

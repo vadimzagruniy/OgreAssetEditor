@@ -2,8 +2,9 @@
 
 #include "core/Signal.h"
 #include "editor/documents/AssetDocument.h"
+#include "editor/inspector/PropertyValue.h"
 #include "model/SceneGraph.h"
-#include "model/SceneNodeProperties.h"
+#include "model/SceneNodeSnapshot.h"
 
 #include <OgrePrerequisites.h>
 
@@ -19,6 +20,7 @@ namespace editor
 {
 
 enum class ESceneChangeKind;
+class CSceneNodeTypes;
 struct TSceneChange;
 
 class CSceneDocument final:
@@ -31,7 +33,7 @@ public: // Types
 
 public: // Constructor
 
-  explicit CSceneDocument(TAssetRecord _Record);
+  CSceneDocument(TAssetRecord _Record, std::shared_ptr<const CSceneNodeTypes> _NodeTypes);
 
 public: // CAssetDocument
 
@@ -53,7 +55,7 @@ public: // Interface
 
   bool CanMove(const std::string & _Name, const std::string & _NewParentName) const;
 
-  void CreateNode(const std::string & _ParentName, const std::string & _BaseName, const TSceneNodeProperties & _Properties);
+  void CreateNode(const std::string & _ParentName, const std::string & _BaseName, const TSceneNodeSnapshot & _Snapshot);
 
   void PasteSubtree(const TSceneSubtree & _Subtree, const std::string & _ParentName, std::size_t _Index);
 
@@ -65,7 +67,7 @@ public: // Interface
 
   void RenameNode(const std::string & _Name, const std::string & _NewName);
 
-  void PreviewProperties(const std::string & _Name, const TSceneNodeProperties & _Properties, const std::string & _CommandName);
+  void PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value, const std::string & _CommandName);
 
   void PreviewWorldTransform(const std::string & _Name, const Ogre::Affine3 & _World);
 
@@ -85,12 +87,14 @@ private: // Types
   {
     std::string          Name;
     std::string          CommandName;
-    TSceneNodeProperties Before;
+    TSceneNodeSnapshot   Before;
   };
 
 private: // Implementation
 
   void ExecuteCommand(std::string _CommandName, TEdit _Execute, TEdit _Undo);
+
+  bool BeginPreview(const std::string & _Name, const std::string & _CommandName);
 
   void InsertSubtree(std::string _CommandName, const TSceneSubtree & _Subtree, const std::string & _ParentName, std::size_t _Index);
 

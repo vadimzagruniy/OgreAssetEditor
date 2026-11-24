@@ -1,15 +1,14 @@
 #include "SceneSync.h"
+#include "SceneBindingContext.h"
+#include "SceneNodeBindings.h"
 #include "core/Log.h"
-#include "editor/assets/ResourceRelease.h"
 #include "editor/render/RenderScene.h"
 #include "modules/scene/SceneDocument.h"
 #include "modules/scene/model/SceneGraph.h"
+#include "modules/scene/model/SceneNode.h"
 
-#include <OgreEntity.h>
-#include <OgreMesh.h>
-#include <OgreMeshManager.h>
+#include <OgreMovableObject.h>
 #include <OgreRay.h>
-#include <OgreResourceGroupManager.h>
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
 #include <OgreSceneQuery.h>
@@ -30,10 +29,11 @@ const Ogre::String NodeNameBinding = "SceneNodeName";
 // Constructor/Destructor
 //
 
-CSceneSync::CSceneSync(CRenderScene & _RenderScene, std::string _ResourceGroup, std::shared_ptr<core::CLog> _Log):
+CSceneSync::CSceneSync(CRenderScene & _RenderScene, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log):
   m_RenderScene(_RenderScene),
-  m_ResourceGroup(std::move(_ResourceGroup)),
-  m_Log(std::move(_Log))
+  m_NodeBindings(std::move(_NodeBindings)),
+  m_Log(std::move(_Log)),
+  m_MeshCache(std::move(_ResourceGroup))
 {
   // Empty
 }
@@ -42,9 +42,6 @@ CSceneSync::~CSceneSync()
 {
   for (auto & Entry : m_Bindings)
     DestroyBinding(Entry.second);
-
-  for (auto & Entry : m_Meshes)
-    ReleaseOgreResource(std::move(Entry.second));
 }
 
 //
@@ -168,7 +165,7 @@ void CSceneSync::CreateAddedNodes(const CSceneGraph & _Graph, const std::unorder
     TOgreNodeBinding Binding;
     Binding.Node = m_RenderScene.GetContentRoot()->createChildSceneNode();
 
-    m_Bindings.emplace(Name, Binding);
+    m_Bindings.emplace(Name, std::move(Binding));
   }
 }
 
@@ -179,19 +176,22 @@ void CSceneSync::ApplyNode(const CSceneGraph & _Graph, const std::string & _Name
 
   ApplyParent(Binding, Node);
 
-  const auto & Transform = Node.Properties.Transform;
+  const auto & Transform = Node.GetTransform();
   Binding.Node->setPosition(Transform.Position);
   Binding.Node->setOrientation(Transform.Orientation);
   Binding.Node->setScale(Transform.Scale);
 
-  ApplyMesh(Binding, Node);
+  ApplyObject(Binding, Node);
+
+  for (auto * Object : Binding.Node->getAttachedObjects())
+    Object->getUserObjectBindings().setUserAny(NodeNameBinding, Ogre::Any(Node.GetName()));
 }
 
-void CSceneSync::ApplyParent(TOgreNodeBinding & _Binding, const TSceneNode & _Node)
+void CSceneSync::ApplyParent(TOgreNodeBinding & _Binding, const CSceneNode & _Node)
 {
   Ogre::SceneNode * Parent = m_RenderScene.GetContentRoot();
-  if (!_Node.ParentName.empty())
-    Parent = m_Bindings.find(_Node.ParentName)->second.Node;
+  if (!_Node.GetParentName().empty())
+    Parent = m_Bindings.find(_Node.GetParentName())->second.Node;
 
   if (_Binding.Node->getParent() == Parent)
     return;
@@ -202,72 +202,27 @@ void CSceneSync::ApplyParent(TOgreNodeBinding & _Binding, const TSceneNode & _No
   Parent->addChild(_Binding.Node);
 }
 
-void CSceneSync::ApplyMesh(TOgreNodeBinding & _Binding, const TSceneNode & _Node)
+void CSceneSync::ApplyObject(TOgreNodeBinding & _Binding, const CSceneNode & _Node)
 {
-  const auto & MeshName = _Node.Properties.MeshName;
-  if (_Binding.MeshName == MeshName)
-    return;
-
-  DestroyEntity(_Binding);
-  _Binding.MeshName = MeshName;
-
-  if (!MeshName)
-    return;
-
-  Ogre::MeshPtr Mesh;
-  std::string   Error;
-  if (!AcquireMesh(*MeshName, Mesh, Error))
+  const std::string TypeId(_Node.GetTypeId());
+  if (_Binding.TypeId != TypeId)
   {
-    if (m_Log)
-      m_Log->Write(core::ELogLevel::Warning, "Scene node '" + _Node.Name + "': " + Error);
-
-    return;
+    _Binding.Object.reset();
+    _Binding.TypeId = TypeId;
+    _Binding.Object = m_NodeBindings->Create(TypeId, TSceneBindingContext{m_RenderScene.GetSceneManager(), _Binding.Node, m_MeshCache});
   }
 
-  _Binding.Entity = m_RenderScene.GetSceneManager()->createEntity(Mesh);
-  _Binding.Entity->getUserObjectBindings().setUserAny(NodeNameBinding, Ogre::Any(_Node.Name));
-  _Binding.Node->attachObject(_Binding.Entity);
-}
-
-bool CSceneSync::AcquireMesh(const std::string & _MeshName, Ogre::MeshPtr & _Mesh, std::string & _Error)
-{
-  if (const auto MeshIterator = m_Meshes.find(_MeshName); MeshIterator != m_Meshes.end())
-  {
-    _Mesh = MeshIterator->second;
-    return true;
-  }
-
-  if (!Ogre::ResourceGroupManager::getSingleton().resourceExists(m_ResourceGroup, _MeshName))
-  {
-    _Error = "Mesh '" + _MeshName + "' is not found in the project resources.";
-    return false;
-  }
-
-  _Mesh = Ogre::MeshManager::getSingleton().load(_MeshName, m_ResourceGroup);
-  if (!_Mesh)
-  {
-    _Error = "OGRE returned an empty mesh: " + _MeshName;
-    return false;
-  }
-
-  m_Meshes.emplace(_MeshName, _Mesh);
-
-  return true;
-}
-
-void CSceneSync::DestroyEntity(TOgreNodeBinding & _Binding)
-{
-  if (!_Binding.Entity)
+  if (!_Binding.Object)
     return;
 
-  _Binding.Node->detachObject(_Binding.Entity);
-  m_RenderScene.GetSceneManager()->destroyEntity(_Binding.Entity);
-  _Binding.Entity = nullptr;
+  std::string Error;
+  if (!_Binding.Object->Apply(_Node, Error) && m_Log)
+    m_Log->Write(core::ELogLevel::Warning, "Scene node '" + _Node.GetName() + "': " + Error);
 }
 
 void CSceneSync::DestroyBinding(TOgreNodeBinding & _Binding)
 {
-  DestroyEntity(_Binding);
+  _Binding.Object.reset();
 
   _Binding.Node->removeAllChildren();
   m_RenderScene.GetSceneManager()->destroySceneNode(_Binding.Node);

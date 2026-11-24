@@ -10,7 +10,16 @@
 #include "editor/modules/ModuleRegistry.h"
 #include "drop/MeshDropHandler.h"
 #include "drop/SceneDropHandlers.h"
+#include "model/SceneNode.h"
+#include "model/SceneNodeTypes.h"
+#include "model/nodes/LightNode.h"
+#include "model/nodes/MeshNode.h"
+#include "model/nodes/PrimitiveNode.h"
 #include "presenter/SceneEditorController.h"
+#include "render/LightNodeBinding.h"
+#include "render/MeshNodeBinding.h"
+#include "render/PrimitiveNodeBinding.h"
+#include "render/SceneNodeBindings.h"
 #include "ui/ToolBoxDesc.h"
 #include "ui/WindowManager.h"
 #include "views/SceneOutlinerWindow.h"
@@ -44,6 +53,17 @@ bool CSceneEditorModule::Startup(core::CEditorService & _Services, std::string &
 
   m_WindowManager = std::move(WindowManager);
 
+  auto NodeTypes = std::make_shared<CSceneNodeTypes>();
+  NodeTypes->Register<CSceneNode>("Empty", "General");
+  NodeTypes->Register<CMeshNode>("Mesh", "Geometry");
+  NodeTypes->Register<CPrimitiveNode>("Primitive", "Geometry");
+  NodeTypes->Register<CLightNode>("Light", "Lights");
+
+  auto NodeBindings = std::make_shared<CSceneNodeBindings>();
+  NodeBindings->Register<CMeshNodeBinding>(CMeshNode::TypeId);
+  NodeBindings->Register<CPrimitiveNodeBinding>(CPrimitiveNode::TypeId);
+  NodeBindings->Register<CLightNodeBinding>(CLightNode::TypeId);
+
   auto DropHandlers = std::make_shared<CSceneDropHandlers>();
   DropHandlers->Register(std::make_shared<CMeshDropHandler>());
 
@@ -52,8 +72,8 @@ bool CSceneEditorModule::Startup(core::CEditorService & _Services, std::string &
   const ui::TToolBoxDesc OutlinerDesc{GetInfo().Name, "Scene Outliner", false, ui::EDockSlot::LeftBottom, 0};
   m_WindowManager->RegisterToolBox(OutlinerDesc, std::make_shared<CSceneOutlinerWindow>(OutlinerDesc, Controller));
 
-  AssetTypes->Register(std::make_shared<CSceneAssetType>(std::move(Controller), std::move(EditorLog)));
-  AssetFactories->Register(std::make_shared<CSceneFactory>());
+  AssetTypes->Register(std::make_shared<CSceneAssetType>(std::move(Controller), NodeTypes, std::move(NodeBindings), std::move(EditorLog)));
+  AssetFactories->Register(std::make_shared<CSceneFactory>(std::move(NodeTypes)));
 
   return true;
 }

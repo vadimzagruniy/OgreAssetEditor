@@ -25,6 +25,7 @@ class CComboBox;
 class CRenderScene;
 class CSceneDocument;
 class CSceneEditorController;
+class CSceneNodeBindings;
 class CSceneNodePropertySource;
 class CSceneSelection;
 class CSceneSync;
@@ -38,7 +39,7 @@ class CSceneWorkspace final:
 {
 public: // Constructor/Destructor
 
-  CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneEditorController> _Controller, std::string _ResourceGroup, std::shared_ptr<core::CLog> _Log);
+  CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneEditorController> _Controller, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log);
 
   ~CSceneWorkspace() override;
 

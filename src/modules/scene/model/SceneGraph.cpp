@@ -1,4 +1,7 @@
 #include "SceneGraph.h"
+#include "SceneNode.h"
+#include "SceneNodeSnapshot.h"
+#include "SceneNodeTypes.h"
 
 #include <algorithm>
 #include <cassert>
@@ -28,20 +31,29 @@ std::string GetNameStem(const std::string & _Name)
 } // namespace
 
 //
+// Constructor/Destructor
+//
+
+CSceneGraph::CSceneGraph(std::shared_ptr<const CSceneNodeTypes> _NodeTypes):
+  m_NodeTypes(std::move(_NodeTypes))
+{
+  // Empty
+}
+
+CSceneGraph::~CSceneGraph() = default;
+
+//
 // Interface
 //
+
+const CSceneNodeTypes & CSceneGraph::GetNodeTypes() const noexcept
+{
+  return *m_NodeTypes;
+}
 
 std::size_t CSceneGraph::GetNodeCount() const noexcept
 {
   return m_Nodes.size();
-}
-
-std::size_t CSceneGraph::GetMeshNodeCount() const
-{
-  return static_cast<std::size_t>(std::count_if(m_Nodes.begin(), m_Nodes.end(), [](const auto & _Entry)
-  {
-    return _Entry.second.Properties.MeshName.has_value();
-  }));
 }
 
 bool CSceneGraph::HasNode(const std::string & _Name) const
@@ -49,12 +61,12 @@ bool CSceneGraph::HasNode(const std::string & _Name) const
   return m_Nodes.contains(_Name);
 }
 
-const TSceneNode & CSceneGraph::GetNode(const std::string & _Name) const
+const CSceneNode & CSceneGraph::GetNode(const std::string & _Name) const
 {
   const auto NodeIterator = m_Nodes.find(_Name);
   assert(NodeIterator != m_Nodes.end() && "Scene node does not exist");
 
-  return NodeIterator->second;
+  return *NodeIterator->second;
 }
 
 const std::vector<std::string> & CSceneGraph::GetRootNodes() const noexcept
@@ -64,7 +76,7 @@ const std::vector<std::string> & CSceneGraph::GetRootNodes() const noexcept
 
 const std::vector<std::string> & CSceneGraph::GetChildren(const std::string & _ParentName) const
 {
-  return _ParentName.empty() ? m_RootNodes : GetNode(_ParentName).Children;
+  return _ParentName.empty() ? m_RootNodes : GetNode(_ParentName).GetChildren();
 }
 
 std::string CSceneGraph::MakeUniqueName(const std::string & _BaseName, const std::unordered_set<std::string> & _Reserved) const
@@ -89,13 +101,13 @@ std::string CSceneGraph::MakeUniqueName(const std::string & _BaseName, const std
 
 std::size_t CSceneGraph::GetSiblingIndex(const std::string & _Name) const
 {
-  const auto & Siblings = GetChildren(GetNode(_Name).ParentName);
+  const auto & Siblings = GetChildren(GetNode(_Name).GetParentName());
   return static_cast<std::size_t>(std::find(Siblings.begin(), Siblings.end(), _Name) - Siblings.begin());
 }
 
 bool CSceneGraph::IsSameOrDescendant(const std::string & _Name, const std::string & _Ancestor) const
 {
-  for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).ParentName)
+  for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).GetParentName())
   {
     if (Current == _Ancestor)
       return true;
@@ -108,9 +120,9 @@ Ogre::Affine3 CSceneGraph::GetWorldTransform(const std::string & _Name) const
 {
   Ogre::Affine3 World = Ogre::Affine3::IDENTITY;
 
-  for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).ParentName)
+  for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).GetParentName())
   {
-    const auto & Transform = GetNode(Current).Properties.Transform;
+    const auto & Transform = GetNode(Current).GetTransform();
 
     Ogre::Affine3 Local;
     Local.makeTransform(Transform.Position, Transform.Scale, Transform.Orientation);
@@ -138,7 +150,7 @@ bool CSceneGraph::InsertSubtree(const TSceneSubtree & _Subtree, std::string & _E
     const auto &      Node  = _Subtree.Nodes[NodeIndex];
     const std::size_t Index = NodeIndex == 0 ? _Subtree.Index : GetChildren(Node.ParentName).size();
 
-    if (!InsertNode(Node.Name, Node.ParentName, Index, Node.Properties, _Error))
+    if (!InsertNode(Node.Name, Node.ParentName, Index, Node.Snapshot, _Error))
       return false;
   }
 
@@ -153,7 +165,7 @@ bool CSceneGraph::RemoveSubtree(const std::string & _Name, std::string & _Error)
     return false;
   }
 
-  const auto Children = GetNode(_Name).Children;
+  const auto Children = GetNode(_Name).GetChildren();
   for (const auto & ChildName : Children)
   {
     if (!RemoveSubtree(ChildName, _Error))
@@ -163,7 +175,7 @@ bool CSceneGraph::RemoveSubtree(const std::string & _Name, std::string & _Error)
   return RemoveNode(_Name, _Error);
 }
 
-bool CSceneGraph::InsertNode(const std::string & _Name, const std::string & _ParentName, std::size_t _Index, TSceneNodeProperties _Properties, std::string & _Error)
+bool CSceneGraph::InsertNode(const std::string & _Name, const std::string & _ParentName, std::size_t _Index, const TSceneNodeSnapshot & _Snapshot, std::string & _Error)
 {
   if (!CheckNewName(_Name, _Error) || !CheckParent(_ParentName, _Error))
     return false;
@@ -175,8 +187,18 @@ bool CSceneGraph::InsertNode(const std::string & _Name, const std::string & _Par
     return false;
   }
 
+  auto Node = CreateNode(_Snapshot, _Error);
+  if (!Node)
+  {
+    _Error = "Cannot insert node '" + _Name + "': " + _Error;
+    return false;
+  }
+
+  Node->m_Name       = _Name;
+  Node->m_ParentName = _ParentName;
+
   Siblings.insert(Siblings.begin() + static_cast<std::ptrdiff_t>(_Index), _Name);
-  m_Nodes.emplace(_Name, TSceneNode{_Name, _ParentName, {}, std::move(_Properties)});
+  m_Nodes.emplace(_Name, std::move(Node));
 
   MarkDirty(_Name);
 
@@ -192,13 +214,13 @@ bool CSceneGraph::RemoveNode(const std::string & _Name, std::string & _Error)
   }
 
   const auto & Node = GetNode(_Name);
-  if (!Node.Children.empty())
+  if (!Node.GetChildren().empty())
   {
     _Error = "Cannot remove node '" + _Name + "': it still has children.";
     return false;
   }
 
-  std::erase(GetSiblings(Node.ParentName), _Name);
+  std::erase(GetSiblings(Node.GetParentName()), _Name);
   m_Nodes.erase(_Name);
 
   MarkDirty(_Name);
@@ -223,12 +245,12 @@ bool CSceneGraph::MoveNode(const std::string & _Name, const std::string & _NewPa
     return false;
   }
 
-  auto & Node = m_Nodes.find(_Name)->second;
-  std::erase(GetSiblings(Node.ParentName), _Name);
+  auto & Node = GetMutableNode(_Name);
+  std::erase(GetSiblings(Node.m_ParentName), _Name);
 
   auto & NewSiblings = GetSiblings(_NewParentName);
   NewSiblings.insert(NewSiblings.begin() + static_cast<std::ptrdiff_t>(std::min(_Index, NewSiblings.size())), _Name);
-  Node.ParentName = _NewParentName;
+  Node.m_ParentName = _NewParentName;
 
   MarkDirty(_Name);
 
@@ -250,17 +272,17 @@ bool CSceneGraph::RenameNode(const std::string & _Name, const std::string & _New
     return false;
 
   auto NodeHandle = m_Nodes.extract(_Name);
-  NodeHandle.key()         = _NewName;
-  NodeHandle.mapped().Name = _NewName;
+  NodeHandle.key()            = _NewName;
+  NodeHandle.mapped()->m_Name = _NewName;
 
-  auto & Node = m_Nodes.insert(std::move(NodeHandle)).position->second;
+  auto & Node = *m_Nodes.insert(std::move(NodeHandle)).position->second;
 
-  auto & Siblings = GetSiblings(Node.ParentName);
+  auto & Siblings = GetSiblings(Node.m_ParentName);
   std::replace(Siblings.begin(), Siblings.end(), _Name, _NewName);
 
-  for (const auto & ChildName : Node.Children)
+  for (const auto & ChildName : Node.m_Children)
   {
-    m_Nodes.find(ChildName)->second.ParentName = _NewName;
+    GetMutableNode(ChildName).m_ParentName = _NewName;
     MarkDirty(ChildName);
   }
 
@@ -270,7 +292,7 @@ bool CSceneGraph::RenameNode(const std::string & _Name, const std::string & _New
   return true;
 }
 
-bool CSceneGraph::SetProperties(const std::string & _Name, TSceneNodeProperties _Properties, std::string & _Error)
+bool CSceneGraph::ApplySnapshot(const std::string & _Name, const TSceneNodeSnapshot & _Snapshot, std::string & _Error)
 {
   const auto NodeIterator = m_Nodes.find(_Name);
   if (NodeIterator == m_Nodes.end())
@@ -279,7 +301,26 @@ bool CSceneGraph::SetProperties(const std::string & _Name, TSceneNodeProperties 
     return false;
   }
 
-  NodeIterator->second.Properties = std::move(_Properties);
+  auto Node = CreateNode(_Snapshot, _Error);
+  if (!Node)
+    return false;
+
+  auto & OldNode = *NodeIterator->second;
+  Node->m_Name       = std::move(OldNode.m_Name);
+  Node->m_ParentName = std::move(OldNode.m_ParentName);
+  Node->m_Children   = std::move(OldNode.m_Children);
+
+  NodeIterator->second = std::move(Node);
+
+  MarkDirty(_Name);
+
+  return true;
+}
+
+bool CSceneGraph::EditNode(const std::string & _Name, const std::function<bool(CSceneNode &)> & _Edit)
+{
+  if (!HasNode(_Name) || !_Edit(GetMutableNode(_Name)))
+    return false;
 
   MarkDirty(_Name);
 
@@ -300,6 +341,29 @@ void CSceneGraph::MarkDirty(const std::string & _Name)
   m_DirtyNodes.insert(_Name);
 }
 
+std::unique_ptr<CSceneNode> CSceneGraph::CreateNode(const TSceneNodeSnapshot & _Snapshot, std::string & _Error) const
+{
+  auto Node = m_NodeTypes->Create(_Snapshot.TypeId);
+  if (!Node)
+  {
+    _Error = "Unknown node type '" + _Snapshot.TypeId + "'.";
+    return nullptr;
+  }
+
+  if (!Node->ApplySnapshot(_Snapshot, _Error))
+    return nullptr;
+
+  return Node;
+}
+
+CSceneNode & CSceneGraph::GetMutableNode(const std::string & _Name)
+{
+  const auto NodeIterator = m_Nodes.find(_Name);
+  assert(NodeIterator != m_Nodes.end() && "Scene node does not exist");
+
+  return *NodeIterator->second;
+}
+
 std::vector<std::string> & CSceneGraph::GetSiblings(const std::string & _ParentName)
 {
   if (_ParentName.empty())
@@ -308,7 +372,7 @@ std::vector<std::string> & CSceneGraph::GetSiblings(const std::string & _ParentN
   const auto ParentIterator = m_Nodes.find(_ParentName);
   assert(ParentIterator != m_Nodes.end() && "Scene node parent does not exist");
 
-  return ParentIterator->second.Children;
+  return ParentIterator->second->m_Children;
 }
 
 bool CSceneGraph::CheckNewName(const std::string & _Name, std::string & _Error) const
@@ -340,9 +404,9 @@ bool CSceneGraph::CheckParent(const std::string & _ParentName, std::string & _Er
 void CSceneGraph::CaptureNode(const std::string & _Name, TSceneSubtree & _Subtree) const
 {
   const auto & Node = GetNode(_Name);
-  _Subtree.Nodes.push_back({Node.Name, Node.ParentName, Node.Properties});
+  _Subtree.Nodes.push_back({Node.GetName(), Node.GetParentName(), Node.CaptureSnapshot()});
 
-  for (const auto & ChildName : Node.Children)
+  for (const auto & ChildName : Node.GetChildren())
     CaptureNode(ChildName, _Subtree);
 }
 

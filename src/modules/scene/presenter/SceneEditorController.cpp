@@ -9,7 +9,8 @@
 #include "modules/scene/drop/SceneDrop.h"
 #include "modules/scene/drop/SceneDropHandlers.h"
 #include "modules/scene/model/SceneGraph.h"
-#include "modules/scene/model/SceneNodeProperties.h"
+#include "modules/scene/model/SceneNode.h"
+#include "modules/scene/model/SceneNodeSnapshot.h"
 
 #include <utility>
 
@@ -76,7 +77,7 @@ void CSceneEditorController::CreateNode(const std::string & _ParentName)
 {
   Post([_ParentName](CSceneDocument & _Document)
   {
-    _Document.CreateNode(_ParentName, "Node", {});
+    _Document.CreateNode(_ParentName, "Node", TSceneNodeSnapshot{std::string(CSceneNode::TypeId)});
   });
 }
 
@@ -111,7 +112,7 @@ void CSceneEditorController::PasteNode(const std::string & _TargetName, bool _Is
     if (_IsChild)
       _Document.PasteSubtree(Subtree, _TargetName, Graph.GetChildren(_TargetName).size());
     else
-      _Document.PasteSubtree(Subtree, Graph.GetNode(_TargetName).ParentName, Graph.GetSiblingIndex(_TargetName) + 1);
+      _Document.PasteSubtree(Subtree, Graph.GetNode(_TargetName).GetParentName(), Graph.GetSiblingIndex(_TargetName) + 1);
   });
 }
 

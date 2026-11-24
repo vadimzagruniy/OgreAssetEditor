@@ -2,7 +2,8 @@
 #include "SceneDrop.h"
 #include "modules/scene/SceneDocument.h"
 #include "modules/scene/model/SceneGraph.h"
-#include "modules/scene/model/SceneNodeProperties.h"
+#include "modules/scene/model/SceneNodeSnapshot.h"
+#include "modules/scene/model/nodes/MeshNode.h"
 
 namespace editor
 {
@@ -43,13 +44,17 @@ std::string CMeshDropHandler::GetDropHint(const TSceneDrop & _Drop) const
 
 void CMeshDropHandler::Drop(const TSceneDrop & _Drop, CSceneDocument & _Document) const
 {
-  TSceneNodeProperties Properties;
-  Properties.MeshName = _Drop.AssetPath.generic_string();
+  CMeshNode Node;
+  Node.SetMeshName(_Drop.AssetPath.generic_string());
 
   if (const auto * ViewportTarget = std::get_if<TViewportDropTarget>(&_Drop.Target))
-    Properties.Transform.Position = ViewportTarget->Position;
+  {
+    TSceneTransform Transform;
+    Transform.Position = ViewportTarget->Position;
+    Node.SetTransform(Transform);
+  }
 
-  _Document.CreateNode(GetParentName(_Drop), _Drop.AssetPath.stem().string(), Properties);
+  _Document.CreateNode(GetParentName(_Drop), _Drop.AssetPath.stem().string(), Node.CaptureSnapshot());
 }
 
 } // namespace editor

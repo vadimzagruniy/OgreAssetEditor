@@ -1,6 +1,7 @@
 #include "SceneDocument.h"
 #include "SceneChange.h"
 #include "SceneSerializer.h"
+#include "model/SceneNode.h"
 #include "core/FunctionCommand.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetProperty.h"
@@ -23,18 +24,16 @@ void ExpectSuccess(bool _IsDone)
   (void)_IsDone;
 }
 
-TSceneNodeProperties WithWorldTransform(const CSceneGraph & _Graph, const std::string & _Name, const std::string & _ParentName, const Ogre::Affine3 & _World)
+TSceneTransform ToLocalTransform(const CSceneGraph & _Graph, const std::string & _ParentName, const Ogre::Affine3 & _World)
 {
-  auto Properties = _Graph.GetNode(_Name).Properties;
-
   Ogre::Affine3 Local = _World;
   if (!_ParentName.empty())
     Local = _Graph.GetWorldTransform(_ParentName).inverse() * Local;
 
-  auto & Transform = Properties.Transform;
+  TSceneTransform Transform;
   Local.decomposition(Transform.Position, Transform.Scale, Transform.Orientation);
 
-  return Properties;
+  return Transform;
 }
 
 } // namespace
@@ -43,8 +42,9 @@ TSceneNodeProperties WithWorldTransform(const CSceneGraph & _Graph, const std::s
 // Constructor
 //
 
-CSceneDocument::CSceneDocument(TAssetRecord _Record):
-  CAssetDocument(std::move(_Record), "Scene")
+CSceneDocument::CSceneDocument(TAssetRecord _Record, std::shared_ptr<const CSceneNodeTypes> _NodeTypes):
+  CAssetDocument(std::move(_Record), "Scene"),
+  m_Graph(std::move(_NodeTypes))
 {
   // Empty
 }
@@ -55,8 +55,7 @@ CSceneDocument::CSceneDocument(TAssetRecord _Record):
 
 std::vector<TAssetProperty> CSceneDocument::GetProperties() const
 {
-  return {{"Nodes",  std::to_string(m_Graph.GetNodeCount())    },
-          {"Meshes", std::to_string(m_Graph.GetMeshNodeCount())}};
+  return {{"Nodes", std::to_string(m_Graph.GetNodeCount())}};
 }
 
 bool CSceneDocument::OnSave(std::string & _Error)
@@ -126,13 +125,13 @@ bool CSceneDocument::CanMove(const std::string & _Name, const std::string & _New
   return m_Graph.HasNode(_NewParentName) && !m_Graph.IsSameOrDescendant(_NewParentName, _Name);
 }
 
-void CSceneDocument::CreateNode(const std::string & _ParentName, const std::string & _BaseName, const TSceneNodeProperties & _Properties)
+void CSceneDocument::CreateNode(const std::string & _ParentName, const std::string & _BaseName, const TSceneNodeSnapshot & _Snapshot)
 {
   if (!_ParentName.empty() && !m_Graph.HasNode(_ParentName))
     return;
 
   TSceneSubtree Subtree;
-  Subtree.Nodes.push_back({_BaseName, _ParentName, _Properties});
+  Subtree.Nodes.push_back({_BaseName, _ParentName, _Snapshot});
 
   InsertSubtree("Create Node", Subtree, _ParentName, m_Graph.GetChildren(_ParentName).size());
 }
@@ -147,7 +146,7 @@ void CSceneDocument::DuplicateNode(const std::string & _Name)
   if (!m_Graph.HasNode(_Name))
     return;
 
-  InsertSubtree("Duplicate Node", m_Graph.CaptureSubtree(_Name), m_Graph.GetNode(_Name).ParentName, m_Graph.GetSiblingIndex(_Name) + 1);
+  InsertSubtree("Duplicate Node", m_Graph.CaptureSubtree(_Name), m_Graph.GetNode(_Name).GetParentName(), m_Graph.GetSiblingIndex(_Name) + 1);
 }
 
 void CSceneDocument::DeleteNode(const std::string & _Name)
@@ -176,27 +175,29 @@ void CSceneDocument::MoveNode(const std::string & _Name, const std::string & _Ne
     return;
 
   const auto &      Node          = m_Graph.GetNode(_Name);
-  const std::string OldParentName = Node.ParentName;
+  const std::string OldParentName = Node.GetParentName();
   const std::size_t OldIndex      = m_Graph.GetSiblingIndex(_Name);
-  const auto        OldProperties = Node.Properties;
-  const auto        NewProperties = WithWorldTransform(m_Graph, _Name, _NewParentName, m_Graph.GetWorldTransform(_Name));
+  const auto        OldSnapshot   = Node.CaptureSnapshot();
+
+  auto NewSnapshot      = OldSnapshot;
+  NewSnapshot.Transform = ToLocalTransform(m_Graph, _NewParentName, m_Graph.GetWorldTransform(_Name));
 
   const std::size_t NewIndex = m_Graph.GetChildren(_NewParentName).size() - (OldParentName == _NewParentName ? 1 : 0);
   if (OldParentName == _NewParentName && OldIndex == NewIndex)
     return;
 
-  auto Move = [_Name](const std::string & _ParentName, std::size_t _Index, const TSceneNodeProperties & _Properties)
+  auto Move = [_Name](const std::string & _ParentName, std::size_t _Index, const TSceneNodeSnapshot & _Snapshot)
   {
-    return [_Name, _ParentName, _Index, _Properties](CSceneDocument & _Document)
+    return [_Name, _ParentName, _Index, _Snapshot](CSceneDocument & _Document)
     {
       std::string Error;
       ExpectSuccess(_Document.m_Graph.MoveNode(_Name, _ParentName, _Index, Error));
-      ExpectSuccess(_Document.m_Graph.SetProperties(_Name, _Properties, Error));
+      ExpectSuccess(_Document.m_Graph.ApplySnapshot(_Name, _Snapshot, Error));
       _Document.Notify(ESceneChangeKind::Changed, _Name);
     };
   };
 
-  ExecuteCommand("Move Node", Move(_NewParentName, NewIndex, NewProperties), Move(OldParentName, OldIndex, OldProperties));
+  ExecuteCommand("Move Node", Move(_NewParentName, NewIndex, NewSnapshot), Move(OldParentName, OldIndex, OldSnapshot));
 }
 
 void CSceneDocument::RenameNode(const std::string & _Name, const std::string & _NewName)
@@ -218,29 +219,29 @@ void CSceneDocument::RenameNode(const std::string & _Name, const std::string & _
   ExecuteCommand("Rename Node", Rename(_Name, _NewName), Rename(_NewName, _Name));
 }
 
-void CSceneDocument::PreviewProperties(const std::string & _Name, const TSceneNodeProperties & _Properties, const std::string & _CommandName)
+void CSceneDocument::PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value, const std::string & _CommandName)
 {
-  if (!m_Graph.HasNode(_Name))
+  if (!BeginPreview(_Name, _CommandName))
     return;
 
-  if (m_Preview && (m_Preview->Name != _Name || m_Preview->CommandName != _CommandName))
-    CommitPreview();
-
-  if (!m_Preview)
-    m_Preview = TPreview{_Name, _CommandName, m_Graph.GetNode(_Name).Properties};
-
-  std::string Error;
-  ExpectSuccess(m_Graph.SetProperties(_Name, _Properties, Error));
+  m_Graph.EditNode(_Name, [&_Identifier, &_Value](CSceneNode & _Node)
+  {
+    return _Node.SetValue(_Identifier, _Value);
+  });
 }
 
 void CSceneDocument::PreviewWorldTransform(const std::string & _Name, const Ogre::Affine3 & _World)
 {
-  if (!m_Graph.HasNode(_Name))
+  if (!BeginPreview(_Name, "Transform Node"))
     return;
 
-  const auto & Node = m_Graph.GetNode(_Name);
+  const TSceneTransform Transform = ToLocalTransform(m_Graph, m_Graph.GetNode(_Name).GetParentName(), _World);
 
-  PreviewProperties(_Name, WithWorldTransform(m_Graph, _Name, Node.ParentName, _World), "Transform Node");
+  m_Graph.EditNode(_Name, [&Transform](CSceneNode & _Node)
+  {
+    _Node.SetTransform(Transform);
+    return true;
+  });
 }
 
 void CSceneDocument::CommitPreview()
@@ -254,16 +255,16 @@ void CSceneDocument::CommitPreview()
   if (!m_Graph.HasNode(Preview.Name))
     return;
 
-  const auto After = m_Graph.GetNode(Preview.Name).Properties;
+  const auto After = m_Graph.GetNode(Preview.Name).CaptureSnapshot();
   if (After == Preview.Before)
     return;
 
-  auto Apply = [Name = Preview.Name](const TSceneNodeProperties & _Properties)
+  auto Apply = [Name = Preview.Name](const TSceneNodeSnapshot & _Snapshot)
   {
-    return [Name, _Properties](CSceneDocument & _Document)
+    return [Name, _Snapshot](CSceneDocument & _Document)
     {
       std::string Error;
-      ExpectSuccess(_Document.m_Graph.SetProperties(Name, _Properties, Error));
+      ExpectSuccess(_Document.m_Graph.ApplySnapshot(Name, _Snapshot, Error));
       _Document.Notify(ESceneChangeKind::Changed, Name);
     };
   };
@@ -281,7 +282,7 @@ void CSceneDocument::CancelPreview()
 
   std::string Error;
   if (m_Graph.HasNode(Preview.Name))
-    ExpectSuccess(m_Graph.SetProperties(Preview.Name, Preview.Before, Error));
+    ExpectSuccess(m_Graph.ApplySnapshot(Preview.Name, Preview.Before, Error));
 }
 
 //
@@ -315,6 +316,20 @@ void CSceneDocument::ExecuteCommand(std::string _CommandName, TEdit _Execute, TE
     [Apply, Undo = std::move(_Undo)] { Apply(Undo); }));
 }
 
+bool CSceneDocument::BeginPreview(const std::string & _Name, const std::string & _CommandName)
+{
+  if (!m_Graph.HasNode(_Name))
+    return false;
+
+  if (m_Preview && (m_Preview->Name != _Name || m_Preview->CommandName != _CommandName))
+    CommitPreview();
+
+  if (!m_Preview)
+    m_Preview = TPreview{_Name, _CommandName, m_Graph.GetNode(_Name).CaptureSnapshot()};
+
+  return true;
+}
+
 void CSceneDocument::InsertSubtree(std::string _CommandName, const TSceneSubtree & _Subtree, const std::string & _ParentName, std::size_t _Index)
 {
   if (_Subtree.Nodes.empty() || (!_ParentName.empty() && !m_Graph.HasNode(_ParentName)))
@@ -334,7 +349,7 @@ void CSceneDocument::InsertSubtree(std::string _CommandName, const TSceneSubtree
     Reserved.insert(NewName);
     NewNames.emplace(Node.Name, NewName);
 
-    Subtree.Nodes.push_back({NewName, IsRoot ? _ParentName : NewNames.at(Node.ParentName), Node.Properties});
+    Subtree.Nodes.push_back({NewName, IsRoot ? _ParentName : NewNames.at(Node.ParentName), Node.Snapshot});
   }
 
   const std::string RootName = Subtree.Nodes.front().Name;
