@@ -1,5 +1,5 @@
 #include "SceneSerializer.h"
-#include "SceneInstance.h"
+#include "model/SceneGraph.h"
 #include "model/SceneNodeProperties.h"
 
 #include <nlohmann/json.hpp>
@@ -64,7 +64,7 @@ bool ReadQuaternion(const TSceneJson & _Object, const std::string & _Key, Ogre::
   return true;
 }
 
-bool ReadNode(const TSceneJson & _Json, const std::string & _ParentName, CSceneInstance & _Scene, std::string & _Error)
+bool ReadNode(const TSceneJson & _Json, const std::string & _ParentName, CSceneGraph & _Scene, std::string & _Error)
 {
   if (!_Json.is_object())
   {
@@ -110,7 +110,7 @@ bool ReadNode(const TSceneJson & _Json, const std::string & _ParentName, CSceneI
   return true;
 }
 
-TSceneJson WriteNode(const CSceneInstance & _Scene, const std::string & _Name)
+TSceneJson WriteNode(const CSceneGraph & _Scene, const std::string & _Name)
 {
   const auto & Node = _Scene.GetNode(_Name);
 
@@ -133,7 +133,7 @@ TSceneJson WriteNode(const CSceneInstance & _Scene, const std::string & _Name)
 
 } // namespace
 
-bool ReadScene(const std::string & _Text, CSceneInstance & _Scene, std::string & _Error)
+bool ReadScene(const std::string & _Text, CSceneGraph & _Scene, std::string & _Error)
 {
   assert(_Scene.GetRootNodes().empty() && "Scene must be empty before reading");
 
@@ -177,7 +177,7 @@ bool ReadScene(const std::string & _Text, CSceneInstance & _Scene, std::string &
   return true;
 }
 
-std::string WriteScene(const CSceneInstance & _Scene)
+std::string WriteScene(const CSceneGraph & _Scene)
 {
   TSceneJson Root = TSceneJson::object();
   Root["version"] = SceneFormatVersion;

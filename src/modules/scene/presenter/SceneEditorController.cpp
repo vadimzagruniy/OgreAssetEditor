@@ -4,6 +4,7 @@
 #include "editor/assets/AssetTypeInfo.h"
 #include "editor/assets/AssetTypeRegistry.h"
 #include "modules/scene/SceneDocument.h"
+#include "modules/scene/SceneSelection.h"
 #include "modules/scene/drop/ISceneDropHandler.h"
 #include "modules/scene/drop/SceneDrop.h"
 #include "modules/scene/drop/SceneDropHandlers.h"
@@ -35,6 +36,12 @@ std::shared_ptr<const CSceneDocument> CSceneEditorController::GetDocument() cons
   return m_Document.lock();
 }
 
+std::string CSceneEditorController::GetSelection() const
+{
+  const auto Selection = m_Selection.lock();
+  return Selection ? Selection->GetNode() : std::string();
+}
+
 std::optional<std::string> CSceneEditorController::GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const
 {
   const auto Document = m_Document.lock();
@@ -55,8 +62,8 @@ std::optional<std::string> CSceneEditorController::GetDropHint(const std::filesy
 
 void CSceneEditorController::Select(const std::string & _Name)
 {
-  if (const auto Document = m_Document.lock())
-    Document->Select(_Name);
+  if (const auto Selection = m_Selection.lock())
+    Selection->Select(_Name);
 }
 
 void CSceneEditorController::CreateNode(const std::string & _ParentName)
@@ -108,15 +115,19 @@ void CSceneEditorController::DropAsset(const std::filesystem::path & _AssetPath,
 // Interface
 //
 
-void CSceneEditorController::SetDocument(const std::shared_ptr<CSceneDocument> & _Document)
+void CSceneEditorController::SetDocument(const std::shared_ptr<CSceneDocument> & _Document, const std::shared_ptr<CSceneSelection> & _Selection)
 {
-  m_Document = _Document;
+  m_Document  = _Document;
+  m_Selection = _Selection;
 }
 
 void CSceneEditorController::ResetDocument(const CSceneDocument & _Document)
 {
-  if (m_Document.lock().get() == &_Document)
-    m_Document.reset();
+  if (m_Document.lock().get() != &_Document)
+    return;
+
+  m_Document.reset();
+  m_Selection.reset();
 }
 
 //

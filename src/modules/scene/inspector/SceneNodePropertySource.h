@@ -9,6 +9,7 @@ namespace editor
 {
 
 class CSceneDocument;
+class CSceneSelection;
 struct TSceneNodeProperties;
 
 class CSceneNodePropertySource final:
@@ -16,7 +17,7 @@ class CSceneNodePropertySource final:
 {
 public: // Constructor
 
-  explicit CSceneNodePropertySource(std::shared_ptr<CSceneDocument> _Document);
+  CSceneNodePropertySource(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection);
 
 public: // IPropertySource
 
@@ -36,7 +37,8 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<CSceneDocument> m_Document;
+  std::shared_ptr<CSceneDocument>        m_Document;
+  std::shared_ptr<const CSceneSelection> m_Selection;
 };
 
 } // namespace editor

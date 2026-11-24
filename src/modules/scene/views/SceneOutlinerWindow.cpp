@@ -1,7 +1,7 @@
 #include "SceneOutlinerWindow.h"
 #include "editor/assets/AssetPayload.h"
 #include "modules/scene/SceneDocument.h"
-#include "modules/scene/SceneInstance.h"
+#include "modules/scene/model/SceneGraph.h"
 #include "modules/scene/presenter/ISceneEditorPresenter.h"
 #include "ui/DragPayload.h"
 #include "ui/DropPayload.h"
@@ -59,18 +59,18 @@ void CSceneOutlinerWindow::OnGui()
     return;
   }
 
-  const std::string Selection = Document->GetSelection();
+  const std::string Selection = m_Presenter->GetSelection();
   m_IsRevealPending = Selection != m_LastSelection;
   m_LastSelection   = Selection;
 
-  for (const auto & Name : Document->GetInstance().GetRootNodes())
+  for (const auto & Name : Document->GetGraph().GetRootNodes())
     DrawNode(*Document, Name);
 
   if (!m_RenameError.empty())
     ImGui::TextColored(ErrorColour, "%s", m_RenameError.c_str());
 
   DrawEmptySpace(*Document);
-  HandleShortcuts(*Document);
+  HandleShortcuts();
 }
 
 //
@@ -79,18 +79,18 @@ void CSceneOutlinerWindow::OnGui()
 
 void CSceneOutlinerWindow::DrawNode(const CSceneDocument & _Document, const std::string & _Name)
 {
-  const auto & Node = _Document.GetInstance().GetNode(_Name);
+  const auto & Node = _Document.GetGraph().GetNode(_Name);
 
   ImGuiTreeNodeFlags Flags = NodeFlags;
   if (Node.Children.empty())
     Flags |= ImGuiTreeNodeFlags_Leaf;
 
-  if (_Document.GetSelection() == _Name)
+  if (m_Presenter->GetSelection() == _Name)
     Flags |= ImGuiTreeNodeFlags_Selected;
 
   ImGui::PushID(_Name.c_str());
 
-  const bool IsSelectionInside = m_IsRevealPending && m_LastSelection != _Name && _Document.GetInstance().IsSameOrDescendant(m_LastSelection, _Name);
+  const bool IsSelectionInside = m_IsRevealPending && m_LastSelection != _Name && _Document.GetGraph().IsSameOrDescendant(m_LastSelection, _Name);
   if (IsSelectionInside)
     ImGui::SetNextItemOpen(true);
 
@@ -227,12 +227,12 @@ void CSceneOutlinerWindow::AcceptDrop(const CSceneDocument & _Document, const st
   ImGui::EndDragDropTarget();
 }
 
-void CSceneOutlinerWindow::HandleShortcuts(const CSceneDocument & _Document)
+void CSceneOutlinerWindow::HandleShortcuts()
 {
   if (!m_RenamingNode.empty() || !ImGui::IsWindowFocused())
     return;
 
-  const std::string Selection = _Document.GetSelection();
+  const std::string Selection = m_Presenter->GetSelection();
   if (Selection.empty())
     return;
 

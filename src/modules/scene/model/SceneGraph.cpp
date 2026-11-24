@@ -1,17 +1,8 @@
-#include "SceneInstance.h"
-#include "SceneSerializer.h"
-#include "editor/assets/AssetRecord.h"
-#include "editor/assets/ResourceRelease.h"
-#include "editor/documents/AssetProperty.h"
-
-#include <OgreMesh.h>
-#include <OgreMeshManager.h>
-#include <OgreResourceGroupManager.h>
+#include "SceneGraph.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <fstream>
 #include <utility>
 
 namespace editor
@@ -37,47 +28,28 @@ std::string GetNameStem(const std::string & _Name)
 } // namespace
 
 //
-// Constructor/Destructor
-//
-
-CSceneInstance::CSceneInstance(TAssetRecord _Record, std::string _ResourceGroup):
-  CAssetDocument(std::move(_Record), "Scene"),
-  m_ResourceGroup(std::move(_ResourceGroup))
-{
-  // Empty
-}
-
-CSceneInstance::~CSceneInstance()
-{
-  for (auto & Entry : m_Meshes)
-    ReleaseOgreResource(std::move(Entry.second));
-}
-
-//
-// CAssetDocument
-//
-
-std::vector<TAssetProperty> CSceneInstance::GetProperties() const
-{
-  const auto MeshCount = std::count_if(m_Nodes.begin(), m_Nodes.end(), [](const auto & _Entry)
-  {
-    return _Entry.second.Properties.MeshName.has_value();
-  });
-
-  return {{"Nodes",  std::to_string(m_Nodes.size())},
-          {"Meshes", std::to_string(MeshCount)     }};
-}
-
-//
 // Interface
 //
 
-bool CSceneInstance::HasNode(const std::string & _Name) const
+std::size_t CSceneGraph::GetNodeCount() const noexcept
+{
+  return m_Nodes.size();
+}
+
+std::size_t CSceneGraph::GetMeshNodeCount() const
+{
+  return static_cast<std::size_t>(std::count_if(m_Nodes.begin(), m_Nodes.end(), [](const auto & _Entry)
+  {
+    return _Entry.second.Properties.MeshName.has_value();
+  }));
+}
+
+bool CSceneGraph::HasNode(const std::string & _Name) const
 {
   return m_Nodes.contains(_Name);
 }
 
-const TSceneNode & CSceneInstance::GetNode(const std::string & _Name) const
+const TSceneNode & CSceneGraph::GetNode(const std::string & _Name) const
 {
   const auto NodeIterator = m_Nodes.find(_Name);
   assert(NodeIterator != m_Nodes.end() && "Scene node does not exist");
@@ -85,17 +57,17 @@ const TSceneNode & CSceneInstance::GetNode(const std::string & _Name) const
   return NodeIterator->second;
 }
 
-const std::vector<std::string> & CSceneInstance::GetRootNodes() const noexcept
+const std::vector<std::string> & CSceneGraph::GetRootNodes() const noexcept
 {
   return m_RootNodes;
 }
 
-const std::vector<std::string> & CSceneInstance::GetChildren(const std::string & _ParentName) const
+const std::vector<std::string> & CSceneGraph::GetChildren(const std::string & _ParentName) const
 {
   return _ParentName.empty() ? m_RootNodes : GetNode(_ParentName).Children;
 }
 
-std::string CSceneInstance::MakeUniqueName(const std::string & _BaseName) const
+std::string CSceneGraph::MakeUniqueName(const std::string & _BaseName) const
 {
   if (!_BaseName.empty() && !HasNode(_BaseName))
     return _BaseName;
@@ -110,13 +82,13 @@ std::string CSceneInstance::MakeUniqueName(const std::string & _BaseName) const
   }
 }
 
-std::size_t CSceneInstance::GetSiblingIndex(const std::string & _Name) const
+std::size_t CSceneGraph::GetSiblingIndex(const std::string & _Name) const
 {
   const auto & Siblings = GetChildren(GetNode(_Name).ParentName);
   return static_cast<std::size_t>(std::find(Siblings.begin(), Siblings.end(), _Name) - Siblings.begin());
 }
 
-bool CSceneInstance::IsSameOrDescendant(const std::string & _Name, const std::string & _Ancestor) const
+bool CSceneGraph::IsSameOrDescendant(const std::string & _Name, const std::string & _Ancestor) const
 {
   for (std::string Current = _Name; !Current.empty(); Current = GetNode(Current).ParentName)
   {
@@ -127,7 +99,7 @@ bool CSceneInstance::IsSameOrDescendant(const std::string & _Name, const std::st
   return false;
 }
 
-Ogre::Affine3 CSceneInstance::GetWorldTransform(const std::string & _Name) const
+Ogre::Affine3 CSceneGraph::GetWorldTransform(const std::string & _Name) const
 {
   Ogre::Affine3 World = Ogre::Affine3::IDENTITY;
 
@@ -144,7 +116,7 @@ Ogre::Affine3 CSceneInstance::GetWorldTransform(const std::string & _Name) const
   return World;
 }
 
-TSceneSubtree CSceneInstance::CaptureSubtree(const std::string & _Name) const
+TSceneSubtree CSceneGraph::CaptureSubtree(const std::string & _Name) const
 {
   TSceneSubtree Subtree;
   Subtree.Index = GetSiblingIndex(_Name);
@@ -154,7 +126,7 @@ TSceneSubtree CSceneInstance::CaptureSubtree(const std::string & _Name) const
   return Subtree;
 }
 
-bool CSceneInstance::InsertSubtree(const TSceneSubtree & _Subtree, std::string & _Error)
+bool CSceneGraph::InsertSubtree(const TSceneSubtree & _Subtree, std::string & _Error)
 {
   for (std::size_t NodeIndex = 0; NodeIndex < _Subtree.Nodes.size(); ++NodeIndex)
   {
@@ -168,7 +140,7 @@ bool CSceneInstance::InsertSubtree(const TSceneSubtree & _Subtree, std::string &
   return true;
 }
 
-bool CSceneInstance::RemoveSubtree(const std::string & _Name, std::string & _Error)
+bool CSceneGraph::RemoveSubtree(const std::string & _Name, std::string & _Error)
 {
   if (!HasNode(_Name))
   {
@@ -186,7 +158,7 @@ bool CSceneInstance::RemoveSubtree(const std::string & _Name, std::string & _Err
   return RemoveNode(_Name, _Error);
 }
 
-bool CSceneInstance::InsertNode(const std::string & _Name, const std::string & _ParentName, std::size_t _Index, TSceneNodeProperties _Properties, std::string & _Error)
+bool CSceneGraph::InsertNode(const std::string & _Name, const std::string & _ParentName, std::size_t _Index, TSceneNodeProperties _Properties, std::string & _Error)
 {
   if (!CheckNewName(_Name, _Error) || !CheckParent(_ParentName, _Error))
     return false;
@@ -206,7 +178,7 @@ bool CSceneInstance::InsertNode(const std::string & _Name, const std::string & _
   return true;
 }
 
-bool CSceneInstance::RemoveNode(const std::string & _Name, std::string & _Error)
+bool CSceneGraph::RemoveNode(const std::string & _Name, std::string & _Error)
 {
   if (!HasNode(_Name))
   {
@@ -229,7 +201,7 @@ bool CSceneInstance::RemoveNode(const std::string & _Name, std::string & _Error)
   return true;
 }
 
-bool CSceneInstance::MoveNode(const std::string & _Name, const std::string & _NewParentName, std::size_t _Index, std::string & _Error)
+bool CSceneGraph::MoveNode(const std::string & _Name, const std::string & _NewParentName, std::size_t _Index, std::string & _Error)
 {
   if (!HasNode(_Name))
   {
@@ -258,7 +230,7 @@ bool CSceneInstance::MoveNode(const std::string & _Name, const std::string & _Ne
   return true;
 }
 
-bool CSceneInstance::RenameNode(const std::string & _Name, const std::string & _NewName, std::string & _Error)
+bool CSceneGraph::RenameNode(const std::string & _Name, const std::string & _NewName, std::string & _Error)
 {
   if (!HasNode(_Name))
   {
@@ -293,7 +265,7 @@ bool CSceneInstance::RenameNode(const std::string & _Name, const std::string & _
   return true;
 }
 
-bool CSceneInstance::SetProperties(const std::string & _Name, TSceneNodeProperties _Properties, std::string & _Error)
+bool CSceneGraph::SetProperties(const std::string & _Name, TSceneNodeProperties _Properties, std::string & _Error)
 {
   const auto NodeIterator = m_Nodes.find(_Name);
   if (NodeIterator == m_Nodes.end())
@@ -309,48 +281,7 @@ bool CSceneInstance::SetProperties(const std::string & _Name, TSceneNodeProperti
   return true;
 }
 
-bool CSceneInstance::OnSave(std::string & _Error)
-{
-  std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
-  File << WriteScene(*this);
-  File.close();
-
-  if (!File)
-  {
-    _Error = "Could not write " + GetRecord().RelativePath.generic_string();
-    return false;
-  }
-
-  return true;
-}
-
-bool CSceneInstance::AcquireMesh(const std::string & _MeshName, Ogre::MeshPtr & _Mesh, std::string & _Error)
-{
-  if (const auto MeshIterator = m_Meshes.find(_MeshName); MeshIterator != m_Meshes.end())
-  {
-    _Mesh = MeshIterator->second;
-    return true;
-  }
-
-  if (!Ogre::ResourceGroupManager::getSingleton().resourceExists(m_ResourceGroup, _MeshName))
-  {
-    _Error = "Mesh '" + _MeshName + "' is not found in the project resources.";
-    return false;
-  }
-
-  _Mesh = Ogre::MeshManager::getSingleton().load(_MeshName, m_ResourceGroup);
-  if (!_Mesh)
-  {
-    _Error = "OGRE returned an empty mesh: " + _MeshName;
-    return false;
-  }
-
-  m_Meshes.emplace(_MeshName, _Mesh);
-
-  return true;
-}
-
-std::unordered_set<std::string> CSceneInstance::TakeDirtyNodes()
+std::unordered_set<std::string> CSceneGraph::TakeDirtyNodes()
 {
   return std::exchange(m_DirtyNodes, {});
 }
@@ -359,12 +290,12 @@ std::unordered_set<std::string> CSceneInstance::TakeDirtyNodes()
 // Implementation
 //
 
-void CSceneInstance::MarkDirty(const std::string & _Name)
+void CSceneGraph::MarkDirty(const std::string & _Name)
 {
   m_DirtyNodes.insert(_Name);
 }
 
-std::vector<std::string> & CSceneInstance::GetSiblings(const std::string & _ParentName)
+std::vector<std::string> & CSceneGraph::GetSiblings(const std::string & _ParentName)
 {
   if (_ParentName.empty())
     return m_RootNodes;
@@ -375,7 +306,7 @@ std::vector<std::string> & CSceneInstance::GetSiblings(const std::string & _Pare
   return ParentIterator->second.Children;
 }
 
-bool CSceneInstance::CheckNewName(const std::string & _Name, std::string & _Error) const
+bool CSceneGraph::CheckNewName(const std::string & _Name, std::string & _Error) const
 {
   if (_Name.empty())
   {
@@ -392,7 +323,7 @@ bool CSceneInstance::CheckNewName(const std::string & _Name, std::string & _Erro
   return true;
 }
 
-bool CSceneInstance::CheckParent(const std::string & _ParentName, std::string & _Error) const
+bool CSceneGraph::CheckParent(const std::string & _ParentName, std::string & _Error) const
 {
   if (_ParentName.empty() || HasNode(_ParentName))
     return true;
@@ -401,7 +332,7 @@ bool CSceneInstance::CheckParent(const std::string & _ParentName, std::string & 
   return false;
 }
 
-void CSceneInstance::CaptureNode(const std::string & _Name, TSceneSubtree & _Subtree) const
+void CSceneGraph::CaptureNode(const std::string & _Name, TSceneSubtree & _Subtree) const
 {
   const auto & Node = GetNode(_Name);
   _Subtree.Nodes.push_back({Node.Name, Node.ParentName, Node.Properties});

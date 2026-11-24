@@ -1,7 +1,7 @@
 #include "MeshDropHandler.h"
 #include "SceneDrop.h"
 #include "modules/scene/SceneDocument.h"
-#include "modules/scene/SceneInstance.h"
+#include "modules/scene/model/SceneGraph.h"
 #include "modules/scene/model/SceneNodeProperties.h"
 
 namespace editor
@@ -30,7 +30,7 @@ bool CMeshDropHandler::CanDrop(const TSceneDrop & _Drop, const CSceneDocument & 
     return false;
 
   const std::string ParentName = GetParentName(_Drop);
-  return ParentName.empty() || _Document.GetInstance().HasNode(ParentName);
+  return ParentName.empty() || _Document.GetGraph().HasNode(ParentName);
 }
 
 std::string CMeshDropHandler::GetDropHint(const TSceneDrop & _Drop) const

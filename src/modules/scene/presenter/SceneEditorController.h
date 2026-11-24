@@ -15,6 +15,7 @@ class CActionQueue;
 
 class CAssetTypeRegistry;
 class CSceneDropHandlers;
+class CSceneSelection;
 struct TSceneDrop;
 
 class CSceneEditorController final:
@@ -27,6 +28,8 @@ public: // Constructor
 public: // ISceneEditorPresenter state
 
   std::shared_ptr<const CSceneDocument> GetDocument() const override;
+
+  std::string GetSelection() const override;
 
   std::optional<std::string> GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const override;
 
@@ -46,7 +49,7 @@ public: // ISceneEditorPresenter actions
 
 public: // Interface
 
-  void SetDocument(const std::shared_ptr<CSceneDocument> & _Document);
+  void SetDocument(const std::shared_ptr<CSceneDocument> & _Document, const std::shared_ptr<CSceneSelection> & _Selection);
 
   void ResetDocument(const CSceneDocument & _Document);
 
@@ -62,6 +65,7 @@ private: // Attributes
   std::shared_ptr<CAssetTypeRegistry> m_AssetTypes;
   std::shared_ptr<CSceneDropHandlers> m_DropHandlers;
   std::weak_ptr<CSceneDocument>       m_Document;
+  std::weak_ptr<CSceneSelection>      m_Selection;
 };
 
 } // namespace editor

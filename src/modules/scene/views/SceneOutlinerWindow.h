@@ -40,7 +40,7 @@ private: // Implementation
 
   void AcceptDrop(const CSceneDocument & _Document, const std::string & _ParentName) const;
 
-  void HandleShortcuts(const CSceneDocument & _Document);
+  void HandleShortcuts();
 
   void BeginRename(const std::string & _Name);
 

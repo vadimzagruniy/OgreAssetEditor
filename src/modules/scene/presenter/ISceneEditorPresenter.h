@@ -22,6 +22,8 @@ public: // State
 
   virtual std::shared_ptr<const CSceneDocument> GetDocument() const = 0;
 
+  virtual std::string GetSelection() const = 0;
+
   virtual std::optional<std::string> GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const = 0;
 
 public: // Actions

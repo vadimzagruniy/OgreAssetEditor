@@ -1,7 +1,8 @@
 #include "SceneNodePropertySource.h"
 #include "editor/inspector/PropertySchema.h"
 #include "modules/scene/SceneDocument.h"
-#include "modules/scene/SceneInstance.h"
+#include "modules/scene/SceneSelection.h"
+#include "modules/scene/model/SceneGraph.h"
 
 #include <utility>
 
@@ -54,8 +55,9 @@ bool ApplyValue(TSceneTransform & _Transform, const std::string & _Identifier, c
 // Constructor
 //
 
-CSceneNodePropertySource::CSceneNodePropertySource(std::shared_ptr<CSceneDocument> _Document):
-  m_Document(std::move(_Document))
+CSceneNodePropertySource::CSceneNodePropertySource(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection):
+  m_Document(std::move(_Document)),
+  m_Selection(std::move(_Selection))
 {
   // Empty
 }
@@ -66,7 +68,7 @@ CSceneNodePropertySource::CSceneNodePropertySource(std::shared_ptr<CSceneDocumen
 
 std::string CSceneNodePropertySource::GetTitle() const
 {
-  return m_Document->GetSelection();
+  return m_Selection->GetNode();
 }
 
 const TPropertySchema & CSceneNodePropertySource::GetSchema() const
@@ -77,11 +79,11 @@ const TPropertySchema & CSceneNodePropertySource::GetSchema() const
 
 TPropertyValue CSceneNodePropertySource::GetValue(const std::string & _Identifier) const
 {
-  const std::string Selection = m_Document->GetSelection();
+  const std::string Selection = m_Selection->GetNode();
   if (Selection.empty())
     return {};
 
-  const auto & Properties = m_Document->GetInstance().GetNode(Selection).Properties;
+  const auto & Properties = m_Document->GetGraph().GetNode(Selection).Properties;
   const auto & Transform  = Properties.Transform;
 
   if (_Identifier == PositionIdentifier)
@@ -101,11 +103,11 @@ TPropertyValue CSceneNodePropertySource::GetValue(const std::string & _Identifie
 
 void CSceneNodePropertySource::Preview(const std::string & _Identifier, const TPropertyValue & _Value)
 {
-  const std::string Selection = m_Document->GetSelection();
+  const std::string Selection = m_Selection->GetNode();
   if (Selection.empty())
     return;
 
-  auto Properties = m_Document->GetInstance().GetNode(Selection).Properties;
+  auto Properties = m_Document->GetGraph().GetNode(Selection).Properties;
 
   if (_Identifier == MeshIdentifier)
   {

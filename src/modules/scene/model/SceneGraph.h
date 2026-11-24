@@ -1,12 +1,9 @@
 #pragma once
 
-#include "editor/documents/AssetDocument.h"
-#include "model/SceneNode.h"
-#include "model/SceneSubtree.h"
+#include "SceneNode.h"
+#include "SceneSubtree.h"
 
 #include <OgreMatrix4.h>
-#include <OgrePrerequisites.h>
-#include <OgreSharedPtr.h>
 
 #include <cstddef>
 #include <string>
@@ -17,28 +14,13 @@
 namespace editor
 {
 
-class CSceneInstance final:
-  public CAssetDocument
+class CSceneGraph final
 {
-public: // Constructor/Destructor
-
-  CSceneInstance(TAssetRecord _Record, std::string _ResourceGroup);
-
-  ~CSceneInstance() override;
-
-  CSceneInstance(const CSceneInstance &) = delete;
-
-  CSceneInstance & operator=(const CSceneInstance &) = delete;
-
-public: // CAssetDocument
-
-  std::vector<TAssetProperty> GetProperties() const override;
-
-protected: // CAssetDocument
-
-  bool OnSave(std::string & _Error) override;
-
 public: // Interface
+
+  std::size_t GetNodeCount() const noexcept;
+
+  std::size_t GetMeshNodeCount() const;
 
   bool HasNode(const std::string & _Name) const;
 
@@ -72,8 +54,6 @@ public: // Interface
 
   bool SetProperties(const std::string & _Name, TSceneNodeProperties _Properties, std::string & _Error);
 
-  bool AcquireMesh(const std::string & _MeshName, Ogre::MeshPtr & _Mesh, std::string & _Error);
-
   std::unordered_set<std::string> TakeDirtyNodes();
 
 private: // Implementation
@@ -90,11 +70,9 @@ private: // Implementation
 
 private: // Attributes
 
-  std::string                                    m_ResourceGroup;
-  std::unordered_map<std::string, TSceneNode>    m_Nodes;
-  std::vector<std::string>                       m_RootNodes;
-  std::unordered_set<std::string>                m_DirtyNodes;
-  std::unordered_map<std::string, Ogre::MeshPtr> m_Meshes;
+  std::unordered_map<std::string, TSceneNode> m_Nodes;
+  std::vector<std::string>                    m_RootNodes;
+  std::unordered_set<std::string>             m_DirtyNodes;
 };
 
 } // namespace editor

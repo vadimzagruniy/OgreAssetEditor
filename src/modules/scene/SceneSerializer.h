@@ -7,12 +7,12 @@
 namespace editor
 {
 
-class CSceneInstance;
+class CSceneGraph;
 struct TSceneNodeProperties;
 
-bool ReadScene(const std::string & _Text, CSceneInstance & _Scene, std::string & _Error);
+bool ReadScene(const std::string & _Text, CSceneGraph & _Scene, std::string & _Error);
 
-std::string WriteScene(const CSceneInstance & _Scene);
+std::string WriteScene(const CSceneGraph & _Scene);
 
 TSceneJson PropertiesToJson(const TSceneNodeProperties & _Properties);
 

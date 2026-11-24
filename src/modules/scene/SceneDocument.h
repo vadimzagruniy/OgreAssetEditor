@@ -1,5 +1,8 @@
 #pragma once
 
+#include "core/Signal.h"
+#include "editor/documents/AssetDocument.h"
+#include "model/SceneGraph.h"
 #include "model/SceneNodeProperties.h"
 
 #include <OgrePrerequisites.h>
@@ -8,31 +11,42 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace editor
 {
 
-namespace core
-{
-class CUndoStack;
-} // namespace core
-
-class CSceneInstance;
+enum class ESceneChangeKind;
+struct TSceneChange;
 
 class CSceneDocument final:
+  public CAssetDocument,
   public std::enable_shared_from_this<CSceneDocument>
 {
+public: // Types
+
+  using TChangedSignal = core::CSignal<const TSceneChange &>;
+
 public: // Constructor
 
-  CSceneDocument(CSceneInstance & _Instance, core::CUndoStack & _UndoStack);
+  explicit CSceneDocument(TAssetRecord _Record);
+
+public: // CAssetDocument
+
+  std::vector<TAssetProperty> GetProperties() const override;
+
+protected: // CAssetDocument
+
+  bool OnSave(std::string & _Error) override;
 
 public: // Interface
 
-  const CSceneInstance & GetInstance() const noexcept;
+  bool Load(const std::string & _Text, std::string & _Error);
 
-  std::string GetSelection() const;
+  const CSceneGraph & GetGraph() const noexcept;
 
-  void Select(const std::string & _Name);
+  std::unordered_set<std::string> TakeDirtyNodes();
 
   bool CanRename(const std::string & _Name, const std::string & _NewName, std::string & _Error) const;
 
@@ -54,6 +68,10 @@ public: // Interface
 
   void CancelPreview();
 
+public: // Signals
+
+  TChangedSignal & GetChangedSignal() noexcept;
+
 private: // Types
 
   using TEdit = std::function<void(CSceneDocument &)>;
@@ -69,12 +87,13 @@ private: // Implementation
 
   void ExecuteCommand(std::string _CommandName, TEdit _Execute, TEdit _Undo);
 
+  void Notify(ESceneChangeKind _Kind, const std::string & _Name, const std::string & _NewName = {}) const;
+
 private: // Attributes
 
-  CSceneInstance &        m_Instance;
-  core::CUndoStack &      m_UndoStack;
-  std::string             m_Selection;
+  CSceneGraph             m_Graph;
   std::optional<TPreview> m_Preview;
+  TChangedSignal          m_ChangedSignal;
 };
 
 } // namespace editor

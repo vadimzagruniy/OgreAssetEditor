@@ -2,6 +2,9 @@
 
 #include "OgreNodeBinding.h"
 
+#include <OgrePrerequisites.h>
+#include <OgreSharedPtr.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -17,14 +20,15 @@ class CLog;
 } // namespace core
 
 class CRenderScene;
-class CSceneInstance;
+class CSceneDocument;
+class CSceneGraph;
 struct TSceneNode;
 
 class CSceneSync
 {
 public: // Constructor/Destructor
 
-  CSceneSync(CRenderScene & _RenderScene, std::shared_ptr<core::CLog> _Log);
+  CSceneSync(CRenderScene & _RenderScene, std::string _ResourceGroup, std::shared_ptr<core::CLog> _Log);
 
   ~CSceneSync();
 
@@ -34,7 +38,7 @@ public: // Constructor/Destructor
 
 public: // Interface
 
-  bool Update(CSceneInstance & _Scene);
+  bool Update(CSceneDocument & _Document);
 
   void SetHighlightedNode(const std::string & _Name);
 
@@ -48,15 +52,17 @@ private: // Implementation
 
   void ShowBounds(const std::string & _Name, bool _IsVisible);
 
-  void DestroyRemovedNodes(const CSceneInstance & _Scene, const std::unordered_set<std::string> & _DirtyNodes);
+  void DestroyRemovedNodes(const CSceneGraph & _Graph, const std::unordered_set<std::string> & _DirtyNodes);
 
-  void CreateAddedNodes(const CSceneInstance & _Scene, const std::unordered_set<std::string> & _DirtyNodes);
+  void CreateAddedNodes(const CSceneGraph & _Graph, const std::unordered_set<std::string> & _DirtyNodes);
 
-  void ApplyNode(CSceneInstance & _Scene, const std::string & _Name);
+  void ApplyNode(const CSceneGraph & _Graph, const std::string & _Name);
 
   void ApplyParent(TOgreNodeBinding & _Binding, const TSceneNode & _Node);
 
-  void ApplyMesh(CSceneInstance & _Scene, TOgreNodeBinding & _Binding, const TSceneNode & _Node);
+  void ApplyMesh(TOgreNodeBinding & _Binding, const TSceneNode & _Node);
+
+  bool AcquireMesh(const std::string & _MeshName, Ogre::MeshPtr & _Mesh, std::string & _Error);
 
   void DestroyEntity(TOgreNodeBinding & _Binding);
 
@@ -65,8 +71,10 @@ private: // Implementation
 private: // Attributes
 
   CRenderScene &                                    m_RenderScene;
+  std::string                                       m_ResourceGroup;
   std::shared_ptr<core::CLog>                       m_Log;
   std::unordered_map<std::string, TOgreNodeBinding> m_Bindings;
+  std::unordered_map<std::string, Ogre::MeshPtr>    m_Meshes;
   std::string                                       m_HighlightedNode;
 };
 

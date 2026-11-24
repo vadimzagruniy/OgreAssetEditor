@@ -1,6 +1,7 @@
 #include "SceneWorkspace.h"
+#include "SceneChange.h"
 #include "SceneDocument.h"
-#include "SceneInstance.h"
+#include "SceneSelection.h"
 #include "editor/assets/AssetPayload.h"
 #include "editor/render/RenderScene.h"
 #include "editor/viewport/gizmo/TransformGizmo.h"
@@ -42,28 +43,37 @@ constexpr float ComboWidthScale = 6.0f;
 // Constructor/Destructor
 //
 
-CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneInstance> _Scene, std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<core::CLog> _Log):
-  CEditorWorkspace(_Scene),
-  m_Scene(std::move(_Scene)),
+CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneEditorController> _Controller, std::string _ResourceGroup, std::shared_ptr<core::CLog> _Log):
+  CEditorWorkspace(_Document),
+  m_Document(std::move(_Document)),
+  m_Selection(std::make_shared<CSceneSelection>()),
   m_Controller(std::move(_Controller)),
-  m_Document(std::make_shared<CSceneDocument>(*m_Scene, m_Scene->GetHistory())),
-  m_NodeProperties(std::make_shared<CSceneNodePropertySource>(m_Document)),
+  m_NodeProperties(std::make_shared<CSceneNodePropertySource>(m_Document, m_Selection)),
   m_RenderScene(std::make_unique<CRenderScene>()),
-  m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_Log))),
+  m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_ResourceGroup), std::move(_Log))),
   m_Viewport(std::make_unique<CViewport>(*m_RenderScene)),
   m_Gizmo(std::make_unique<CTransformGizmo>(*m_RenderScene)),
   m_Toolbar(ui::ELayoutDirection::Row),
   m_ModeCombo(m_Toolbar.Add(ui::CComboBox("Tool"))),
-  m_SpaceCombo(m_Toolbar.Add(ui::CComboBox("Space")))
+  m_SpaceCombo(m_Toolbar.Add(ui::CComboBox("Space"))),
+  m_ChangedConnection(0)
 {
-  m_Sync->Update(GetScene());
+  m_Sync->Update(*m_Document);
   m_RenderScene->MarkContentReplaced();
+
+  m_ChangedConnection = m_Document->GetChangedSignal().Connect([this](const TSceneChange & _Change)
+  {
+    OnDocumentChanged(_Change);
+  });
 
   SetupViewport();
   SetupToolbar();
 }
 
-CSceneWorkspace::~CSceneWorkspace() = default;
+CSceneWorkspace::~CSceneWorkspace()
+{
+  m_Document->GetChangedSignal().Disconnect(m_ChangedConnection);
+}
 
 //
 // CEditorWorkspace
@@ -76,7 +86,7 @@ std::vector<core::TTypeKey> CSceneWorkspace::GetToolBoxes() const
 
 std::shared_ptr<IPropertySource> CSceneWorkspace::GetInspected() const
 {
-  if (m_Document->GetSelection().empty())
+  if (m_Selection->GetNode().empty())
     return nullptr;
 
   return m_NodeProperties;
@@ -84,7 +94,7 @@ std::shared_ptr<IPropertySource> CSceneWorkspace::GetInspected() const
 
 void CSceneWorkspace::OnActivated()
 {
-  m_Controller->SetDocument(m_Document);
+  m_Controller->SetDocument(m_Document, m_Selection);
   m_RenderScene->SetActive(true);
 }
 
@@ -97,10 +107,10 @@ void CSceneWorkspace::OnDeactivated()
 
 void CSceneWorkspace::OnGui()
 {
-  if (m_Sync->Update(GetScene()))
+  if (m_Sync->Update(*m_Document))
     m_RenderScene->MarkContentChanged();
 
-  m_Sync->SetHighlightedNode(m_Document->GetSelection());
+  m_Sync->SetHighlightedNode(m_Selection->GetNode());
 
   HandleShortcuts();
   DrawToolbar();
@@ -108,25 +118,15 @@ void CSceneWorkspace::OnGui()
   m_Viewport->Draw("##SceneViewport");
 }
 
-void CSceneWorkspace::OnBeforeSave()
-{
-  m_Document->CommitPreview();
-}
-
 //
 // Implementation
 //
-
-CSceneInstance & CSceneWorkspace::GetScene() const
-{
-  return *m_Scene;
-}
 
 void CSceneWorkspace::SetupViewport()
 {
   m_Viewport->OnPick([this](const Ogre::Ray & _Ray)
   {
-    m_Document->Select(m_Sync->Pick(_Ray));
+    m_Selection->Select(m_Sync->Pick(_Ray));
   });
 
   m_Viewport->OnOverlay([this](const TViewportFrame & _Frame)
@@ -136,7 +136,7 @@ void CSceneWorkspace::SetupViewport()
 
   m_Gizmo->OnDrag([this](const Ogre::Affine3 & _Transform)
   {
-    m_Document->PreviewWorldTransform(m_Document->GetSelection(), _Transform);
+    m_Document->PreviewWorldTransform(m_Selection->GetNode(), _Transform);
   });
 
   m_Gizmo->OnDragFinished([this]
@@ -239,11 +239,36 @@ Ogre::Vector3 CSceneWorkspace::FindDropPosition(const TViewportFrame & _Frame) c
 
 bool CSceneWorkspace::DrawGizmo(const TViewportFrame & _Frame)
 {
-  const std::string Selection = m_Document->GetSelection();
+  const std::string & Selection = m_Selection->GetNode();
   if (Selection.empty())
     return false;
 
-  return m_Gizmo->Draw(_Frame, GetScene().GetWorldTransform(Selection));
+  return m_Gizmo->Draw(_Frame, m_Document->GetGraph().GetWorldTransform(Selection));
+}
+
+//
+// Events
+//
+
+void CSceneWorkspace::OnDocumentChanged(const TSceneChange & _Change)
+{
+  switch (_Change.Kind)
+  {
+    case ESceneChangeKind::Added:
+    case ESceneChangeKind::Changed:
+      m_Selection->Select(_Change.Name);
+      break;
+
+    case ESceneChangeKind::Renamed:
+      if (m_Selection->GetNode() == _Change.Name)
+        m_Selection->Select(_Change.NewName);
+      break;
+
+    case ESceneChangeKind::Removed:
+      if (!m_Document->GetGraph().HasNode(m_Selection->GetNode()))
+        m_Selection->Clear();
+      break;
+  }
 }
 
 } // namespace editor

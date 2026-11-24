@@ -1,8 +1,7 @@
 #include "SceneFactory.h"
-#include "SceneInstance.h"
 #include "SceneSerializer.h"
 #include "editor/assets/AssetFactoryInfo.h"
-#include "editor/assets/AssetRecord.h"
+#include "model/SceneGraph.h"
 
 namespace editor
 {
@@ -19,7 +18,7 @@ const TAssetFactoryInfo & CSceneFactory::GetInfo() const noexcept
 
 bool CSceneFactory::CreateContent(std::string & _Content, std::string & /*_Error*/) const
 {
-  const CSceneInstance EmptyScene(TAssetRecord{}, std::string());
+  const CSceneGraph EmptyScene;
 
   _Content = WriteScene(EmptyScene);
 

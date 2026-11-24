@@ -1,6 +1,5 @@
 #include "SceneAssetType.h"
-#include "SceneInstance.h"
-#include "SceneSerializer.h"
+#include "SceneDocument.h"
 #include "SceneWorkspace.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
@@ -44,14 +43,14 @@ std::unique_ptr<CEditorWorkspace> CSceneAssetType::OpenAsset(const TAssetRecord 
 
   const std::string Text((std::istreambuf_iterator<char>(File)), {});
 
-  auto Scene = std::make_shared<CSceneInstance>(_Asset, _ResourceGroup);
-  if (!ReadScene(Text, *Scene, _Error))
+  auto Document = std::make_shared<CSceneDocument>(_Asset);
+  if (!Document->Load(Text, _Error))
   {
     _Error = _Asset.RelativePath.generic_string() + ": " + _Error;
     return {};
   }
 
-  return std::make_unique<CSceneWorkspace>(std::move(Scene), m_Controller, m_Log);
+  return std::make_unique<CSceneWorkspace>(std::move(Document), m_Controller, _ResourceGroup, m_Log);
 }
 
 } // namespace editor
