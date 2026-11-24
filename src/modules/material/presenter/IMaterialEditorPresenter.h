@@ -1,12 +1,13 @@
 #pragma once
 
+#include "modules/material/MaterialNode.h"
+
 #include <memory>
 
 namespace editor
 {
 
 class CMaterialDocument;
-struct TMaterialNode;
 struct TPassState;
 struct TTextureUnitState;
 
@@ -19,6 +20,8 @@ public: // Destructor
 public: // State
 
   virtual std::shared_ptr<const CMaterialDocument> GetDocument() const = 0;
+
+  virtual TMaterialNode GetSelection() const = 0;
 
 public: // Actions
 

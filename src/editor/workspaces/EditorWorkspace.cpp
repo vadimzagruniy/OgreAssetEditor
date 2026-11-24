@@ -40,8 +40,6 @@ bool CEditorWorkspace::IsDirty() const
 
 bool CEditorWorkspace::Save(std::string & _Error)
 {
-  OnBeforeSave();
-
   return m_Document->Save(_Error);
 }
 
@@ -65,11 +63,6 @@ void CEditorWorkspace::OnActivated()
 }
 
 void CEditorWorkspace::OnDeactivated()
-{
-  // Empty
-}
-
-void CEditorWorkspace::OnBeforeSave()
 {
   // Empty
 }

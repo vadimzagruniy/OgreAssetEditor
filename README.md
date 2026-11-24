@@ -98,12 +98,13 @@ src/
     widgets/     small reusable ImGui widgets (splitter)
   editor/
     assets/      project asset scanning, asset types, asset factories and their registries
+    documents/   asset document base: asset record, change history, dirty state and saving
     inspector/   property schema, property values and the property source interface
     modules/     module interface, static module registry, module lifecycle
     render/      offscreen render scene and the preview scene used by viewers
     viewport/    viewport, camera and navigation, grid, view axis gizmo
       gizmo/       transform gizmo (move, rotate, scale)
-    workspaces/  asset instances, editor workspaces and the workspace (tab) manager
+    workspaces/  editor workspaces (tabs) and the workspace manager
   modules/     one folder per module
     console/  content_browser/  properties/  mesh/  material/  scene/  texture/  text/
     content_browser/
@@ -112,13 +113,12 @@ src/
     properties/
       controls/    property controls built from a schema, asset reference field
     material/
-      MaterialInstance   original materials and their working copies, saving
-      MaterialDocument   reads and edits pass / texture unit state, turns edits into undo commands
+      MaterialDocument   original materials and their working copies, pass / texture unit edits as undo commands, saving
       inspector/         property sources for a pass and a texture unit
       views/             outline tool window
     scene/
-      model/             scene nodes, transforms, subtrees
-      SceneDocument      selection, node edits and previews as undo commands
+      model/             scene graph: nodes, hierarchy, transforms, subtrees
+      SceneDocument      scene graph, node edits and previews as undo commands, change notifications, saving
       render/            syncs the scene model to OGRE scene nodes, picking
       drop/              drop handlers for assets dropped onto the scene
       inspector/         property source for a scene node

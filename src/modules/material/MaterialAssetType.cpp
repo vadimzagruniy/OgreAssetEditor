@@ -1,5 +1,5 @@
 #include "MaterialAssetType.h"
-#include "MaterialInstance.h"
+#include "MaterialDocument.h"
 #include "MaterialWorkspace.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
@@ -135,8 +135,8 @@ std::unique_ptr<CEditorWorkspace> CMaterialAssetType::OpenAsset(const TAssetReco
     return {};
   }
 
-  auto Material = std::make_shared<CMaterialInstance>(_Asset, Materials, HasExpandedFeatures(Script));
-  return std::make_unique<CMaterialWorkspace>(std::move(Material), m_Controller);
+  auto Document = std::make_shared<CMaterialDocument>(_Asset, Materials, HasExpandedFeatures(Script));
+  return std::make_unique<CMaterialWorkspace>(std::move(Document), m_Controller);
 }
 
 } // namespace editor

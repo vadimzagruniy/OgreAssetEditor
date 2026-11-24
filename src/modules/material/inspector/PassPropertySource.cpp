@@ -222,7 +222,7 @@ void CPassPropertySource::Preview(const std::string & _Identifier, const TProper
   if (!State || !ApplyValue(*State, _Identifier, _Value))
     return;
 
-  GetPresenter().Preview(GetDocument()->GetSelection(), *State);
+  GetPresenter().Preview(GetPresenter().GetSelection(), *State);
 }
 
 //
@@ -235,7 +235,7 @@ std::optional<TPassState> CPassPropertySource::GetState() const
   if (!Document)
     return std::nullopt;
 
-  return Document->GetPassState(Document->GetSelection());
+  return Document->GetPassState(GetPresenter().GetSelection());
 }
 
 } // namespace editor

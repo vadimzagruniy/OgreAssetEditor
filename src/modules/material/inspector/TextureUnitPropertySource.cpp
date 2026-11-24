@@ -127,7 +127,7 @@ void CTextureUnitPropertySource::Preview(const std::string & _Identifier, const 
   if (!State || !ApplyValue(*State, _Identifier, _Value))
     return;
 
-  GetPresenter().Preview(GetDocument()->GetSelection(), *State);
+  GetPresenter().Preview(GetPresenter().GetSelection(), *State);
 }
 
 //
@@ -140,7 +140,7 @@ std::optional<TTextureUnitState> CTextureUnitPropertySource::GetState() const
   if (!Document)
     return std::nullopt;
 
-  return Document->GetTextureUnitState(Document->GetSelection());
+  return Document->GetTextureUnitState(GetPresenter().GetSelection());
 }
 
 } // namespace editor

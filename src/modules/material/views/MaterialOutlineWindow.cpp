@@ -1,6 +1,5 @@
 #include "MaterialOutlineWindow.h"
 #include "modules/material/MaterialDocument.h"
-#include "modules/material/MaterialInstance.h"
 #include "modules/material/MaterialNode.h"
 #include "modules/material/presenter/IMaterialEditorPresenter.h"
 #include "ui/ToolBoxDesc.h"
@@ -61,7 +60,7 @@ void CMaterialOutlineWindow::OnGui()
     return;
   }
 
-  const auto MaterialCount = static_cast<int>(Document->GetInstance().GetMaterialCount());
+  const auto MaterialCount = static_cast<int>(Document->GetMaterialCount());
 
   for (int MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
   {
@@ -77,11 +76,10 @@ void CMaterialOutlineWindow::OnGui()
 
 void CMaterialOutlineWindow::DrawMaterial(const CMaterialDocument & _Document, int _MaterialIndex) const
 {
-  const auto & Instance      = _Document.GetInstance();
   const auto   MaterialIndex = static_cast<std::size_t>(_MaterialIndex);
-  const auto & Material      = Instance.GetWorkingCopy(MaterialIndex);
+  const auto & Material      = _Document.GetWorkingCopy(MaterialIndex);
 
-  if (!DrawNode(_Document, TMaterialNode{_MaterialIndex}, Instance.GetMaterialName(MaterialIndex), BranchFlags))
+  if (!DrawNode(TMaterialNode{_MaterialIndex}, _Document.GetMaterialName(MaterialIndex), BranchFlags))
     return;
 
   for (std::size_t TechniqueIndex = 0; TechniqueIndex < Material->getNumTechniques(); ++TechniqueIndex)
@@ -91,62 +89,62 @@ void CMaterialOutlineWindow::DrawMaterial(const CMaterialDocument & _Document, i
       continue;
 
     ImGui::PushID(static_cast<int>(TechniqueIndex));
-    DrawTechnique(_Document, *Technique, TMaterialNode{_MaterialIndex, static_cast<int>(TechniqueIndex)});
+    DrawTechnique(*Technique, TMaterialNode{_MaterialIndex, static_cast<int>(TechniqueIndex)});
     ImGui::PopID();
   }
 
   ImGui::TreePop();
 }
 
-void CMaterialOutlineWindow::DrawTechnique(const CMaterialDocument & _Document, const Ogre::Technique & _Technique, const TMaterialNode & _Node) const
+void CMaterialOutlineWindow::DrawTechnique(const Ogre::Technique & _Technique, const TMaterialNode & _Node) const
 {
   const auto Label = MakeLabel("Technique", static_cast<std::size_t>(_Node.TechniqueIndex), _Technique.getName());
-  if (!DrawNode(_Document, _Node, Label, BranchFlags))
+  if (!DrawNode(_Node, Label, BranchFlags))
     return;
 
   for (std::size_t PassIndex = 0; PassIndex < _Technique.getNumPasses(); ++PassIndex)
   {
     ImGui::PushID(static_cast<int>(PassIndex));
-    DrawPass(_Document, *_Technique.getPass(PassIndex), TMaterialNode{_Node.MaterialIndex, _Node.TechniqueIndex, static_cast<int>(PassIndex)});
+    DrawPass(*_Technique.getPass(PassIndex), TMaterialNode{_Node.MaterialIndex, _Node.TechniqueIndex, static_cast<int>(PassIndex)});
     ImGui::PopID();
   }
 
   ImGui::TreePop();
 }
 
-void CMaterialOutlineWindow::DrawPass(const CMaterialDocument & _Document, const Ogre::Pass & _Pass, const TMaterialNode & _Node) const
+void CMaterialOutlineWindow::DrawPass(const Ogre::Pass & _Pass, const TMaterialNode & _Node) const
 {
   const auto Label            = MakeLabel("Pass", static_cast<std::size_t>(_Node.PassIndex), _Pass.getName());
   const auto TextureUnitCount = _Pass.getNumTextureUnitStates();
 
   if (TextureUnitCount == 0)
   {
-    DrawNode(_Document, _Node, Label, LeafFlags);
+    DrawNode(_Node, Label, LeafFlags);
     return;
   }
 
-  if (!DrawNode(_Document, _Node, Label, BranchFlags))
+  if (!DrawNode(_Node, Label, BranchFlags))
     return;
 
   for (std::size_t TextureUnitIndex = 0; TextureUnitIndex < TextureUnitCount; ++TextureUnitIndex)
   {
     ImGui::PushID(static_cast<int>(TextureUnitIndex));
-    DrawTextureUnit(_Document, *_Pass.getTextureUnitState(TextureUnitIndex), TMaterialNode{_Node.MaterialIndex, _Node.TechniqueIndex, _Node.PassIndex, static_cast<int>(TextureUnitIndex)});
+    DrawTextureUnit(*_Pass.getTextureUnitState(TextureUnitIndex), TMaterialNode{_Node.MaterialIndex, _Node.TechniqueIndex, _Node.PassIndex, static_cast<int>(TextureUnitIndex)});
     ImGui::PopID();
   }
 
   ImGui::TreePop();
 }
 
-void CMaterialOutlineWindow::DrawTextureUnit(const CMaterialDocument & _Document, const Ogre::TextureUnitState & _TextureUnit, const TMaterialNode & _Node) const
+void CMaterialOutlineWindow::DrawTextureUnit(const Ogre::TextureUnitState & _TextureUnit, const TMaterialNode & _Node) const
 {
   const auto Label = MakeLabel("Texture", static_cast<std::size_t>(_Node.TextureUnitIndex), _TextureUnit.getTextureName());
-  DrawNode(_Document, _Node, Label, LeafFlags);
+  DrawNode(_Node, Label, LeafFlags);
 }
 
-bool CMaterialOutlineWindow::DrawNode(const CMaterialDocument & _Document, const TMaterialNode & _Node, const std::string & _Label, int _Flags) const
+bool CMaterialOutlineWindow::DrawNode(const TMaterialNode & _Node, const std::string & _Label, int _Flags) const
 {
-  if (_Document.GetSelection() == _Node)
+  if (m_Presenter->GetSelection() == _Node)
     _Flags |= ImGuiTreeNodeFlags_Selected;
 
   const bool IsOpen = ImGui::TreeNodeEx(_Label.c_str(), _Flags);

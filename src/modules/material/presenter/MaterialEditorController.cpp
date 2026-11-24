@@ -1,6 +1,7 @@
 #include "MaterialEditorController.h"
 #include "core/ActionQueue.h"
 #include "modules/material/MaterialDocument.h"
+#include "modules/material/MaterialSelection.h"
 
 #include <utility>
 
@@ -26,15 +27,24 @@ std::shared_ptr<const CMaterialDocument> CMaterialEditorController::GetDocument(
   return m_Document.lock();
 }
 
+TMaterialNode CMaterialEditorController::GetSelection() const
+{
+  const auto Selection = m_Selection.lock();
+  return Selection ? Selection->GetNode() : TMaterialNode{};
+}
+
 //
 // IMaterialEditorPresenter actions
 //
 
 void CMaterialEditorController::Select(const TMaterialNode & _Node)
 {
-  Post([_Node](CMaterialDocument & _Document)
+  Post([Selection = m_Selection, _Node](CMaterialDocument & _Document)
   {
-    _Document.Select(_Node);
+    _Document.CommitPreview();
+
+    if (const auto LockedSelection = Selection.lock())
+      LockedSelection->Select(_Node);
   });
 }
 
@@ -66,15 +76,19 @@ void CMaterialEditorController::CommitEdit()
 // Interface
 //
 
-void CMaterialEditorController::SetDocument(const std::shared_ptr<CMaterialDocument> & _Document)
+void CMaterialEditorController::SetDocument(const std::shared_ptr<CMaterialDocument> & _Document, const std::shared_ptr<CMaterialSelection> & _Selection)
 {
-  m_Document = _Document;
+  m_Document  = _Document;
+  m_Selection = _Selection;
 }
 
 void CMaterialEditorController::ResetDocument(const CMaterialDocument & _Document)
 {
-  if (m_Document.lock().get() == &_Document)
-    m_Document.reset();
+  if (m_Document.lock().get() != &_Document)
+    return;
+
+  m_Document.reset();
+  m_Selection.reset();
 }
 
 //

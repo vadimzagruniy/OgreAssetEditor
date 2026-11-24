@@ -34,13 +34,13 @@ private: // Implementation
 
   void DrawMaterial(const CMaterialDocument & _Document, int _MaterialIndex) const;
 
-  void DrawTechnique(const CMaterialDocument & _Document, const Ogre::Technique & _Technique, const TMaterialNode & _Node) const;
+  void DrawTechnique(const Ogre::Technique & _Technique, const TMaterialNode & _Node) const;
 
-  void DrawPass(const CMaterialDocument & _Document, const Ogre::Pass & _Pass, const TMaterialNode & _Node) const;
+  void DrawPass(const Ogre::Pass & _Pass, const TMaterialNode & _Node) const;
 
-  void DrawTextureUnit(const CMaterialDocument & _Document, const Ogre::TextureUnitState & _TextureUnit, const TMaterialNode & _Node) const;
+  void DrawTextureUnit(const Ogre::TextureUnitState & _TextureUnit, const TMaterialNode & _Node) const;
 
-  bool DrawNode(const CMaterialDocument & _Document, const TMaterialNode & _Node, const std::string & _Label, int _Flags) const;
+  bool DrawNode(const TMaterialNode & _Node, const std::string & _Label, int _Flags) const;
 
 private: // Attributes
 

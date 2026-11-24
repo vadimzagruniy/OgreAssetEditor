@@ -2,37 +2,53 @@
 
 #include "MaterialNode.h"
 #include "MaterialState.h"
+#include "core/Signal.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <OgrePrerequisites.h>
+#include <OgreSharedPtr.h>
 
+#include <cstddef>
 #include <memory>
 #include <optional>
+#include <string>
 #include <variant>
+#include <vector>
 
 namespace editor
 {
 
-namespace core
-{
-class CUndoStack;
-} // namespace core
-
-class CMaterialInstance;
-
 class CMaterialDocument final:
+  public CAssetDocument,
   public std::enable_shared_from_this<CMaterialDocument>
 {
-public: // Constructor
+public: // Types
 
-  CMaterialDocument(CMaterialInstance & _Instance, core::CUndoStack & _UndoStack);
+  using TChangedSignal = core::CSignal<const TMaterialNode &>;
+
+public: // Constructor/Destructor
+
+  CMaterialDocument(TAssetRecord _Record, const std::vector<Ogre::MaterialPtr> & _Materials, bool _HasExpandedFeatures);
+
+  ~CMaterialDocument() override;
+
+public: // CAssetDocument
+
+  std::vector<TAssetProperty> GetProperties() const override;
+
+protected: // CAssetDocument
+
+  bool OnSave(std::string & _Error) override;
 
 public: // Interface
 
-  const CMaterialInstance & GetInstance() const noexcept;
+  std::size_t GetMaterialCount() const noexcept;
 
-  const TMaterialNode & GetSelection() const noexcept;
+  const Ogre::MaterialPtr & GetWorkingCopy(std::size_t _Index) const;
 
-  void Select(const TMaterialNode & _Node);
+  const std::string & GetMaterialName(std::size_t _Index) const;
+
+  bool HasExpandedFeatures() const noexcept;
 
   static bool IsShaderGenerated(const Ogre::Technique & _Technique);
 
@@ -46,9 +62,19 @@ public: // Interface
 
   void CommitPreview();
 
+public: // Signals
+
+  TChangedSignal & GetChangedSignal() noexcept;
+
 private: // Types
 
   using TState = std::variant<TPassState, TTextureUnitState>;
+
+  struct TMaterialCopy
+  {
+    Ogre::MaterialPtr Original;
+    Ogre::MaterialPtr WorkingCopy;
+  };
 
   struct TPreview
   {
@@ -57,6 +83,8 @@ private: // Types
   };
 
 private: // Implementation
+
+  static void ApplyWorkingCopy(TMaterialCopy & _Material);
 
   Ogre::Technique * FindTechnique(const TMaterialNode & _Node) const;
 
@@ -74,10 +102,10 @@ private: // Implementation
 
 private: // Attributes
 
-  CMaterialInstance &     m_Instance;
-  core::CUndoStack &      m_UndoStack;
-  TMaterialNode           m_Selection;
-  std::optional<TPreview> m_Preview;
+  std::vector<TMaterialCopy> m_Materials;
+  std::optional<TPreview>    m_Preview;
+  TChangedSignal             m_ChangedSignal;
+  bool                       m_HasExpandedFeatures;
 };
 
 } // namespace editor

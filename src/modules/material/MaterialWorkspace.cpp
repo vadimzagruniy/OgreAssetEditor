@@ -1,6 +1,6 @@
 #include "MaterialWorkspace.h"
 #include "MaterialDocument.h"
-#include "MaterialInstance.h"
+#include "MaterialSelection.h"
 #include "editor/render/PreviewScene.h"
 #include "editor/render/RenderScene.h"
 #include "editor/render/PreviewShape.h"
@@ -58,11 +58,11 @@ std::optional<std::size_t> FindShapeIndex(EPreviewShape _Shape)
 // Constructor/Destructor
 //
 
-CMaterialWorkspace::CMaterialWorkspace(std::shared_ptr<CMaterialInstance> _Material, std::shared_ptr<CMaterialEditorController> _Controller):
-  CEditorWorkspace(_Material),
-  m_Material(std::move(_Material)),
+CMaterialWorkspace::CMaterialWorkspace(std::shared_ptr<CMaterialDocument> _Document, std::shared_ptr<CMaterialEditorController> _Controller):
+  CEditorWorkspace(_Document),
+  m_Document(std::move(_Document)),
+  m_Selection(std::make_shared<CMaterialSelection>()),
   m_Controller(std::move(_Controller)),
-  m_Document(std::make_shared<CMaterialDocument>(*m_Material, m_Material->GetHistory())),
   m_PassProperties(std::make_shared<CPassPropertySource>(m_Controller)),
   m_TextureUnitProperties(std::make_shared<CTextureUnitPropertySource>(m_Controller)),
   m_Preview(std::make_unique<CPreviewScene>()),
@@ -71,14 +71,26 @@ CMaterialWorkspace::CMaterialWorkspace(std::shared_ptr<CMaterialInstance> _Mater
   m_PreviewMaterialIndex(-1),
   m_Toolbar(ui::ELayoutDirection::Row),
   m_ShapeCombo(m_Toolbar.Add(ui::CComboBox("Shape"))),
-  m_WarningText(m_Toolbar.Add(ui::CText("Script uses inheritance, variables or imports: saving writes every material in full.")))
+  m_WarningText(m_Toolbar.Add(ui::CText("Script uses inheritance, variables or imports: saving writes every material in full."))),
+  m_ChangedConnection(0)
 {
+  if (m_Document->GetMaterialCount() > 0)
+    m_Selection->Select(TMaterialNode{0});
+
+  m_ChangedConnection = m_Document->GetChangedSignal().Connect([this](const TMaterialNode & _Node)
+  {
+    OnDocumentChanged(_Node);
+  });
+
   m_Preview->SetShape(m_Shape);
   UpdatePreviewMaterial();
   SetupToolbar();
 }
 
-CMaterialWorkspace::~CMaterialWorkspace() = default;
+CMaterialWorkspace::~CMaterialWorkspace()
+{
+  m_Document->GetChangedSignal().Disconnect(m_ChangedConnection);
+}
 
 //
 // CEditorWorkspace
@@ -91,7 +103,7 @@ std::vector<core::TTypeKey> CMaterialWorkspace::GetToolBoxes() const
 
 std::shared_ptr<IPropertySource> CMaterialWorkspace::GetInspected() const
 {
-  const TMaterialNode & Selection = m_Document->GetSelection();
+  const TMaterialNode & Selection = m_Selection->GetNode();
 
   if (m_Document->GetPassState(Selection))
     return m_PassProperties;
@@ -104,7 +116,7 @@ std::shared_ptr<IPropertySource> CMaterialWorkspace::GetInspected() const
 
 void CMaterialWorkspace::OnActivated()
 {
-  m_Controller->SetDocument(m_Document);
+  m_Controller->SetDocument(m_Document, m_Selection);
   m_Preview->GetRenderScene().SetActive(true);
 }
 
@@ -121,11 +133,6 @@ void CMaterialWorkspace::OnGui()
 
   DrawToolbar();
   m_Viewport->Draw("##MaterialViewport");
-}
-
-void CMaterialWorkspace::OnBeforeSave()
-{
-  m_Document->CommitPreview();
 }
 
 //
@@ -152,19 +159,28 @@ void CMaterialWorkspace::SetupToolbar()
 void CMaterialWorkspace::DrawToolbar()
 {
   m_ShapeCombo.SetWidth(ImGui::GetFontSize() * 8.0f);
-  m_WarningText.SetVisible(m_Document->GetInstance().HasExpandedFeatures());
+  m_WarningText.SetVisible(m_Document->HasExpandedFeatures());
 
   m_Toolbar.Draw();
 }
 
 void CMaterialWorkspace::UpdatePreviewMaterial()
 {
-  const int MaterialIndex = m_Document->GetSelection().MaterialIndex;
+  const int MaterialIndex = m_Selection->GetNode().MaterialIndex;
   if (MaterialIndex < 0 || MaterialIndex == m_PreviewMaterialIndex)
     return;
 
   m_PreviewMaterialIndex = MaterialIndex;
-  m_Preview->SetMaterial(m_Document->GetInstance().GetWorkingCopy(static_cast<std::size_t>(MaterialIndex)));
+  m_Preview->SetMaterial(m_Document->GetWorkingCopy(static_cast<std::size_t>(MaterialIndex)));
+}
+
+//
+// Events
+//
+
+void CMaterialWorkspace::OnDocumentChanged(const TMaterialNode & _Node)
+{
+  m_Selection->Select(_Node);
 }
 
 } // namespace editor

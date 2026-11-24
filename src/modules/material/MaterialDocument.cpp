@@ -1,17 +1,17 @@
 #include "MaterialDocument.h"
-#include "MaterialInstance.h"
 #include "core/FunctionCommand.h"
-#include "core/UndoStack.h"
+#include "editor/assets/AssetRecord.h"
+#include "editor/documents/AssetProperty.h"
 
 #include <OgreMaterial.h>
 #include <OgreMaterialManager.h>
+#include <OgreMaterialSerializer.h>
 #include <OgrePass.h>
 #include <OgreShaderGenerator.h>
 #include <OgreTechnique.h>
 #include <OgreTextureUnitState.h>
 
-#include <cstddef>
-#include <string>
+#include <fstream>
 #include <type_traits>
 #include <utility>
 
@@ -20,6 +20,30 @@ namespace editor
 
 namespace
 {
+
+const std::string WorkingCopyPrefix = "OgreResourceEditor/WorkingCopy/";
+
+std::string MakeWorkingCopyName(const std::string & _Name)
+{
+  static unsigned long long NextCopyIndex = 1;
+  return WorkingCopyPrefix + std::to_string(NextCopyIndex++) + "/" + _Name;
+}
+
+void RemoveGeneratedTechniques(Ogre::Material & _Material)
+{
+  for (auto TechniqueIndex = _Material.getNumTechniques(); TechniqueIndex > 0; --TechniqueIndex)
+  {
+    const auto Index = static_cast<unsigned short>(TechniqueIndex - 1);
+    if (_Material.getTechnique(Index)->getSchemeName() == Ogre::MSN_SHADERGEN)
+      _Material.removeTechnique(Index);
+  }
+}
+
+void ReleaseShaderBasedTechniques(const Ogre::Material & _Material)
+{
+  if (auto * ShaderGenerator = Ogre::RTShader::ShaderGenerator::getSingletonPtr())
+    ShaderGenerator->removeAllShaderBasedTechniques(_Material);
+}
 
 TPassState ReadPassState(const Ogre::Pass & _Pass)
 {
@@ -73,36 +97,102 @@ const char * GetCommandName(const std::variant<TPassState, TTextureUnitState> & 
 } // namespace
 
 //
-// Constructor
+// Constructor/Destructor
 //
 
-CMaterialDocument::CMaterialDocument(CMaterialInstance & _Instance, core::CUndoStack & _UndoStack):
-  m_Instance(_Instance),
-  m_UndoStack(_UndoStack),
-  m_Selection{_Instance.GetMaterialCount() > 0 ? 0 : -1}
+CMaterialDocument::CMaterialDocument(TAssetRecord _Record, const std::vector<Ogre::MaterialPtr> & _Materials, bool _HasExpandedFeatures):
+  CAssetDocument(std::move(_Record), "Material"),
+  m_HasExpandedFeatures(_HasExpandedFeatures)
 {
-  // Empty
+  m_Materials.reserve(_Materials.size());
+
+  for (const auto & Original : _Materials)
+  {
+    auto WorkingCopy = Original->clone(MakeWorkingCopyName(Original->getName()));
+    WorkingCopy->_notifyOrigin({});
+
+    RemoveGeneratedTechniques(*WorkingCopy);
+    WorkingCopy->load();
+
+    m_Materials.push_back({Original, std::move(WorkingCopy)});
+  }
+}
+
+CMaterialDocument::~CMaterialDocument()
+{
+  auto * MaterialManager = Ogre::MaterialManager::getSingletonPtr();
+
+  for (auto & Material : m_Materials)
+  {
+    ReleaseShaderBasedTechniques(*Material.WorkingCopy);
+
+    if (MaterialManager)
+      MaterialManager->remove(Material.WorkingCopy);
+  }
+}
+
+//
+// CAssetDocument
+//
+
+std::vector<TAssetProperty> CMaterialDocument::GetProperties() const
+{
+  return {{"Materials",     std::to_string(m_Materials.size())                               },
+          {"Script layout", m_HasExpandedFeatures ? "Uses inheritance or variables" : "Plain"}};
+}
+
+bool CMaterialDocument::OnSave(std::string & _Error)
+{
+  CommitPreview();
+
+  Ogre::MaterialSerializer Serializer;
+
+  if (auto * ShaderGenerator = Ogre::RTShader::ShaderGenerator::getSingletonPtr())
+    Serializer.addListener(ShaderGenerator->getMaterialSerializerListener());
+
+  for (const auto & Material : m_Materials)
+    Serializer.queueForExport(Material.WorkingCopy, false, false, Material.Original->getName());
+
+  std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
+  File << Serializer.getQueuedAsString();
+  File.close();
+
+  if (!File)
+  {
+    _Error = "Could not write " + GetRecord().RelativePath.generic_string();
+    return false;
+  }
+
+  for (auto & Material : m_Materials)
+    ApplyWorkingCopy(Material);
+
+  m_HasExpandedFeatures = false;
+
+  return true;
 }
 
 //
 // Interface
 //
 
-const CMaterialInstance & CMaterialDocument::GetInstance() const noexcept
+std::size_t CMaterialDocument::GetMaterialCount() const noexcept
 {
-  return m_Instance;
+  return m_Materials.size();
 }
 
-const TMaterialNode & CMaterialDocument::GetSelection() const noexcept
+const Ogre::MaterialPtr & CMaterialDocument::GetWorkingCopy(std::size_t _Index) const
 {
-  return m_Selection;
+  return m_Materials.at(_Index).WorkingCopy;
 }
 
-void CMaterialDocument::Select(const TMaterialNode & _Node)
+const std::string & CMaterialDocument::GetMaterialName(std::size_t _Index) const
 {
-  CommitPreview();
+  return m_Materials.at(_Index).Original->getName();
+}
 
-  m_Selection = _Node;
+bool CMaterialDocument::HasExpandedFeatures() const noexcept
+{
+  return m_HasExpandedFeatures;
 }
 
 bool CMaterialDocument::IsShaderGenerated(const Ogre::Technique & _Technique)
@@ -159,25 +249,47 @@ void CMaterialDocument::CommitPreview()
     {
       LockedDocument->m_Preview.reset();
       LockedDocument->ApplyState(Node, _State);
-      LockedDocument->m_Selection = Node;
+      LockedDocument->m_ChangedSignal.Emit(Node);
     }
   };
 
-  m_UndoStack.Execute(std::make_unique<core::CFunctionCommand>(GetCommandName(Preview.Before),
+  GetHistory().Execute(std::make_unique<core::CFunctionCommand>(GetCommandName(Preview.Before),
     [Apply, After = *After] { Apply(After); },
     [Apply, Before = Preview.Before] { Apply(Before); }));
+}
+
+//
+// Signals
+//
+
+CMaterialDocument::TChangedSignal & CMaterialDocument::GetChangedSignal() noexcept
+{
+  return m_ChangedSignal;
 }
 
 //
 // Implementation
 //
 
+void CMaterialDocument::ApplyWorkingCopy(TMaterialCopy & _Material)
+{
+  ReleaseShaderBasedTechniques(*_Material.Original);
+
+  const auto Origin = _Material.Original->getOrigin();
+
+  _Material.WorkingCopy->copyDetailsTo(_Material.Original);
+  _Material.Original->_notifyOrigin(Origin);
+
+  RemoveGeneratedTechniques(*_Material.Original);
+  _Material.Original->compile();
+}
+
 Ogre::Technique * CMaterialDocument::FindTechnique(const TMaterialNode & _Node) const
 {
-  if (_Node.MaterialIndex < 0 || static_cast<std::size_t>(_Node.MaterialIndex) >= m_Instance.GetMaterialCount())
+  if (_Node.MaterialIndex < 0 || static_cast<std::size_t>(_Node.MaterialIndex) >= GetMaterialCount())
     return nullptr;
 
-  const auto & Material = m_Instance.GetWorkingCopy(static_cast<std::size_t>(_Node.MaterialIndex));
+  const auto & Material = GetWorkingCopy(static_cast<std::size_t>(_Node.MaterialIndex));
   if (_Node.TechniqueIndex < 0 || static_cast<std::size_t>(_Node.TechniqueIndex) >= Material->getNumTechniques())
     return nullptr;
 
@@ -263,7 +375,7 @@ void CMaterialDocument::InvalidateShaders(const TMaterialNode & _Node) const
   if (!ShaderGenerator || _Node.MaterialIndex < 0)
     return;
 
-  const auto & Material = m_Instance.GetWorkingCopy(static_cast<std::size_t>(_Node.MaterialIndex));
+  const auto & Material = GetWorkingCopy(static_cast<std::size_t>(_Node.MaterialIndex));
   ShaderGenerator->invalidateMaterial(Ogre::MSN_SHADERGEN, *Material);
 }
 

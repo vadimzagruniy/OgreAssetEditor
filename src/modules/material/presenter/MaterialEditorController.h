@@ -14,6 +14,7 @@ class CActionQueue;
 } // namespace core
 
 class CMaterialDocument;
+class CMaterialSelection;
 
 class CMaterialEditorController final:
   public IMaterialEditorPresenter
@@ -25,6 +26,8 @@ public: // Constructor
 public: // IMaterialEditorPresenter state
 
   std::shared_ptr<const CMaterialDocument> GetDocument() const override;
+
+  TMaterialNode GetSelection() const override;
 
 public: // IMaterialEditorPresenter actions
 
@@ -38,7 +41,7 @@ public: // IMaterialEditorPresenter actions
 
 public: // Interface
 
-  void SetDocument(const std::shared_ptr<CMaterialDocument> & _Document);
+  void SetDocument(const std::shared_ptr<CMaterialDocument> & _Document, const std::shared_ptr<CMaterialSelection> & _Selection);
 
   void ResetDocument(const CMaterialDocument & _Document);
 
@@ -50,6 +53,7 @@ private: // Attributes
 
   std::shared_ptr<core::CActionQueue> m_ActionQueue;
   std::weak_ptr<CMaterialDocument>    m_Document;
+  std::weak_ptr<CMaterialSelection>   m_Selection;
 };
 
 } // namespace editor

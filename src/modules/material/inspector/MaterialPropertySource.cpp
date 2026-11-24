@@ -1,6 +1,5 @@
 #include "MaterialPropertySource.h"
 #include "modules/material/MaterialDocument.h"
-#include "modules/material/MaterialInstance.h"
 #include "modules/material/presenter/IMaterialEditorPresenter.h"
 
 #include <cstddef>
@@ -29,11 +28,11 @@ std::string CMaterialPropertySource::GetTitle() const
   if (!Document)
     return {};
 
-  const int MaterialIndex = Document->GetSelection().MaterialIndex;
+  const int MaterialIndex = m_Presenter->GetSelection().MaterialIndex;
   if (MaterialIndex < 0)
     return {};
 
-  return Document->GetInstance().GetMaterialName(static_cast<std::size_t>(MaterialIndex));
+  return Document->GetMaterialName(static_cast<std::size_t>(MaterialIndex));
 }
 
 void CMaterialPropertySource::Commit()

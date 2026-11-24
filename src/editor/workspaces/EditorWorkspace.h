@@ -46,10 +46,6 @@ public: // Events
 
   virtual void OnGui() = 0;
 
-protected: // Events
-
-  virtual void OnBeforeSave();
-
 private: // Attributes
 
   std::shared_ptr<CAssetDocument> m_Document;
