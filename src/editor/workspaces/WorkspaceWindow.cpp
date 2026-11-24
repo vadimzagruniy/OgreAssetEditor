@@ -34,7 +34,7 @@ std::string MakeTabLabel(const CEditorWorkspace & _Workspace)
 //
 
 CWorkspaceWindow::CWorkspaceWindow(CWorkspaceManager & _WorkspaceManager, CWorkspaceController & _WorkspaceController):
-  CWindow("Resource Editors", "WorkspaceHost"),
+  CDockedWindow("Resource Editors", "WorkspaceHost"),
   m_WorkspaceManager(_WorkspaceManager),
   m_WorkspaceController(_WorkspaceController)
 {

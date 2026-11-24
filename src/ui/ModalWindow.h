@@ -1,42 +1,45 @@
 #pragma once
 
+#include "Window.h"
+
 #include <string>
 
 namespace editor::ui
 {
 
-class CModalWindow
+class CModalWindow:
+  public CWindow
 {
-public: // Destructor
-
-  virtual ~CModalWindow();
-
 protected: // Constructor
 
-  explicit CModalWindow(std::string _Title);
+  explicit CModalWindow(const std::string & _Title);
 
-public: // Interface
+public: // CWindow
 
-  bool Draw();
+  bool IsOpen() const noexcept override;
 
-  const std::string & GetTitle() const noexcept;
+protected: // CWindow
+
+  bool BeginWindow() override;
+
+  void EndWindow(bool _IsBegun) override;
 
 protected: // Interface
 
   void Close() noexcept;
 
-protected: // Events
+private: // Implementation
 
-  virtual void OnGui() = 0;
+  void Cancel();
+
+protected: // Events
 
   virtual void OnCancel();
 
 private: // Attributes
 
-  std::string m_Title;
-  std::string m_Label;
-  bool        m_IsOpened;
-  bool        m_IsClosed;
+  bool m_IsOpened;
+  bool m_IsClosed;
 };
 
 } // namespace editor::ui

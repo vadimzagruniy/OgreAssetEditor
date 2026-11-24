@@ -2,74 +2,78 @@
 
 #include <imgui.h>
 
-#include <utility>
-
 namespace editor::ui
 {
 
 //
-// Constructor/Destructor
+// Constructor
 //
 
-CModalWindow::CModalWindow(std::string _Title):
-  m_Title(std::move(_Title)),
-  m_Label(m_Title + "##Modal"),
+CModalWindow::CModalWindow(const std::string & _Title):
+  CWindow(_Title, _Title + "##Modal"),
   m_IsOpened(false),
   m_IsClosed(false)
 {
   // Empty
 }
 
-CModalWindow::~CModalWindow() = default;
-
 //
-// Interface
+// CWindow
 //
 
-bool CModalWindow::Draw()
+bool CModalWindow::IsOpen() const noexcept
 {
-  if (m_IsClosed)
-    return false;
+  return !m_IsClosed;
+}
 
+bool CModalWindow::BeginWindow()
+{
   if (!m_IsOpened)
   {
-    ImGui::OpenPopup(m_Label.c_str());
+    ImGui::OpenPopup(GetLabel().c_str());
     m_IsOpened = true;
   }
 
-  if (!ImGui::BeginPopupModal(m_Label.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+  if (!ImGui::BeginPopupModal(GetLabel().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
   {
-    OnCancel();
-    m_IsClosed = true;
+    Cancel();
     return false;
   }
 
   if (ImGui::Shortcut(ImGuiKey_Escape))
-  {
-    OnCancel();
-    Close();
-  }
-  else
-  {
-    OnGui();
-  }
+    Cancel();
+
+  return true;
+}
+
+void CModalWindow::EndWindow(bool _IsBegun)
+{
+  if (!_IsBegun)
+    return;
 
   if (m_IsClosed)
     ImGui::CloseCurrentPopup();
 
   ImGui::EndPopup();
-
-  return !m_IsClosed;
 }
 
-const std::string & CModalWindow::GetTitle() const noexcept
-{
-  return m_Title;
-}
+//
+// Interface
+//
 
 void CModalWindow::Close() noexcept
 {
   m_IsClosed = true;
+}
+
+//
+// Implementation
+//
+
+void CModalWindow::Cancel()
+{
+  OnCancel();
+  Close();
 }
 
 //

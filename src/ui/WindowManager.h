@@ -12,7 +12,7 @@
 namespace editor::ui
 {
 
-class CWindow;
+class CDockedWindow;
 class CModalWindow;
 class CDockLayoutBuilder;
 struct TToolBoxDesc;
@@ -27,9 +27,9 @@ public: // Constructor/Destructor
 
 public: // Interface
 
-  bool RegisterToolBox(const TToolBoxDesc & _Desc, std::shared_ptr<CWindow> _Window);
+  bool RegisterToolBox(const TToolBoxDesc & _Desc, std::shared_ptr<CDockedWindow> _Window);
 
-  std::shared_ptr<CWindow> GetToolBox(const core::TTypeKey & _ToolBoxType) const;
+  std::shared_ptr<CDockedWindow> GetToolBox(const core::TTypeKey & _ToolBoxType) const;
 
   bool ShowToolBox(const core::TTypeKey & _ToolBoxType);
 
@@ -49,11 +49,11 @@ private: // Types
 
   struct TWindowEntry
   {
-    std::string              Module;
-    std::shared_ptr<CWindow> Window;
-    EDockSlot                DockSlot           = EDockSlot::None;
-    int                      DockOrder          = 0;
-    bool                     IsPlacementChecked = false;
+    std::string                    Module;
+    std::shared_ptr<CDockedWindow> Window;
+    EDockSlot                      DockSlot           = EDockSlot::None;
+    int                            DockOrder          = 0;
+    bool                           IsPlacementChecked = false;
   };
 
 private: // Implementation
@@ -64,9 +64,9 @@ private: // Implementation
 
 private: // Attributes
 
-  std::vector<TWindowEntry>                                    m_Windows;
-  std::unordered_map<core::TTypeKey, std::shared_ptr<CWindow>> m_ToolBoxes;
-  std::deque<std::unique_ptr<CModalWindow>>                    m_Modals;
+  std::vector<TWindowEntry>                                          m_Windows;
+  std::unordered_map<core::TTypeKey, std::shared_ptr<CDockedWindow>> m_ToolBoxes;
+  std::deque<std::unique_ptr<CModalWindow>>                          m_Modals;
 };
 
 } // namespace editor::ui

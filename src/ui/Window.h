@@ -13,21 +13,23 @@ public: // Destructor
 
 protected: // Constructor
 
-  CWindow(std::string _Title, std::string _StableId, bool _Visible = true);
+  CWindow(std::string _Title, std::string _Label);
 
 public: // Interface
 
   void Draw();
 
-  bool IsVisible() const noexcept;
-
-  void SetVisible(bool _Visible) noexcept;
-
-  void SetTitleBarHidden(bool _IsTitleBarHidden) noexcept;
+  virtual bool IsOpen() const noexcept = 0;
 
   const std::string & GetTitle() const noexcept;
 
   const std::string & GetLabel() const noexcept;
+
+protected: // Derived interface
+
+  virtual bool BeginWindow() = 0;
+
+  virtual void EndWindow(bool _IsBegun) = 0;
 
 protected: // Events
 
@@ -37,8 +39,6 @@ private: // Attributes
 
   std::string m_Title;
   std::string m_Label;
-  bool        m_Visible;
-  bool        m_IsTitleBarHidden;
 };
 
 } // namespace editor::ui

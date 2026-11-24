@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/Window.h"
+#include "ui/DockedWindow.h"
 
 #include <filesystem>
 
@@ -11,7 +11,7 @@ class CWorkspaceController;
 class CWorkspaceManager;
 
 class CWorkspaceWindow final:
-  public ui::CWindow
+  public ui::CDockedWindow
 {
 public: // Constructor
 

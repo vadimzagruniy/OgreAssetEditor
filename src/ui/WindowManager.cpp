@@ -1,7 +1,7 @@
 #include "WindowManager.h"
 #include "ModalWindow.h"
 #include "ToolBoxDesc.h"
-#include "Window.h"
+#include "DockedWindow.h"
 #include "ui/dock_layout/DockLayoutBuilder.h"
 
 #include <imgui.h>
@@ -28,7 +28,7 @@ CWindowManager::~CWindowManager() = default;
 // Interface
 //
 
-bool CWindowManager::RegisterToolBox(const TToolBoxDesc & _Desc, std::shared_ptr<CWindow> _Window)
+bool CWindowManager::RegisterToolBox(const TToolBoxDesc & _Desc, std::shared_ptr<CDockedWindow> _Window)
 {
   if (!_Window)
     return false;
@@ -51,7 +51,7 @@ bool CWindowManager::RegisterToolBox(const TToolBoxDesc & _Desc, std::shared_ptr
   return true;
 }
 
-std::shared_ptr<CWindow> CWindowManager::GetToolBox(const core::TTypeKey & _ToolBoxType) const
+std::shared_ptr<CDockedWindow> CWindowManager::GetToolBox(const core::TTypeKey & _ToolBoxType) const
 {
   const auto WindowEntry = m_ToolBoxes.find(_ToolBoxType);
   return WindowEntry == m_ToolBoxes.end() ? nullptr : WindowEntry->second;
@@ -117,7 +117,12 @@ void CWindowManager::Draw()
     WindowEntry.Window->Draw();
   }
 
-  if (!m_Modals.empty() && !m_Modals.front()->Draw())
+  if (m_Modals.empty())
+    return;
+
+  m_Modals.front()->Draw();
+
+  if (!m_Modals.front()->IsOpen())
     m_Modals.pop_front();
 }
 
