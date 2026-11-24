@@ -1,6 +1,6 @@
 #include "EditorWorkspace.h"
-#include "AssetInstance.h"
 #include "editor/assets/AssetRecord.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <utility>
 
@@ -11,8 +11,8 @@ namespace editor
 // Constructor/Destructor
 //
 
-CEditorWorkspace::CEditorWorkspace(std::unique_ptr<CAssetInstance> _Instance):
-  m_Instance(std::move(_Instance))
+CEditorWorkspace::CEditorWorkspace(std::shared_ptr<CAssetDocument> _Document):
+  m_Document(std::move(_Document))
 {
   // Empty
 }
@@ -20,61 +20,29 @@ CEditorWorkspace::CEditorWorkspace(std::unique_ptr<CAssetInstance> _Instance):
 CEditorWorkspace::~CEditorWorkspace() = default;
 
 //
-// IWorkspaceContext
-//
-
-CEditorWorkspace * CEditorWorkspace::GetWorkspace() const noexcept
-{
-  return const_cast<CEditorWorkspace *>(this);
-}
-
-CAssetInstance * CEditorWorkspace::GetAssetInstance() const noexcept
-{
-  return m_Instance.get();
-}
-
-//
 // Interface
 //
 
-CAssetInstance * CEditorWorkspace::GetInstance() const noexcept
+CAssetDocument & CEditorWorkspace::GetDocument() const noexcept
 {
-  return m_Instance.get();
-}
-
-core::CUndoStack & CEditorWorkspace::GetUndoStack() noexcept
-{
-  return m_UndoStack;
-}
-
-const std::vector<std::string> & CEditorWorkspace::GetSelection() const noexcept
-{
-  return m_Selection;
-}
-
-void CEditorWorkspace::SetSelection(std::vector<std::string> _Selection)
-{
-  m_Selection = std::move(_Selection);
+  return *m_Document;
 }
 
 std::string CEditorWorkspace::GetTitle() const
 {
-  return m_Instance->GetRecord().RelativePath.filename().string();
+  return m_Document->GetRecord().RelativePath.filename().string();
 }
 
 bool CEditorWorkspace::IsDirty() const
 {
-  return !m_UndoStack.IsAtSavePoint();
+  return m_Document->IsDirty();
 }
 
 bool CEditorWorkspace::Save(std::string & _Error)
 {
-  if (!OnSave(_Error))
-    return false;
+  OnBeforeSave();
 
-  m_UndoStack.MarkSaved();
-
-  return true;
+  return m_Document->Save(_Error);
 }
 
 std::vector<core::TTypeKey> CEditorWorkspace::GetToolBoxes() const
@@ -101,9 +69,9 @@ void CEditorWorkspace::OnDeactivated()
   // Empty
 }
 
-bool CEditorWorkspace::OnSave(std::string & /*_Error*/)
+void CEditorWorkspace::OnBeforeSave()
 {
-  return true;
+  // Empty
 }
 
 } // namespace editor

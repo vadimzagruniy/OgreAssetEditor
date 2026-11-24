@@ -7,7 +7,7 @@
 namespace editor
 {
 
-class CMeshInstance;
+class CMeshDocument;
 class CPreviewScene;
 class CViewport;
 
@@ -16,7 +16,7 @@ class CMeshWorkspace final:
 {
 public: // Constructor/Destructor
 
-  explicit CMeshWorkspace(std::unique_ptr<CMeshInstance> _Instance);
+  explicit CMeshWorkspace(const std::shared_ptr<CMeshDocument> & _Document);
 
   ~CMeshWorkspace() override;
 

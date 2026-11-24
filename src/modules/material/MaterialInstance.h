@@ -1,6 +1,6 @@
 #pragma once
 
-#include "editor/workspaces/AssetInstance.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <OgrePrerequisites.h>
 #include <OgreSharedPtr.h>
@@ -13,7 +13,7 @@ namespace editor
 {
 
 class CMaterialInstance final:
-  public CAssetInstance
+  public CAssetDocument
 {
 public: // Constructor/Destructor
 
@@ -25,9 +25,13 @@ public: // Constructor/Destructor
 
   CMaterialInstance & operator=(const CMaterialInstance &) = delete;
 
-public: // CAssetInstance
+public: // CAssetDocument
 
   std::vector<TAssetProperty> GetProperties() const override;
+
+protected: // CAssetDocument
+
+  bool OnSave(std::string & _Error) override;
 
 public: // Interface
 
@@ -38,8 +42,6 @@ public: // Interface
   const std::string & GetMaterialName(std::size_t _Index) const;
 
   bool HasExpandedFeatures() const noexcept;
-
-  bool Save(std::string & _Error);
 
 private: // Types
 

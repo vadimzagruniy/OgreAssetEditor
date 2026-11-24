@@ -1,5 +1,5 @@
 #include "MeshAssetType.h"
-#include "MeshInstance.h"
+#include "MeshDocument.h"
 #include "MeshWorkspace.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
@@ -46,7 +46,7 @@ std::unique_ptr<CEditorWorkspace> CMeshAssetType::OpenAsset(const TAssetRecord &
     return {};
   }
 
-  return std::make_unique<CMeshWorkspace>(std::make_unique<CMeshInstance>(_Asset, std::move(Mesh)));
+  return std::make_unique<CMeshWorkspace>(std::make_shared<CMeshDocument>(_Asset, std::move(Mesh)));
 }
 
 } // namespace editor

@@ -1,7 +1,7 @@
-#include "MeshInstance.h"
+#include "MeshDocument.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/ResourceRelease.h"
-#include "editor/workspaces/AssetProperty.h"
+#include "editor/documents/AssetProperty.h"
 
 #include <OgreMesh.h>
 
@@ -15,23 +15,23 @@ namespace editor
 // Constructor/Destructor
 //
 
-CMeshInstance::CMeshInstance(TAssetRecord _Record, Ogre::MeshPtr _Mesh):
-  CAssetInstance(std::move(_Record), "Mesh"),
+CMeshDocument::CMeshDocument(TAssetRecord _Record, Ogre::MeshPtr _Mesh):
+  CAssetDocument(std::move(_Record), "Mesh"),
   m_Mesh(std::move(_Mesh))
 {
   // Empty
 }
 
-CMeshInstance::~CMeshInstance()
+CMeshDocument::~CMeshDocument()
 {
   ReleaseOgreResource(std::move(m_Mesh));
 }
 
 //
-// CAssetInstance
+// CAssetDocument
 //
 
-std::vector<TAssetProperty> CMeshInstance::GetProperties() const
+std::vector<TAssetProperty> CMeshDocument::GetProperties() const
 {
   return {{"Submeshes",   std::to_string(m_Mesh->getNumSubMeshes())          },
           {"Vertex data", m_Mesh->sharedVertexData ? "Shared" : "Per submesh"},
@@ -42,7 +42,7 @@ std::vector<TAssetProperty> CMeshInstance::GetProperties() const
 // Interface
 //
 
-const Ogre::MeshPtr & CMeshInstance::GetMesh() const noexcept
+const Ogre::MeshPtr & CMeshDocument::GetMesh() const noexcept
 {
   return m_Mesh;
 }

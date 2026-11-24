@@ -42,10 +42,11 @@ constexpr float ComboWidthScale = 6.0f;
 // Constructor/Destructor
 //
 
-CSceneWorkspace::CSceneWorkspace(std::unique_ptr<CSceneInstance> _Instance, std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<core::CLog> _Log):
-  CEditorWorkspace(std::move(_Instance)),
+CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneInstance> _Scene, std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<core::CLog> _Log):
+  CEditorWorkspace(_Scene),
+  m_Scene(std::move(_Scene)),
   m_Controller(std::move(_Controller)),
-  m_Document(std::make_shared<CSceneDocument>(GetScene(), GetUndoStack())),
+  m_Document(std::make_shared<CSceneDocument>(*m_Scene, m_Scene->GetHistory())),
   m_NodeProperties(std::make_shared<CSceneNodePropertySource>(m_Document)),
   m_RenderScene(std::make_unique<CRenderScene>()),
   m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_Log))),
@@ -107,11 +108,9 @@ void CSceneWorkspace::OnGui()
   m_Viewport->Draw("##SceneViewport");
 }
 
-bool CSceneWorkspace::OnSave(std::string & _Error)
+void CSceneWorkspace::OnBeforeSave()
 {
   m_Document->CommitPreview();
-
-  return GetScene().Save(_Error);
 }
 
 //
@@ -120,7 +119,7 @@ bool CSceneWorkspace::OnSave(std::string & _Error)
 
 CSceneInstance & CSceneWorkspace::GetScene() const
 {
-  return *static_cast<CSceneInstance *>(GetInstance());
+  return *m_Scene;
 }
 
 void CSceneWorkspace::SetupViewport()

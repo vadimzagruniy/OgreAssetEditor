@@ -2,7 +2,7 @@
 #include "SceneSerializer.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/ResourceRelease.h"
-#include "editor/workspaces/AssetProperty.h"
+#include "editor/documents/AssetProperty.h"
 
 #include <OgreMesh.h>
 #include <OgreMeshManager.h>
@@ -41,7 +41,7 @@ std::string GetNameStem(const std::string & _Name)
 //
 
 CSceneInstance::CSceneInstance(TAssetRecord _Record, std::string _ResourceGroup):
-  CAssetInstance(std::move(_Record), "Scene"),
+  CAssetDocument(std::move(_Record), "Scene"),
   m_ResourceGroup(std::move(_ResourceGroup))
 {
   // Empty
@@ -54,7 +54,7 @@ CSceneInstance::~CSceneInstance()
 }
 
 //
-// CAssetInstance
+// CAssetDocument
 //
 
 std::vector<TAssetProperty> CSceneInstance::GetProperties() const
@@ -309,7 +309,7 @@ bool CSceneInstance::SetProperties(const std::string & _Name, TSceneNodeProperti
   return true;
 }
 
-bool CSceneInstance::Save(std::string & _Error) const
+bool CSceneInstance::OnSave(std::string & _Error)
 {
   std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
   File << WriteScene(*this);

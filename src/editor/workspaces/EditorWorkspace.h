@@ -1,8 +1,6 @@
 #pragma once
 
-#include "WorkspaceContext.h"
 #include "core/TypeKey.h"
-#include "core/UndoStack.h"
 
 #include <memory>
 #include <string>
@@ -11,37 +9,28 @@
 namespace editor
 {
 
-class CAssetInstance;
+class CAssetDocument;
 class IPropertySource;
 
-class CEditorWorkspace:
-  public IWorkspaceContext
+class CEditorWorkspace
 {
 public: // Constructor/Destructor
 
-  explicit CEditorWorkspace(std::unique_ptr<CAssetInstance> _Instance);
+  explicit CEditorWorkspace(std::shared_ptr<CAssetDocument> _Document);
 
-  ~CEditorWorkspace() override;
+  virtual ~CEditorWorkspace();
 
-public: // IWorkspaceContext
+  CEditorWorkspace(const CEditorWorkspace &) = delete;
 
-  CEditorWorkspace * GetWorkspace() const noexcept override;
-
-  CAssetInstance * GetAssetInstance() const noexcept override;
+  CEditorWorkspace & operator=(const CEditorWorkspace &) = delete;
 
 public: // Interface
 
-  CAssetInstance * GetInstance() const noexcept;
-
-  core::CUndoStack & GetUndoStack() noexcept;
-
-  const std::vector<std::string> & GetSelection() const noexcept;
-
-  void SetSelection(std::vector<std::string> _Selection);
+  CAssetDocument & GetDocument() const noexcept;
 
   std::string GetTitle() const;
 
-  virtual bool IsDirty() const;
+  bool IsDirty() const;
 
   bool Save(std::string & _Error);
 
@@ -59,13 +48,11 @@ public: // Events
 
 protected: // Events
 
-  virtual bool OnSave(std::string & _Error);
+  virtual void OnBeforeSave();
 
 private: // Attributes
 
-  std::unique_ptr<CAssetInstance> m_Instance;
-  core::CUndoStack                m_UndoStack;
-  std::vector<std::string>        m_Selection;
+  std::shared_ptr<CAssetDocument> m_Document;
 };
 
 } // namespace editor

@@ -135,8 +135,8 @@ std::unique_ptr<CEditorWorkspace> CMaterialAssetType::OpenAsset(const TAssetReco
     return {};
   }
 
-  auto Instance = std::make_unique<CMaterialInstance>(_Asset, Materials, HasExpandedFeatures(Script));
-  return std::make_unique<CMaterialWorkspace>(std::move(Instance), m_Controller);
+  auto Material = std::make_shared<CMaterialInstance>(_Asset, Materials, HasExpandedFeatures(Script));
+  return std::make_unique<CMaterialWorkspace>(std::move(Material), m_Controller);
 }
 
 } // namespace editor

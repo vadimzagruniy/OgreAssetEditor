@@ -9,26 +9,20 @@
 namespace editor
 {
 
-class CTextInstance;
+class CTextDocument;
 
 class CTextWorkspace final:
   public CEditorWorkspace
 {
 public: // Constructor
 
-  explicit CTextWorkspace(std::unique_ptr<CTextInstance> _Instance);
+  explicit CTextWorkspace(std::shared_ptr<CTextDocument> _Document);
 
 public: // CEditorWorkspace
 
   void OnGui() override;
 
-protected: // CEditorWorkspace
-
-  bool OnSave(std::string & _Error) override;
-
 private: // Implementation
-
-  CTextInstance & GetTextInstance() const noexcept;
 
   void SyncBuffer();
 
@@ -38,9 +32,10 @@ private: // Implementation
 
 private: // Attributes
 
-  std::string   m_Buffer;
-  std::uint64_t m_BufferRevision;
-  unsigned int  m_EditSession;
+  std::shared_ptr<CTextDocument> m_Document;
+  std::string                    m_Buffer;
+  std::uint64_t                  m_BufferRevision;
+  unsigned int                   m_EditSession;
 };
 
 } // namespace editor

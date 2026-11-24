@@ -1,5 +1,5 @@
 #include "TextureAssetType.h"
-#include "TextureInstance.h"
+#include "TextureDocument.h"
 #include "TextureWorkspace.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
@@ -45,7 +45,7 @@ std::unique_ptr<CEditorWorkspace> CTextureAssetType::OpenAsset(const TAssetRecor
     return {};
   }
 
-  return std::make_unique<CTextureWorkspace>(std::make_unique<CTextureInstance>(_Asset, std::move(Texture)));
+  return std::make_unique<CTextureWorkspace>(std::make_shared<CTextureDocument>(_Asset, std::move(Texture)));
 }
 
 } // namespace editor

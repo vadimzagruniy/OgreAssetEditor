@@ -58,10 +58,11 @@ std::optional<std::size_t> FindShapeIndex(EPreviewShape _Shape)
 // Constructor/Destructor
 //
 
-CMaterialWorkspace::CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Instance, std::shared_ptr<CMaterialEditorController> _Controller):
-  CEditorWorkspace(std::move(_Instance)),
+CMaterialWorkspace::CMaterialWorkspace(std::shared_ptr<CMaterialInstance> _Material, std::shared_ptr<CMaterialEditorController> _Controller):
+  CEditorWorkspace(_Material),
+  m_Material(std::move(_Material)),
   m_Controller(std::move(_Controller)),
-  m_Document(std::make_shared<CMaterialDocument>(*static_cast<CMaterialInstance *>(GetInstance()), GetUndoStack())),
+  m_Document(std::make_shared<CMaterialDocument>(*m_Material, m_Material->GetHistory())),
   m_PassProperties(std::make_shared<CPassPropertySource>(m_Controller)),
   m_TextureUnitProperties(std::make_shared<CTextureUnitPropertySource>(m_Controller)),
   m_Preview(std::make_unique<CPreviewScene>()),
@@ -122,11 +123,9 @@ void CMaterialWorkspace::OnGui()
   m_Viewport->Draw("##MaterialViewport");
 }
 
-bool CMaterialWorkspace::OnSave(std::string & _Error)
+void CMaterialWorkspace::OnBeforeSave()
 {
   m_Document->CommitPreview();
-
-  return static_cast<CMaterialInstance *>(GetInstance())->Save(_Error);
 }
 
 //

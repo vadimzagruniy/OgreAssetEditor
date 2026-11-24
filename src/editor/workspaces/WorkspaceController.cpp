@@ -1,9 +1,9 @@
 #include "WorkspaceController.h"
-#include "AssetInstance.h"
 #include "EditorWorkspace.h"
 #include "WorkspaceManager.h"
 #include "core/Log.h"
 #include "editor/assets/AssetRecord.h"
+#include "editor/documents/AssetDocument.h"
 #include "ui/ChoiceModal.h"
 #include "ui/ChoiceModalDesc.h"
 #include "ui/WindowManager.h"
@@ -71,24 +71,24 @@ void CWorkspaceController::SaveActive()
 
 std::string CWorkspaceController::GetUndoName() const
 {
-  return m_WorkspaceManager->HasActive() ? m_WorkspaceManager->GetActive()->GetUndoStack().GetUndoName() : std::string();
+  return m_WorkspaceManager->HasActive() ? m_WorkspaceManager->GetActive()->GetDocument().GetHistory().GetUndoName() : std::string();
 }
 
 std::string CWorkspaceController::GetRedoName() const
 {
-  return m_WorkspaceManager->HasActive() ? m_WorkspaceManager->GetActive()->GetUndoStack().GetRedoName() : std::string();
+  return m_WorkspaceManager->HasActive() ? m_WorkspaceManager->GetActive()->GetDocument().GetHistory().GetRedoName() : std::string();
 }
 
 void CWorkspaceController::UndoActive()
 {
   if (m_WorkspaceManager->HasActive())
-    m_WorkspaceManager->GetActive()->GetUndoStack().Undo();
+    m_WorkspaceManager->GetActive()->GetDocument().GetHistory().Undo();
 }
 
 void CWorkspaceController::RedoActive()
 {
   if (m_WorkspaceManager->HasActive())
-    m_WorkspaceManager->GetActive()->GetUndoStack().Redo();
+    m_WorkspaceManager->GetActive()->GetDocument().GetHistory().Redo();
 }
 
 void CWorkspaceController::RequestClose(std::size_t _Index)
@@ -101,7 +101,7 @@ void CWorkspaceController::RequestClose(std::size_t _Index)
     return;
   }
 
-  auto CloseWorkspace = [WorkspaceManager = m_WorkspaceManager, AssetPath = Workspace.GetInstance()->GetRecord().AbsolutePath](bool _IsSaving, std::string & _Error)
+  auto CloseWorkspace = [WorkspaceManager = m_WorkspaceManager, AssetPath = Workspace.GetDocument().GetRecord().AbsolutePath](bool _IsSaving, std::string & _Error)
   {
     const auto WorkspaceIndex = WorkspaceManager->FindWorkspace(AssetPath);
     if (!WorkspaceIndex)

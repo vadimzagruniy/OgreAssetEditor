@@ -1,6 +1,6 @@
 #pragma once
 
-#include "editor/workspaces/AssetInstance.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <OgrePrerequisites.h>
 #include <OgreSharedPtr.h>
@@ -8,16 +8,16 @@
 namespace editor
 {
 
-class CTextureInstance final:
-  public CAssetInstance
+class CTextureDocument final:
+  public CAssetDocument
 {
 public: // Constructor/Destructor
 
-  CTextureInstance(TAssetRecord _Record, Ogre::TexturePtr _Texture);
+  CTextureDocument(TAssetRecord _Record, Ogre::TexturePtr _Texture);
 
-  ~CTextureInstance() override;
+  ~CTextureDocument() override;
 
-public: // CAssetInstance
+public: // CAssetDocument
 
   std::vector<TAssetProperty> GetProperties() const override;
 

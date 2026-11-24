@@ -1,5 +1,4 @@
 #include "WorkspaceManager.h"
-#include "AssetInstance.h"
 #include "EditorWorkspace.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
@@ -7,6 +6,7 @@
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetType.h"
 #include "editor/assets/AssetTypeRegistry.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -25,7 +25,7 @@ std::string MakePathKey(const std::filesystem::path & _Path)
 
 std::string MakePathKey(const CEditorWorkspace & _Workspace)
 {
-  return MakePathKey(_Workspace.GetInstance()->GetRecord().AbsolutePath);
+  return MakePathKey(_Workspace.GetDocument().GetRecord().AbsolutePath);
 }
 
 } // namespace
@@ -169,7 +169,7 @@ void CWorkspaceManager::CloseAssets(const std::filesystem::path & _Path)
 {
   for (std::size_t WorkspaceIndex = m_Workspaces.size(); WorkspaceIndex > 0; --WorkspaceIndex)
   {
-    const auto & Record = m_Workspaces[WorkspaceIndex - 1]->GetInstance()->GetRecord();
+    const auto & Record = m_Workspaces[WorkspaceIndex - 1]->GetDocument().GetRecord();
 
     if (IsSameOrInside(Record.RelativePath, _Path))
       Close(WorkspaceIndex - 1);
@@ -180,16 +180,16 @@ void CWorkspaceManager::RelocateAssets(const std::filesystem::path & _OldPath, c
 {
   for (const auto & Workspace : m_Workspaces)
   {
-    auto & Instance = *Workspace->GetInstance();
+    auto & Document = Workspace->GetDocument();
 
-    if (!IsSameOrInside(Instance.GetRecord().RelativePath, _OldPath))
+    if (!IsSameOrInside(Document.GetRecord().RelativePath, _OldPath))
       continue;
 
-    TAssetRecord Record = Instance.GetRecord();
+    TAssetRecord Record = Document.GetRecord();
     Record.RelativePath = RebasePath(Record.RelativePath, _OldPath, _NewPath);
     Record.AbsolutePath = (_AssetsRoot / Record.RelativePath).lexically_normal();
 
-    Instance.SetRecord(std::move(Record));
+    Document.SetRecord(std::move(Record));
   }
 
   RebuildPathIndex();

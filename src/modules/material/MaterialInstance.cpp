@@ -1,6 +1,6 @@
 #include "MaterialInstance.h"
 #include "editor/assets/AssetRecord.h"
-#include "editor/workspaces/AssetProperty.h"
+#include "editor/documents/AssetProperty.h"
 
 #include <OgreMaterial.h>
 #include <OgreMaterialManager.h>
@@ -48,7 +48,7 @@ void ReleaseShaderBasedTechniques(const Ogre::Material & _Material)
 //
 
 CMaterialInstance::CMaterialInstance(TAssetRecord _Record, const std::vector<Ogre::MaterialPtr> & _Materials, bool _HasExpandedFeatures):
-  CAssetInstance(std::move(_Record), "Material"),
+  CAssetDocument(std::move(_Record), "Material"),
   m_HasExpandedFeatures(_HasExpandedFeatures)
 {
   m_Materials.reserve(_Materials.size());
@@ -79,7 +79,7 @@ CMaterialInstance::~CMaterialInstance()
 }
 
 //
-// CAssetInstance
+// CAssetDocument
 //
 
 std::vector<TAssetProperty> CMaterialInstance::GetProperties() const
@@ -112,7 +112,7 @@ bool CMaterialInstance::HasExpandedFeatures() const noexcept
   return m_HasExpandedFeatures;
 }
 
-bool CMaterialInstance::Save(std::string & _Error)
+bool CMaterialInstance::OnSave(std::string & _Error)
 {
   Ogre::MaterialSerializer Serializer;
 

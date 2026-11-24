@@ -1,7 +1,7 @@
-#include "TextureInstance.h"
+#include "TextureDocument.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/ResourceRelease.h"
-#include "editor/workspaces/AssetProperty.h"
+#include "editor/documents/AssetProperty.h"
 
 #include <OgreTexture.h>
 
@@ -15,23 +15,23 @@ namespace editor
 // Constructor/Destructor
 //
 
-CTextureInstance::CTextureInstance(TAssetRecord _Record, Ogre::TexturePtr _Texture):
-  CAssetInstance(std::move(_Record), "Texture"),
+CTextureDocument::CTextureDocument(TAssetRecord _Record, Ogre::TexturePtr _Texture):
+  CAssetDocument(std::move(_Record), "Texture"),
   m_Texture(std::move(_Texture))
 {
   // Empty
 }
 
-CTextureInstance::~CTextureInstance()
+CTextureDocument::~CTextureDocument()
 {
   ReleaseOgreResource(std::move(m_Texture));
 }
 
 //
-// CAssetInstance
+// CAssetDocument
 //
 
-std::vector<TAssetProperty> CTextureInstance::GetProperties() const
+std::vector<TAssetProperty> CTextureDocument::GetProperties() const
 {
   return {{"Width",      std::to_string(m_Texture->getWidth())  + " px"},
           {"Height",     std::to_string(m_Texture->getHeight()) + " px"},
@@ -42,7 +42,7 @@ std::vector<TAssetProperty> CTextureInstance::GetProperties() const
 // Interface
 //
 
-const Ogre::TexturePtr & CTextureInstance::GetTexture() const noexcept
+const Ogre::TexturePtr & CTextureDocument::GetTexture() const noexcept
 {
   return m_Texture;
 }

@@ -8,14 +8,14 @@
 namespace editor
 {
 
-class CTextInstance;
+class CTextDocument;
 
 class CTextEditCommand final:
   public core::ICommand
 {
 public: // Constructor
 
-  CTextEditCommand(CTextInstance & _Instance, TTextChange _Change, unsigned int _EditSession);
+  CTextEditCommand(CTextDocument & _Document, TTextChange _Change, unsigned int _EditSession);
 
 public: // ICommand
 
@@ -41,7 +41,7 @@ private: // Implementation
 
 private: // Attributes
 
-  CTextInstance & m_Instance;
+  CTextDocument & m_Document;
   TTextChange     m_Change;
   unsigned int    m_EditSession;
 };

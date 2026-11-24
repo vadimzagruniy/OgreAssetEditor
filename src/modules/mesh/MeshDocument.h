@@ -1,6 +1,6 @@
 #pragma once
 
-#include "editor/workspaces/AssetInstance.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <OgrePrerequisites.h>
 #include <OgreSharedPtr.h>
@@ -8,16 +8,16 @@
 namespace editor
 {
 
-class CMeshInstance final:
-  public CAssetInstance
+class CMeshDocument final:
+  public CAssetDocument
 {
 public: // Constructor/Destructor
 
-  CMeshInstance(TAssetRecord _Record, Ogre::MeshPtr _Mesh);
+  CMeshDocument(TAssetRecord _Record, Ogre::MeshPtr _Mesh);
 
-  ~CMeshInstance() override;
+  ~CMeshDocument() override;
 
-public: // CAssetInstance
+public: // CAssetDocument
 
   std::vector<TAssetProperty> GetProperties() const override;
 

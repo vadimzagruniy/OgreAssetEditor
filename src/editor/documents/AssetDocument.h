@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/UndoStack.h"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -10,13 +12,17 @@ namespace editor
 struct TAssetRecord;
 struct TAssetProperty;
 
-class CAssetInstance
+class CAssetDocument
 {
 public: // Constructor/Destructor
 
-  CAssetInstance(TAssetRecord _Record, std::string _TypeName);
+  CAssetDocument(TAssetRecord _Record, std::string _TypeName);
 
-  virtual ~CAssetInstance();
+  virtual ~CAssetDocument();
+
+  CAssetDocument(const CAssetDocument &) = delete;
+
+  CAssetDocument & operator=(const CAssetDocument &) = delete;
 
 public: // Interface
 
@@ -28,10 +34,23 @@ public: // Interface
 
   virtual std::vector<TAssetProperty> GetProperties() const = 0;
 
+  core::CUndoStack & GetHistory() noexcept;
+
+  const core::CUndoStack & GetHistory() const noexcept;
+
+  bool IsDirty() const noexcept;
+
+  bool Save(std::string & _Error);
+
+protected: // Events
+
+  virtual bool OnSave(std::string & _Error);
+
 private: // Attributes
 
   std::unique_ptr<TAssetRecord> m_Record;
   std::string                   m_TypeName;
+  core::CUndoStack              m_History;
 };
 
 } // namespace editor

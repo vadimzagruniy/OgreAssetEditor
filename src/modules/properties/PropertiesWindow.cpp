@@ -9,10 +9,10 @@
 #include "controls/TextPropertyControl.h"
 #include "controls/Vector3PropertyControl.h"
 #include "editor/assets/AssetRecord.h"
+#include "editor/documents/AssetDocument.h"
+#include "editor/documents/AssetProperty.h"
 #include "editor/inspector/IPropertySource.h"
 #include "editor/inspector/PropertySchema.h"
-#include "editor/workspaces/AssetInstance.h"
-#include "editor/workspaces/AssetProperty.h"
 #include "editor/workspaces/EditorWorkspace.h"
 #include "editor/workspaces/WorkspaceManager.h"
 #include "ui/ToolBoxDesc.h"
@@ -44,7 +44,7 @@ CPropertiesWindow::~CPropertiesWindow() = default;
 void CPropertiesWindow::OnGui()
 {
   const auto * Workspace = m_Context.WorkspaceManager->GetActive();
-  if (!Workspace || !Workspace->GetInstance())
+  if (!Workspace)
   {
     ImGui::TextUnformatted("No asset selected");
     return;
@@ -56,7 +56,7 @@ void CPropertiesWindow::OnGui()
     return;
   }
 
-  DrawAssetInfo(*Workspace->GetInstance());
+  DrawAssetInfo(Workspace->GetDocument());
 }
 
 //
@@ -79,14 +79,14 @@ void CPropertiesWindow::DrawSource(IPropertySource & _Source)
     Control->Draw(_Source);
 }
 
-void CPropertiesWindow::DrawAssetInfo(const CAssetInstance & _Instance) const
+void CPropertiesWindow::DrawAssetInfo(const CAssetDocument & _Document) const
 {
-  ImGui::Text("Type: %s", _Instance.GetTypeName().c_str());
-  ImGui::Text("Path: %s", _Instance.GetRecord().RelativePath.generic_string().c_str());
+  ImGui::Text("Type: %s", _Document.GetTypeName().c_str());
+  ImGui::Text("Path: %s", _Document.GetRecord().RelativePath.generic_string().c_str());
 
   ImGui::Separator();
 
-  for (const auto & Property : _Instance.GetProperties())
+  for (const auto & Property : _Document.GetProperties())
     ImGui::Text("%s: %s", Property.Name.c_str(), Property.Value.c_str());
 }
 

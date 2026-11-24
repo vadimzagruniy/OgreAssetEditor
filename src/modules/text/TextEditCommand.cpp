@@ -1,5 +1,5 @@
 #include "TextEditCommand.h"
-#include "TextInstance.h"
+#include "TextDocument.h"
 
 #include <cctype>
 #include <utility>
@@ -21,8 +21,8 @@ bool IsBlank(char _Character)
 // Constructor
 //
 
-CTextEditCommand::CTextEditCommand(CTextInstance & _Instance, TTextChange _Change, unsigned int _EditSession):
-  m_Instance(_Instance),
+CTextEditCommand::CTextEditCommand(CTextDocument & _Document, TTextChange _Change, unsigned int _EditSession):
+  m_Document(_Document),
   m_Change(std::move(_Change)),
   m_EditSession(_EditSession)
 {
@@ -46,18 +46,18 @@ std::string CTextEditCommand::GetName() const
 
 void CTextEditCommand::Execute()
 {
-  m_Instance.Replace(m_Change.Offset, m_Change.RemovedText.size(), m_Change.InsertedText);
+  m_Document.Replace(m_Change.Offset, m_Change.RemovedText.size(), m_Change.InsertedText);
 }
 
 void CTextEditCommand::Undo()
 {
-  m_Instance.Replace(m_Change.Offset, m_Change.InsertedText.size(), m_Change.RemovedText);
+  m_Document.Replace(m_Change.Offset, m_Change.InsertedText.size(), m_Change.RemovedText);
 }
 
 bool CTextEditCommand::MergeWith(const core::ICommand & _Next)
 {
   const auto * Next = dynamic_cast<const CTextEditCommand *>(&_Next);
-  if (!Next || &Next->m_Instance != &m_Instance || Next->m_EditSession != m_EditSession)
+  if (!Next || &Next->m_Document != &m_Document || Next->m_EditSession != m_EditSession)
     return false;
 
   if (HasLineBreak() || Next->HasLineBreak())

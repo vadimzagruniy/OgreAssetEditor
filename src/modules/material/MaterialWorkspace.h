@@ -28,7 +28,7 @@ class CMaterialWorkspace final:
 {
 public: // Constructor/Destructor
 
-  CMaterialWorkspace(std::unique_ptr<CMaterialInstance> _Instance, std::shared_ptr<CMaterialEditorController> _Controller);
+  CMaterialWorkspace(std::shared_ptr<CMaterialInstance> _Material, std::shared_ptr<CMaterialEditorController> _Controller);
 
   ~CMaterialWorkspace() override;
 
@@ -46,7 +46,7 @@ public: // CEditorWorkspace
 
 protected: // CEditorWorkspace
 
-  bool OnSave(std::string & _Error) override;
+  void OnBeforeSave() override;
 
 private: // Implementation
 
@@ -58,6 +58,7 @@ private: // Implementation
 
 private: // Attributes
 
+  std::shared_ptr<CMaterialInstance>          m_Material;
   std::shared_ptr<CMaterialEditorController>  m_Controller;
   std::shared_ptr<CMaterialDocument>          m_Document;
   std::shared_ptr<CPassPropertySource>        m_PassProperties;

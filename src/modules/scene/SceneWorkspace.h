@@ -35,7 +35,7 @@ class CSceneWorkspace final:
 {
 public: // Constructor/Destructor
 
-  CSceneWorkspace(std::unique_ptr<CSceneInstance> _Instance, std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<core::CLog> _Log);
+  CSceneWorkspace(std::shared_ptr<CSceneInstance> _Scene, std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<core::CLog> _Log);
 
   ~CSceneWorkspace() override;
 
@@ -53,7 +53,7 @@ public: // CEditorWorkspace
 
 protected: // CEditorWorkspace
 
-  bool OnSave(std::string & _Error) override;
+  void OnBeforeSave() override;
 
 private: // Implementation
 
@@ -77,6 +77,7 @@ private: // Implementation
 
 private: // Attributes
 
+  std::shared_ptr<CSceneInstance>           m_Scene;
   std::shared_ptr<CSceneEditorController>   m_Controller;
   std::shared_ptr<CSceneDocument>           m_Document;
   std::shared_ptr<CSceneNodePropertySource> m_NodeProperties;

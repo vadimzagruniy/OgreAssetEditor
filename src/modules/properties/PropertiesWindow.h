@@ -15,7 +15,7 @@ namespace ui
 struct TToolBoxDesc;
 } // namespace ui
 
-class CAssetInstance;
+class CAssetDocument;
 class IPropertyControl;
 class IPropertySource;
 struct TPropertyDesc;
@@ -37,7 +37,7 @@ private: // Implementation
 
   void DrawSource(IPropertySource & _Source);
 
-  void DrawAssetInfo(const CAssetInstance & _Instance) const;
+  void DrawAssetInfo(const CAssetDocument & _Document) const;
 
   std::vector<std::unique_ptr<IPropertyControl>> CreateControls(const std::vector<TPropertyDesc> & _Descs) const;
 

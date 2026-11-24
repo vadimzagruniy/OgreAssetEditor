@@ -1,9 +1,9 @@
 #include "WorkspaceWindow.h"
-#include "AssetInstance.h"
 #include "EditorWorkspace.h"
 #include "WorkspaceController.h"
 #include "WorkspaceManager.h"
 #include "editor/assets/AssetRecord.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <imgui.h>
 
@@ -18,7 +18,7 @@ namespace
 
 const std::filesystem::path & GetAssetPath(const CEditorWorkspace & _Workspace)
 {
-  return _Workspace.GetInstance()->GetRecord().RelativePath;
+  return _Workspace.GetDocument().GetRecord().RelativePath;
 }
 
 std::string MakeTabLabel(const CEditorWorkspace & _Workspace)

@@ -1,7 +1,6 @@
 #include "TextWorkspace.h"
 #include "TextChange.h"
-#include "TextEditCommand.h"
-#include "TextInstance.h"
+#include "TextDocument.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -58,10 +57,11 @@ std::optional<TTextChange> FindChange(const std::string & _Before, const std::st
 // Constructor
 //
 
-CTextWorkspace::CTextWorkspace(std::unique_ptr<CTextInstance> _Instance):
-  CEditorWorkspace(std::move(_Instance)),
-  m_Buffer(GetTextInstance().GetContent()),
-  m_BufferRevision(GetTextInstance().GetRevision()),
+CTextWorkspace::CTextWorkspace(std::shared_ptr<CTextDocument> _Document):
+  CEditorWorkspace(_Document),
+  m_Document(std::move(_Document)),
+  m_Buffer(m_Document->GetContent()),
+  m_BufferRevision(m_Document->GetRevision()),
   m_EditSession(0)
 {
   // Empty
@@ -92,36 +92,16 @@ void CTextWorkspace::OnGui()
 }
 
 //
-// Protected CEditorWorkspace
-//
-
-bool CTextWorkspace::OnSave(std::string & _Error)
-{
-  if (GetTextInstance().Save())
-    return true;
-
-  _Error = "Could not write " + GetTitle();
-
-  return false;
-}
-
-//
 // Implementation
 //
 
-CTextInstance & CTextWorkspace::GetTextInstance() const noexcept
-{
-  return *static_cast<CTextInstance *>(GetInstance());
-}
-
 void CTextWorkspace::SyncBuffer()
 {
-  const auto & Instance = GetTextInstance();
-  if (Instance.GetRevision() == m_BufferRevision)
+  if (m_Document->GetRevision() == m_BufferRevision)
     return;
 
-  m_Buffer         = Instance.GetContent();
-  m_BufferRevision = Instance.GetRevision();
+  m_Buffer         = m_Document->GetContent();
+  m_BufferRevision = m_Document->GetRevision();
 
   auto * InputState = ImGui::GetInputTextState(ImGui::GetID(TextInputId));
   if (!InputState)
@@ -130,7 +110,7 @@ void CTextWorkspace::SyncBuffer()
   // While the field is active ImGui edits its own copy of the text, so it has to re-read the buffer.
   // The cursor is placed after the undone or redone change; ImGui counts it in code points.
   const char * Text   = m_Buffer.data();
-  const int    Cursor = ImTextCountCharsFromUtf8(Text, Text + Instance.GetLastChangeEnd());
+  const int    Cursor = ImTextCountCharsFromUtf8(Text, Text + m_Document->GetLastChangeEnd());
 
   InputState->ReloadUserBuf        = true;
   InputState->ReloadSelectionStart = Cursor;
@@ -139,25 +119,23 @@ void CTextWorkspace::SyncBuffer()
 
 void CTextWorkspace::CommitBuffer()
 {
-  auto & Instance = GetTextInstance();
-
-  auto Change = FindChange(Instance.GetContent(), m_Buffer);
+  auto Change = FindChange(m_Document->GetContent(), m_Buffer);
   if (!Change)
     return;
 
-  GetUndoStack().Execute(std::make_unique<CTextEditCommand>(Instance, std::move(*Change), m_EditSession));
+  m_Document->Edit(std::move(*Change), m_EditSession);
 
-  m_BufferRevision = Instance.GetRevision();
+  m_BufferRevision = m_Document->GetRevision();
 }
 
 void CTextWorkspace::HandleHistoryShortcuts()
 {
   // The active text field owns the Ctrl+Z / Ctrl+Y routes, so the editor's global shortcuts do not fire.
   if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Z))
-    GetUndoStack().Undo();
+    m_Document->GetHistory().Undo();
 
   if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Y) || ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z))
-    GetUndoStack().Redo();
+    m_Document->GetHistory().Redo();
 }
 
 } // namespace editor

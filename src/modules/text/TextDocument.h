@@ -1,6 +1,6 @@
 #pragma once
 
-#include "editor/workspaces/AssetInstance.h"
+#include "editor/documents/AssetDocument.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -9,8 +9,10 @@
 namespace editor
 {
 
-class CTextInstance final:
-  public CAssetInstance
+struct TTextChange;
+
+class CTextDocument final:
+  public CAssetDocument
 {
 public: // Constants
 
@@ -18,11 +20,15 @@ public: // Constants
 
 public: // Constructor
 
-  CTextInstance(TAssetRecord _Record, std::string _Content);
+  CTextDocument(TAssetRecord _Record, std::string _Content);
 
-public: // CAssetInstance
+public: // CAssetDocument
 
   std::vector<TAssetProperty> GetProperties() const override;
+
+protected: // CAssetDocument
+
+  bool OnSave(std::string & _Error) override;
 
 public: // Interface
 
@@ -32,9 +38,9 @@ public: // Interface
 
   std::size_t GetLastChangeEnd() const noexcept;
 
-  void Replace(std::size_t _Offset, std::size_t _Count, const std::string & _Text);
+  void Edit(TTextChange _Change, unsigned int _EditSession);
 
-  bool Save();
+  void Replace(std::size_t _Offset, std::size_t _Count, const std::string & _Text);
 
 private: // Attributes
 

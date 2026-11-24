@@ -1,6 +1,6 @@
 #pragma once
 
-#include "editor/workspaces/AssetInstance.h"
+#include "editor/documents/AssetDocument.h"
 #include "model/SceneNode.h"
 #include "model/SceneSubtree.h"
 
@@ -18,7 +18,7 @@ namespace editor
 {
 
 class CSceneInstance final:
-  public CAssetInstance
+  public CAssetDocument
 {
 public: // Constructor/Destructor
 
@@ -30,9 +30,13 @@ public: // Constructor/Destructor
 
   CSceneInstance & operator=(const CSceneInstance &) = delete;
 
-public: // CAssetInstance
+public: // CAssetDocument
 
   std::vector<TAssetProperty> GetProperties() const override;
+
+protected: // CAssetDocument
+
+  bool OnSave(std::string & _Error) override;
 
 public: // Interface
 
@@ -67,8 +71,6 @@ public: // Interface
   bool RenameNode(const std::string & _Name, const std::string & _NewName, std::string & _Error);
 
   bool SetProperties(const std::string & _Name, TSceneNodeProperties _Properties, std::string & _Error);
-
-  bool Save(std::string & _Error) const;
 
   bool AcquireMesh(const std::string & _MeshName, Ogre::MeshPtr & _Mesh, std::string & _Error);
 

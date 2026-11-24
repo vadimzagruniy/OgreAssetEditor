@@ -44,14 +44,14 @@ std::unique_ptr<CEditorWorkspace> CSceneAssetType::OpenAsset(const TAssetRecord 
 
   const std::string Text((std::istreambuf_iterator<char>(File)), {});
 
-  auto Instance = std::make_unique<CSceneInstance>(_Asset, _ResourceGroup);
-  if (!ReadScene(Text, *Instance, _Error))
+  auto Scene = std::make_shared<CSceneInstance>(_Asset, _ResourceGroup);
+  if (!ReadScene(Text, *Scene, _Error))
   {
     _Error = _Asset.RelativePath.generic_string() + ": " + _Error;
     return {};
   }
 
-  return std::make_unique<CSceneWorkspace>(std::move(Instance), m_Controller, m_Log);
+  return std::make_unique<CSceneWorkspace>(std::move(Scene), m_Controller, m_Log);
 }
 
 } // namespace editor

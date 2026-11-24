@@ -1,5 +1,5 @@
 #include "MeshWorkspace.h"
-#include "MeshInstance.h"
+#include "MeshDocument.h"
 #include "editor/render/PreviewScene.h"
 #include "editor/render/RenderScene.h"
 #include "editor/viewport/Viewport.h"
@@ -13,12 +13,12 @@ namespace editor
 // Constructor/Destructor
 //
 
-CMeshWorkspace::CMeshWorkspace(std::unique_ptr<CMeshInstance> _Instance):
-  CEditorWorkspace(std::move(_Instance)),
+CMeshWorkspace::CMeshWorkspace(const std::shared_ptr<CMeshDocument> & _Document):
+  CEditorWorkspace(_Document),
   m_Preview(std::make_unique<CPreviewScene>()),
   m_Viewport(std::make_unique<CViewport>(m_Preview->GetRenderScene()))
 {
-  m_Preview->SetMesh(static_cast<CMeshInstance *>(GetInstance())->GetMesh());
+  m_Preview->SetMesh(_Document->GetMesh());
 }
 
 CMeshWorkspace::~CMeshWorkspace() = default;

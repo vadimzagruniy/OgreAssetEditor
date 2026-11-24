@@ -1,5 +1,5 @@
 #include "TextureWorkspace.h"
-#include "TextureInstance.h"
+#include "TextureDocument.h"
 #include "editor/assets/AssetRecord.h"
 
 #include <OgreTexture.h>
@@ -15,8 +15,9 @@ namespace editor
 // Constructor
 //
 
-CTextureWorkspace::CTextureWorkspace(std::unique_ptr<CTextureInstance> _Instance):
-  CEditorWorkspace(std::move(_Instance))
+CTextureWorkspace::CTextureWorkspace(std::shared_ptr<CTextureDocument> _Document):
+  CEditorWorkspace(_Document),
+  m_Document(std::move(_Document))
 {
   // Empty
 }
@@ -27,10 +28,9 @@ CTextureWorkspace::CTextureWorkspace(std::unique_ptr<CTextureInstance> _Instance
 
 void CTextureWorkspace::OnGui()
 {
-  const auto * Instance = static_cast<CTextureInstance *>(GetInstance());
-  const auto & Texture  = Instance->GetTexture();
+  const auto & Texture = m_Document->GetTexture();
 
-  ImGui::TextUnformatted(Instance->GetRecord().RelativePath.generic_string().c_str());
+  ImGui::TextUnformatted(m_Document->GetRecord().RelativePath.generic_string().c_str());
 
   const float TextureWidth  = static_cast<float>(Texture->getWidth());
   const float TextureHeight = static_cast<float>(Texture->getHeight());
