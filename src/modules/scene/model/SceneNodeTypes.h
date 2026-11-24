@@ -24,11 +24,13 @@ public: // Types
 public: // Interface
 
   template <class TNode>
-  void Register(std::string _Label, std::string _Category);
+  void Register(std::string _Label, std::string _Category, ESceneNodeIcon _Icon = ESceneNodeIcon::None);
 
   std::unique_ptr<CSceneNode> Create(const std::string & _TypeId) const;
 
   const TPropertySchema & GetSchema(const std::string & _TypeId) const;
+
+  ESceneNodeIcon GetIcon(const std::string & _TypeId) const;
 
   std::vector<TSceneNodeTypeInfo> GetTypes() const;
 
@@ -56,9 +58,9 @@ private: // Attributes
 //
 
 template <class TNode>
-void CSceneNodeTypes::Register(std::string _Label, std::string _Category)
+void CSceneNodeTypes::Register(std::string _Label, std::string _Category, ESceneNodeIcon _Icon)
 {
-  Register(TSceneNodeTypeInfo{std::string(TNode::TypeId), std::move(_Label), std::move(_Category)}, []
+  Register(TSceneNodeTypeInfo{std::string(TNode::TypeId), std::move(_Label), std::move(_Category), _Icon}, []
   {
     return std::make_unique<TNode>();
   });

@@ -28,6 +28,8 @@ public: // Interface
 
   void SetActive(bool _IsActive);
 
+  void SetHeadlightEnabled(bool _IsEnabled);
+
   const Ogre::TexturePtr & GetTexture() const noexcept;
 
   Ogre::SceneManager * GetSceneManager() const noexcept;
@@ -61,6 +63,7 @@ private: // Attributes
   Ogre::SceneManager * m_SceneManager;
   Ogre::Camera *       m_Camera;
   Ogre::SceneNode *    m_CameraNode;
+  Ogre::Light *        m_Headlight;
   Ogre::SceneNode *    m_ContentRoot;
   Ogre::TexturePtr     m_RenderTexture;
   unsigned int         m_Width;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SceneNodeIcon.h"
+
 #include <string>
 
 namespace editor
@@ -7,9 +9,10 @@ namespace editor
 
 struct TSceneNodeTypeInfo
 {
-  std::string TypeId;
-  std::string Label;
-  std::string Category;
+  std::string    TypeId;
+  std::string    Label;
+  std::string    Category;
+  ESceneNodeIcon Icon = ESceneNodeIcon::None;
 };
 
 } // namespace editor

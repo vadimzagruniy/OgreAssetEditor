@@ -9,12 +9,14 @@
 #include "editor/viewport/Viewport.h"
 #include "editor/viewport/ViewportFrame.h"
 #include "inspector/SceneNodePropertySource.h"
+#include "model/nodes/LightNode.h"
 #include "presenter/SceneEditorController.h"
 #include "render/SceneSync.h"
 #include "ui/DragPayload.h"
 #include "ui/DropPayload.h"
 #include "ui/elements/ComboBox.h"
 #include "views/SceneObjectsWindow.h"
+#include "views/SceneViewportIcons.h"
 #include "views/SceneOutlinerWindow.h"
 
 #include <OgreCamera.h>
@@ -60,6 +62,7 @@ CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std:
   m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_ResourceGroup), std::move(_NodeBindings), std::move(_Log))),
   m_Viewport(std::make_unique<CViewport>(*m_RenderScene)),
   m_Gizmo(std::make_unique<CTransformGizmo>(*m_RenderScene)),
+  m_Icons(std::make_unique<CSceneViewportIcons>(*m_RenderScene)),
   m_Toolbar(ui::ELayoutDirection::Row),
   m_ModeCombo(m_Toolbar.Add(ui::CComboBox("Tool"))),
   m_SpaceCombo(m_Toolbar.Add(ui::CComboBox("Space"))),
@@ -67,6 +70,7 @@ CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std:
 {
   m_Sync->Update(*m_Document);
   m_RenderScene->MarkContentReplaced();
+  UpdateHeadlight();
 
   m_ChangedConnection = m_Document->GetChangedSignal().Connect([this](const TSceneChange & _Change)
   {
@@ -115,7 +119,10 @@ void CSceneWorkspace::OnDeactivated()
 void CSceneWorkspace::OnGui()
 {
   if (m_Sync->Update(*m_Document))
+  {
     m_RenderScene->MarkContentChanged();
+    UpdateHeadlight();
+  }
 
   m_Sync->SetHighlightedNode(m_Selection->GetNode());
 
@@ -225,7 +232,16 @@ bool CSceneWorkspace::DrawOverlay(const TViewportFrame & _Frame)
   HandleAssetDrop(_Frame);
   HandleTemplateDrop(_Frame);
 
-  return DrawGizmo(_Frame);
+  const std::string HoveredIcon = m_Icons->Draw(_Frame, m_Document->GetGraph(), m_Selection->GetNode());
+
+  if (DrawGizmo(_Frame))
+    return true;
+
+  if (HoveredIcon.empty() || !_Frame.Input.IsClicked)
+    return false;
+
+  m_Selection->Select(HoveredIcon);
+  return true;
 }
 
 void CSceneWorkspace::HandleAssetDrop(const TViewportFrame & _Frame)
@@ -284,6 +300,11 @@ bool CSceneWorkspace::DrawGizmo(const TViewportFrame & _Frame)
     return false;
 
   return m_Gizmo->Draw(_Frame, m_Document->GetGraph().GetWorldTransform(Selection));
+}
+
+void CSceneWorkspace::UpdateHeadlight()
+{
+  m_RenderScene->SetHeadlightEnabled(!m_Document->GetGraph().HasNodeOfType(CLightNode::TypeId));
 }
 
 //

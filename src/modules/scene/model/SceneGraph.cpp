@@ -61,12 +61,31 @@ bool CSceneGraph::HasNode(const std::string & _Name) const
   return m_Nodes.contains(_Name);
 }
 
+bool CSceneGraph::HasNodeOfType(std::string_view _TypeId) const
+{
+  return std::any_of(m_Nodes.begin(), m_Nodes.end(), [_TypeId](const auto & _Entry)
+  {
+    return _Entry.second->GetTypeId() == _TypeId;
+  });
+}
+
 const CSceneNode & CSceneGraph::GetNode(const std::string & _Name) const
 {
   const auto NodeIterator = m_Nodes.find(_Name);
   assert(NodeIterator != m_Nodes.end() && "Scene node does not exist");
 
   return *NodeIterator->second;
+}
+
+std::vector<std::string> CSceneGraph::GetNodeNames() const
+{
+  std::vector<std::string> Names;
+  Names.reserve(m_Nodes.size());
+
+  for (const auto & Entry : m_Nodes)
+    Names.push_back(Entry.first);
+
+  return Names;
 }
 
 const std::vector<std::string> & CSceneGraph::GetRootNodes() const noexcept

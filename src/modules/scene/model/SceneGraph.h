@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -40,7 +41,11 @@ public: // Interface
 
   bool HasNode(const std::string & _Name) const;
 
+  bool HasNodeOfType(std::string_view _TypeId) const;
+
   const CSceneNode & GetNode(const std::string & _Name) const;
+
+  std::vector<std::string> GetNodeNames() const;
 
   const std::vector<std::string> & GetRootNodes() const noexcept;
 

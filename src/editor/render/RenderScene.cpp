@@ -40,6 +40,7 @@ CRenderScene::CRenderScene():
   m_SceneManager(Ogre::Root::getSingleton().createSceneManager()),
   m_Camera(nullptr),
   m_CameraNode(nullptr),
+  m_Headlight(nullptr),
   m_ContentRoot(nullptr),
   m_Width(0),
   m_Height(0),
@@ -58,7 +59,8 @@ CRenderScene::CRenderScene():
 
   m_CameraNode = m_SceneManager->getRootSceneNode()->createChildSceneNode();
   m_CameraNode->attachObject(m_Camera);
-  m_CameraNode->attachObject(m_SceneManager->createLight(Ogre::Light::LT_DIRECTIONAL));
+  m_Headlight = m_SceneManager->createLight(Ogre::Light::LT_DIRECTIONAL);
+  m_CameraNode->attachObject(m_Headlight);
 }
 
 CRenderScene::~CRenderScene()
@@ -93,6 +95,11 @@ void CRenderScene::SetActive(bool _IsActive)
 
   if (m_RenderTexture)
     m_RenderTexture->getBuffer()->getRenderTarget()->setActive(m_IsActive);
+}
+
+void CRenderScene::SetHeadlightEnabled(bool _IsEnabled)
+{
+  m_Headlight->setVisible(_IsEnabled);
 }
 
 const Ogre::TexturePtr & CRenderScene::GetTexture() const noexcept

@@ -29,6 +29,7 @@ class CSceneNodeBindings;
 class CSceneNodePropertySource;
 class CSceneSelection;
 class CSceneSync;
+class CSceneViewportIcons;
 class CTransformGizmo;
 class CViewport;
 struct TSceneChange;
@@ -77,6 +78,8 @@ private: // Implementation
 
   bool DrawGizmo(const TViewportFrame & _Frame);
 
+  void UpdateHeadlight();
+
 private: // Events
 
   void OnDocumentChanged(const TSceneChange & _Change);
@@ -91,6 +94,7 @@ private: // Attributes
   std::unique_ptr<CSceneSync>               m_Sync;
   std::unique_ptr<CViewport>                m_Viewport;
   std::unique_ptr<CTransformGizmo>          m_Gizmo;
+  std::unique_ptr<CSceneViewportIcons>      m_Icons;
   ui::CLayout                               m_Toolbar;
   ui::CComboBox &                           m_ModeCombo;
   ui::CComboBox &                           m_SpaceCombo;

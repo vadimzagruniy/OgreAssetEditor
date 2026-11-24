@@ -98,10 +98,10 @@ bool CSceneEditorModule::Startup(core::CEditorService & _Services, std::string &
   m_WindowManager = std::move(WindowManager);
 
   auto NodeTypes = std::make_shared<CSceneNodeTypes>();
-  NodeTypes->Register<CSceneNode>("Empty", "General");
+  NodeTypes->Register<CSceneNode>("Empty", "General", ESceneNodeIcon::Empty);
   NodeTypes->Register<CMeshNode>("Mesh", "Geometry");
   NodeTypes->Register<CPrimitiveNode>("Primitive", "Geometry");
-  NodeTypes->Register<CLightNode>("Light", "Lights");
+  NodeTypes->Register<CLightNode>("Light", "Lights", ESceneNodeIcon::Light);
 
   auto Templates = std::make_shared<CSceneNodeTemplates>();
   RegisterTemplates(*Templates);

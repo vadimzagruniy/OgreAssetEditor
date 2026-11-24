@@ -24,6 +24,12 @@ const TPropertySchema & CSceneNodeTypes::GetSchema(const std::string & _TypeId) 
   return TypeIterator == m_Types.end() ? EmptySchema : TypeIterator->second.Schema;
 }
 
+ESceneNodeIcon CSceneNodeTypes::GetIcon(const std::string & _TypeId) const
+{
+  const auto TypeIterator = m_Types.find(_TypeId);
+  return TypeIterator == m_Types.end() ? ESceneNodeIcon::None : TypeIterator->second.Info.Icon;
+}
+
 std::vector<TSceneNodeTypeInfo> CSceneNodeTypes::GetTypes() const
 {
   std::vector<TSceneNodeTypeInfo> Types;
