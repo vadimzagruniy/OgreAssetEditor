@@ -30,7 +30,7 @@ public: // Interface
 
   const std::vector<std::string> & GetChildren(const std::string & _ParentName) const;
 
-  std::string MakeUniqueName(const std::string & _BaseName) const;
+  std::string MakeUniqueName(const std::string & _BaseName, const std::unordered_set<std::string> & _Reserved = {}) const;
 
   std::size_t GetSiblingIndex(const std::string & _Name) const;
 

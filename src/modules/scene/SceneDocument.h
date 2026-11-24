@@ -7,6 +7,7 @@
 
 #include <OgrePrerequisites.h>
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -54,6 +55,10 @@ public: // Interface
 
   void CreateNode(const std::string & _ParentName, const std::string & _BaseName, const TSceneNodeProperties & _Properties);
 
+  void PasteSubtree(const TSceneSubtree & _Subtree, const std::string & _ParentName, std::size_t _Index);
+
+  void DuplicateNode(const std::string & _Name);
+
   void DeleteNode(const std::string & _Name);
 
   void MoveNode(const std::string & _Name, const std::string & _NewParentName);
@@ -86,6 +91,8 @@ private: // Types
 private: // Implementation
 
   void ExecuteCommand(std::string _CommandName, TEdit _Execute, TEdit _Undo);
+
+  void InsertSubtree(std::string _CommandName, const TSceneSubtree & _Subtree, const std::string & _ParentName, std::size_t _Index);
 
   void Notify(ESceneChangeKind _Kind, const std::string & _Name, const std::string & _NewName = {}) const;
 

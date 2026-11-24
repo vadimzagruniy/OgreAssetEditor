@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ISceneEditorPresenter.h"
+#include "modules/scene/SceneClipboard.h"
 
 #include <functional>
 #include <memory>
@@ -31,6 +32,8 @@ public: // ISceneEditorPresenter state
 
   std::string GetSelection() const override;
 
+  bool CanPaste() const override;
+
   std::optional<std::string> GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const override;
 
 public: // ISceneEditorPresenter actions
@@ -40,6 +43,12 @@ public: // ISceneEditorPresenter actions
   void CreateNode(const std::string & _ParentName) override;
 
   void DeleteNode(const std::string & _Name) override;
+
+  void CopyNode(const std::string & _Name) override;
+
+  void PasteNode(const std::string & _TargetName, bool _IsChild) override;
+
+  void DuplicateNode(const std::string & _Name) override;
 
   void MoveNode(const std::string & _Name, const std::string & _NewParentName) override;
 
@@ -66,6 +75,7 @@ private: // Attributes
   std::shared_ptr<CSceneDropHandlers> m_DropHandlers;
   std::weak_ptr<CSceneDocument>       m_Document;
   std::weak_ptr<CSceneSelection>      m_Selection;
+  CSceneClipboard                     m_Clipboard;
 };
 
 } // namespace editor

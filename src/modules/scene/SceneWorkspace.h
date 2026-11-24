@@ -64,6 +64,8 @@ private: // Implementation
 
   void HandleShortcuts();
 
+  void HandleEditShortcuts();
+
   bool DrawOverlay(const TViewportFrame & _Frame);
 
   void HandleAssetDrop(const TViewportFrame & _Frame);

@@ -5,8 +5,10 @@
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetProperty.h"
 
+#include <algorithm>
 #include <cassert>
 #include <fstream>
+#include <unordered_map>
 #include <utility>
 
 namespace editor
@@ -129,25 +131,23 @@ void CSceneDocument::CreateNode(const std::string & _ParentName, const std::stri
   if (!_ParentName.empty() && !m_Graph.HasNode(_ParentName))
     return;
 
-  const std::string Name = m_Graph.MakeUniqueName(_BaseName);
-
   TSceneSubtree Subtree;
-  Subtree.Index = m_Graph.GetChildren(_ParentName).size();
-  Subtree.Nodes.push_back({Name, _ParentName, _Properties});
+  Subtree.Nodes.push_back({_BaseName, _ParentName, _Properties});
 
-  ExecuteCommand("Create Node",
-    [Subtree](CSceneDocument & _Document)
-    {
-      std::string Error;
-      ExpectSuccess(_Document.m_Graph.InsertSubtree(Subtree, Error));
-      _Document.Notify(ESceneChangeKind::Added, Subtree.Nodes.front().Name);
-    },
-    [Name](CSceneDocument & _Document)
-    {
-      std::string Error;
-      ExpectSuccess(_Document.m_Graph.RemoveSubtree(Name, Error));
-      _Document.Notify(ESceneChangeKind::Removed, Name);
-    });
+  InsertSubtree("Create Node", Subtree, _ParentName, m_Graph.GetChildren(_ParentName).size());
+}
+
+void CSceneDocument::PasteSubtree(const TSceneSubtree & _Subtree, const std::string & _ParentName, std::size_t _Index)
+{
+  InsertSubtree("Paste Node", _Subtree, _ParentName, _Index);
+}
+
+void CSceneDocument::DuplicateNode(const std::string & _Name)
+{
+  if (!m_Graph.HasNode(_Name))
+    return;
+
+  InsertSubtree("Duplicate Node", m_Graph.CaptureSubtree(_Name), m_Graph.GetNode(_Name).ParentName, m_Graph.GetSiblingIndex(_Name) + 1);
 }
 
 void CSceneDocument::DeleteNode(const std::string & _Name)
@@ -313,6 +313,45 @@ void CSceneDocument::ExecuteCommand(std::string _CommandName, TEdit _Execute, TE
   GetHistory().Execute(std::make_unique<core::CFunctionCommand>(std::move(_CommandName),
     [Apply, Execute = std::move(_Execute)] { Apply(Execute); },
     [Apply, Undo = std::move(_Undo)] { Apply(Undo); }));
+}
+
+void CSceneDocument::InsertSubtree(std::string _CommandName, const TSceneSubtree & _Subtree, const std::string & _ParentName, std::size_t _Index)
+{
+  if (_Subtree.Nodes.empty() || (!_ParentName.empty() && !m_Graph.HasNode(_ParentName)))
+    return;
+
+  std::unordered_map<std::string, std::string> NewNames;
+  std::unordered_set<std::string>              Reserved;
+
+  TSceneSubtree Subtree;
+  Subtree.Index = std::min(_Index, m_Graph.GetChildren(_ParentName).size());
+
+  for (const auto & Node : _Subtree.Nodes)
+  {
+    const bool        IsRoot  = Subtree.Nodes.empty();
+    const std::string NewName = m_Graph.MakeUniqueName(Node.Name, Reserved);
+
+    Reserved.insert(NewName);
+    NewNames.emplace(Node.Name, NewName);
+
+    Subtree.Nodes.push_back({NewName, IsRoot ? _ParentName : NewNames.at(Node.ParentName), Node.Properties});
+  }
+
+  const std::string RootName = Subtree.Nodes.front().Name;
+
+  ExecuteCommand(std::move(_CommandName),
+    [Subtree](CSceneDocument & _Document)
+    {
+      std::string Error;
+      ExpectSuccess(_Document.m_Graph.InsertSubtree(Subtree, Error));
+      _Document.Notify(ESceneChangeKind::Added, Subtree.Nodes.front().Name);
+    },
+    [RootName](CSceneDocument & _Document)
+    {
+      std::string Error;
+      ExpectSuccess(_Document.m_Graph.RemoveSubtree(RootName, Error));
+      _Document.Notify(ESceneChangeKind::Removed, RootName);
+    });
 }
 
 void CSceneDocument::Notify(ESceneChangeKind _Kind, const std::string & _Name, const std::string & _NewName) const

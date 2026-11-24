@@ -172,6 +172,22 @@ void CSceneOutlinerWindow::DrawNodeContextMenu(const std::string & _Name)
   if (ImGui::MenuItem("Create Child"))
     m_Presenter->CreateNode(_Name);
 
+  ImGui::Separator();
+
+  if (ImGui::MenuItem("Copy", "Ctrl+C"))
+    m_Presenter->CopyNode(_Name);
+
+  if (ImGui::MenuItem("Paste", "Ctrl+V", false, m_Presenter->CanPaste()))
+    m_Presenter->PasteNode(_Name, false);
+
+  if (ImGui::MenuItem("Paste as Child", nullptr, false, m_Presenter->CanPaste()))
+    m_Presenter->PasteNode(_Name, true);
+
+  if (ImGui::MenuItem("Duplicate", "Ctrl+D"))
+    m_Presenter->DuplicateNode(_Name);
+
+  ImGui::Separator();
+
   if (ImGui::MenuItem("Rename", "F2"))
     BeginRename(_Name);
 
@@ -193,6 +209,9 @@ void CSceneOutlinerWindow::DrawEmptySpace(const CSceneDocument & _Document)
 
   if (ImGui::MenuItem("Create Node"))
     m_Presenter->CreateNode({});
+
+  if (ImGui::MenuItem("Paste", "Ctrl+V", false, m_Presenter->CanPaste()))
+    m_Presenter->PasteNode({}, false);
 
   ImGui::EndPopup();
 }
@@ -233,8 +252,18 @@ void CSceneOutlinerWindow::HandleShortcuts()
     return;
 
   const std::string Selection = m_Presenter->GetSelection();
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V))
+    m_Presenter->PasteNode(Selection, false);
+
   if (Selection.empty())
     return;
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C))
+    m_Presenter->CopyNode(Selection);
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D))
+    m_Presenter->DuplicateNode(Selection);
 
   if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
     m_Presenter->DeleteNode(Selection);

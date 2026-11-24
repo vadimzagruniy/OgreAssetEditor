@@ -8,6 +8,7 @@
 #include "modules/scene/drop/ISceneDropHandler.h"
 #include "modules/scene/drop/SceneDrop.h"
 #include "modules/scene/drop/SceneDropHandlers.h"
+#include "modules/scene/model/SceneGraph.h"
 #include "modules/scene/model/SceneNodeProperties.h"
 
 #include <utility>
@@ -40,6 +41,11 @@ std::string CSceneEditorController::GetSelection() const
 {
   const auto Selection = m_Selection.lock();
   return Selection ? Selection->GetNode() : std::string();
+}
+
+bool CSceneEditorController::CanPaste() const
+{
+  return !m_Clipboard.IsEmpty();
 }
 
 std::optional<std::string> CSceneEditorController::GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const
@@ -79,6 +85,41 @@ void CSceneEditorController::DeleteNode(const std::string & _Name)
   Post([_Name](CSceneDocument & _Document)
   {
     _Document.DeleteNode(_Name);
+  });
+}
+
+void CSceneEditorController::CopyNode(const std::string & _Name)
+{
+  const auto Document = m_Document.lock();
+  if (Document && Document->GetGraph().HasNode(_Name))
+    m_Clipboard.Store(Document->GetGraph().CaptureSubtree(_Name));
+}
+
+void CSceneEditorController::PasteNode(const std::string & _TargetName, bool _IsChild)
+{
+  const auto & Subtree = m_Clipboard.GetSubtree();
+  if (!Subtree)
+    return;
+
+  Post([Subtree = *Subtree, _TargetName, _IsChild](CSceneDocument & _Document)
+  {
+    const auto & Graph = _Document.GetGraph();
+
+    if (_TargetName.empty() || !Graph.HasNode(_TargetName))
+      _Document.PasteSubtree(Subtree, {}, Graph.GetRootNodes().size());
+    else
+    if (_IsChild)
+      _Document.PasteSubtree(Subtree, _TargetName, Graph.GetChildren(_TargetName).size());
+    else
+      _Document.PasteSubtree(Subtree, Graph.GetNode(_TargetName).ParentName, Graph.GetSiblingIndex(_TargetName) + 1);
+  });
+}
+
+void CSceneEditorController::DuplicateNode(const std::string & _Name)
+{
+  Post([_Name](CSceneDocument & _Document)
+  {
+    _Document.DuplicateNode(_Name);
   });
 }
 

@@ -67,9 +67,14 @@ const std::vector<std::string> & CSceneGraph::GetChildren(const std::string & _P
   return _ParentName.empty() ? m_RootNodes : GetNode(_ParentName).Children;
 }
 
-std::string CSceneGraph::MakeUniqueName(const std::string & _BaseName) const
+std::string CSceneGraph::MakeUniqueName(const std::string & _BaseName, const std::unordered_set<std::string> & _Reserved) const
 {
-  if (!_BaseName.empty() && !HasNode(_BaseName))
+  const auto IsFree = [this, &_Reserved](const std::string & _Name)
+  {
+    return !HasNode(_Name) && !_Reserved.contains(_Name);
+  };
+
+  if (!_BaseName.empty() && IsFree(_BaseName))
     return _BaseName;
 
   const std::string Stem = _BaseName.empty() ? "Node" : GetNameStem(_BaseName);
@@ -77,7 +82,7 @@ std::string CSceneGraph::MakeUniqueName(const std::string & _BaseName) const
   for (std::size_t Number = 1;; ++Number)
   {
     std::string Candidate = Stem + "_" + std::to_string(Number);
-    if (!HasNode(Candidate))
+    if (IsFree(Candidate))
       return Candidate;
   }
 }

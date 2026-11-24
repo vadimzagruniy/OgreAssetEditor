@@ -24,6 +24,8 @@ public: // State
 
   virtual std::string GetSelection() const = 0;
 
+  virtual bool CanPaste() const = 0;
+
   virtual std::optional<std::string> GetDropHint(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const = 0;
 
 public: // Actions
@@ -33,6 +35,12 @@ public: // Actions
   virtual void CreateNode(const std::string & _ParentName) = 0;
 
   virtual void DeleteNode(const std::string & _Name) = 0;
+
+  virtual void CopyNode(const std::string & _Name) = 0;
+
+  virtual void PasteNode(const std::string & _TargetName, bool _IsChild) = 0;
+
+  virtual void DuplicateNode(const std::string & _Name) = 0;
 
   virtual void MoveNode(const std::string & _Name, const std::string & _NewParentName) = 0;
 

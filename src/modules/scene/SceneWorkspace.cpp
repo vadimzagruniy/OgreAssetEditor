@@ -113,6 +113,7 @@ void CSceneWorkspace::OnGui()
   m_Sync->SetHighlightedNode(m_Selection->GetNode());
 
   HandleShortcuts();
+  HandleEditShortcuts();
   DrawToolbar();
 
   m_Viewport->Draw("##SceneViewport");
@@ -190,6 +191,26 @@ void CSceneWorkspace::HandleShortcuts()
 
   if (ImGui::IsKeyPressed(ImGuiKey_R, false))
     m_Gizmo->SetMode(EGizmoMode::Scale);
+}
+
+void CSceneWorkspace::HandleEditShortcuts()
+{
+  const std::string & Selection = m_Selection->GetNode();
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V))
+    m_Controller->PasteNode(Selection, false);
+
+  if (Selection.empty())
+    return;
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C))
+    m_Controller->CopyNode(Selection);
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D))
+    m_Controller->DuplicateNode(Selection);
+
+  if (ImGui::Shortcut(ImGuiKey_Delete))
+    m_Controller->DeleteNode(Selection);
 }
 
 bool CSceneWorkspace::DrawOverlay(const TViewportFrame & _Frame)
