@@ -1,11 +1,9 @@
 #pragma once
 
-#include "controls/PropertyControlContext.h"
+#include "editor/inspector/controls/PropertyControlContext.h"
 #include "ui/DockedWindow.h"
 
 #include <memory>
-#include <string>
-#include <vector>
 
 namespace editor
 {
@@ -16,9 +14,9 @@ struct TToolBoxDesc;
 } // namespace ui
 
 class CAssetDocument;
-class IPropertyControl;
+class CPropertyPanel;
+class CWorkspaceManager;
 class IPropertySource;
-struct TPropertyDesc;
 
 class CPropertiesWindow final:
   public ui::CDockedWindow
@@ -39,15 +37,10 @@ private: // Implementation
 
   void DrawAssetInfo(const CAssetDocument & _Document) const;
 
-  std::vector<std::unique_ptr<IPropertyControl>> CreateControls(const std::vector<TPropertyDesc> & _Descs) const;
-
-  std::unique_ptr<IPropertyControl> CreateControl(const TPropertyDesc & _Desc) const;
-
 private: // Attributes
 
-  TPropertyControlContext                        m_Context;
-  std::vector<std::unique_ptr<IPropertyControl>> m_Controls;
-  std::string                                    m_SchemaIdentifier;
+  std::shared_ptr<CWorkspaceManager> m_WorkspaceManager;
+  std::unique_ptr<CPropertyPanel>    m_Panel;
 };
 
 } // namespace editor
