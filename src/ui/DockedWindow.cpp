@@ -32,7 +32,7 @@ bool CDockedWindow::BeginWindow()
   if (m_IsTitleBarHidden)
   {
     ImGuiWindowClass WindowClass;
-    WindowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
+    WindowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoDockingOverMe;
 
     ImGui::SetNextWindowClass(&WindowClass);
   }
