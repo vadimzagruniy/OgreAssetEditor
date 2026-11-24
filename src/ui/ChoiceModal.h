@@ -2,7 +2,6 @@
 
 #include "ChoiceModalDesc.h"
 #include "ModalWindow.h"
-#include "ui/layout/Layout.h"
 
 #include <cstddef>
 #include <string>
@@ -19,7 +18,7 @@ public: // Constructor
 
 protected: // CModalWindow
 
-  void OnGui() override;
+  void OnContentGui() override;
 
   void OnCancel() override;
 
@@ -31,7 +30,6 @@ private: // Attributes
 
   TChoiceModalDesc m_Desc;
   std::string      m_Error;
-  CLayout          m_ChoicesLayout;
 };
 
 } // namespace editor::ui

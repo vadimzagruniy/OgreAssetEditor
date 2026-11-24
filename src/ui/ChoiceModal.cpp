@@ -1,5 +1,4 @@
 #include "ChoiceModal.h"
-#include "ui/elements/Button.h"
 
 #include <imgui.h>
 
@@ -24,12 +23,11 @@ const ImVec4 ErrorColour(1.0f, 0.4f, 0.4f, 1.0f);
 
 CChoiceModal::CChoiceModal(TChoiceModalDesc _Desc):
   CModalWindow(_Desc.Title),
-  m_Desc(std::move(_Desc)),
-  m_ChoicesLayout(ELayoutDirection::Row, ELayoutAlign::Center)
+  m_Desc(std::move(_Desc))
 {
   for (std::size_t ChoiceIndex = 0; ChoiceIndex < m_Desc.Choices.size(); ++ChoiceIndex)
   {
-    m_ChoicesLayout.Add(CButton(m_Desc.Choices[ChoiceIndex].Label)).OnClick([this, ChoiceIndex]
+    AddButton(m_Desc.Choices[ChoiceIndex].Label, [this, ChoiceIndex]
     {
       OnChoiceClicked(ChoiceIndex);
     });
@@ -40,9 +38,9 @@ CChoiceModal::CChoiceModal(TChoiceModalDesc _Desc):
 // CModalWindow
 //
 
-void CChoiceModal::OnGui()
+void CChoiceModal::OnContentGui()
 {
-  ImGui::TextUnformatted(m_Desc.Message.c_str());
+  ImGui::TextWrapped("%s", m_Desc.Message.c_str());
 
   for (std::size_t DetailIndex = 0; DetailIndex < m_Desc.Details.size(); ++DetailIndex)
   {
@@ -55,12 +53,12 @@ void CChoiceModal::OnGui()
     ImGui::BulletText("%s", m_Desc.Details[DetailIndex].c_str());
   }
 
-  if (!m_Error.empty())
-    ImGui::TextColored(ErrorColour, "%s", m_Error.c_str());
+  if (m_Error.empty())
+    return;
 
-  ImGui::Separator();
-
-  m_ChoicesLayout.Draw();
+  ImGui::PushStyleColor(ImGuiCol_Text, ErrorColour);
+  ImGui::TextWrapped("%s", m_Error.c_str());
+  ImGui::PopStyleColor();
 }
 
 void CChoiceModal::OnCancel()

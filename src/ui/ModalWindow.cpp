@@ -1,9 +1,20 @@
 #include "ModalWindow.h"
+#include "ui/elements/Button.h"
 
 #include <imgui.h>
 
+#include <utility>
+
 namespace editor::ui
 {
+
+namespace
+{
+
+constexpr float ContentWidthScale = 30.0f;
+constexpr float ButtonWidthScale  = 7.0f;
+
+} // namespace
 
 //
 // Constructor
@@ -11,6 +22,7 @@ namespace editor::ui
 
 CModalWindow::CModalWindow(const std::string & _Title):
   CWindow(_Title, _Title + "##Modal"),
+  m_Buttons(ELayoutDirection::Row, ELayoutAlign::Center),
   m_IsOpened(false),
   m_IsClosed(false)
 {
@@ -57,9 +69,29 @@ void CModalWindow::EndWindow(bool _IsBegun)
   ImGui::EndPopup();
 }
 
+void CModalWindow::OnGui()
+{
+  const float ContentWidth = ImGui::GetFontSize() * ContentWidthScale;
+
+  if (ImGui::BeginChild("##Content", ImVec2(ContentWidth, 0.0f), ImGuiChildFlags_AutoResizeY))
+    OnContentGui();
+
+  ImGui::EndChild();
+
+  ImGui::Separator();
+  ImGui::Spacing();
+
+  m_Buttons.Draw();
+}
+
 //
 // Interface
 //
+
+CButton & CModalWindow::AddButton(std::string _Label, std::function<void()> _Action)
+{
+  return m_Buttons.Add(CButton(std::move(_Label))).SetWidth(ImGui::GetFontSize() * ButtonWidthScale).OnClick(std::move(_Action));
+}
 
 void CModalWindow::Close() noexcept
 {
