@@ -21,6 +21,8 @@ namespace ui
 class CWindowManager;
 } // namespace ui
 
+class CAssetDocument;
+class CEditorWorkspace;
 class CWorkspaceManager;
 
 class CWorkspaceController
@@ -57,6 +59,10 @@ public: // Interface
 
 private: // Implementation
 
+  CAssetDocument & GetFocusedDocument(const CEditorWorkspace & _Workspace) const;
+
+  int GetFocusFrame(const std::vector<core::TTypeKey> & _ToolBoxes) const;
+
   void UpdateToolBoxes();
 
 private: // Attributes
@@ -66,6 +72,7 @@ private: // Attributes
   std::shared_ptr<core::CLog>         m_Log;
   std::vector<core::TTypeKey>         m_ShownToolBoxes;
   std::size_t                         m_ActiveChangedConnection;
+  std::size_t                         m_AttachedChangedConnection;
 };
 
 } // namespace editor

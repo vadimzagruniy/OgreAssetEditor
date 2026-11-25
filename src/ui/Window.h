@@ -25,6 +25,8 @@ public: // Interface
 
   const std::string & GetLabel() const noexcept;
 
+  int GetFocusFrame() const noexcept;
+
 protected: // Derived interface
 
   virtual bool BeginWindow() = 0;
@@ -39,6 +41,7 @@ private: // Attributes
 
   std::string m_Title;
   std::string m_Label;
+  int         m_FocusFrame;
 };
 
 } // namespace editor::ui

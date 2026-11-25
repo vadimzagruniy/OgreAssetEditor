@@ -73,6 +73,7 @@ void CWorkspaceWindow::OnGui()
         m_ShownAssetPath = GetAssetPath(Workspace);
       }
 
+      Workspace.SetFocusFrame(GetFocusFrame());
       Workspace.OnGui();
 
       ImGui::EndTabItem();

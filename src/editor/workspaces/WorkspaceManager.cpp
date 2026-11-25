@@ -1,5 +1,6 @@
 #include "WorkspaceManager.h"
 #include "EditorWorkspace.h"
+#include "IAttachedEditor.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
 #include "editor/assets/AssetPath.h"
@@ -26,6 +27,18 @@ std::string MakePathKey(const std::filesystem::path & _Path)
 std::string MakePathKey(const CEditorWorkspace & _Workspace)
 {
   return MakePathKey(_Workspace.GetDocument().GetRecord().AbsolutePath);
+}
+
+void RelocateDocument(CAssetDocument & _Document, const std::filesystem::path & _OldPath, const std::filesystem::path & _NewPath, const std::filesystem::path & _AssetsRoot)
+{
+  if (!IsSameOrInside(_Document.GetRecord().RelativePath, _OldPath))
+    return;
+
+  TAssetRecord Record = _Document.GetRecord();
+  Record.RelativePath = RebasePath(Record.RelativePath, _OldPath, _NewPath);
+  Record.AbsolutePath = (_AssetsRoot / Record.RelativePath).lexically_normal();
+
+  _Document.SetRecord(std::move(Record));
 }
 
 } // namespace
@@ -104,12 +117,12 @@ void CWorkspaceManager::SetActive(std::size_t _Index)
     return;
 
   if (m_HasActive)
-    m_Workspaces[m_ActiveIndex]->OnDeactivated();
+    m_Workspaces[m_ActiveIndex]->Deactivate();
 
   m_ActiveIndex = _Index;
   m_HasActive   = true;
 
-  m_Workspaces[m_ActiveIndex]->OnActivated();
+  m_Workspaces[m_ActiveIndex]->Activate();
 
   m_ActiveChangedSignal.Emit();
 }
@@ -122,7 +135,7 @@ void CWorkspaceManager::Close(std::size_t _Index)
   const bool WasActive = m_HasActive && _Index == m_ActiveIndex;
   if (WasActive)
   {
-    m_Workspaces[_Index]->OnDeactivated();
+    m_Workspaces[_Index]->Deactivate();
     m_HasActive = false;
   }
 
@@ -154,7 +167,7 @@ void CWorkspaceManager::CloseActive()
 void CWorkspaceManager::CloseAll()
 {
   if (m_HasActive)
-    m_Workspaces[m_ActiveIndex]->OnDeactivated();
+    m_Workspaces[m_ActiveIndex]->Deactivate();
 
   m_Workspaces.clear();
   m_IndexByPath.clear();
@@ -169,10 +182,13 @@ void CWorkspaceManager::CloseAssets(const std::filesystem::path & _Path)
 {
   for (std::size_t WorkspaceIndex = m_Workspaces.size(); WorkspaceIndex > 0; --WorkspaceIndex)
   {
-    const auto & Record = m_Workspaces[WorkspaceIndex - 1]->GetDocument().GetRecord();
+    auto &       Workspace = *m_Workspaces[WorkspaceIndex - 1];
+    const auto & Record    = Workspace.GetDocument().GetRecord();
 
     if (IsSameOrInside(Record.RelativePath, _Path))
       Close(WorkspaceIndex - 1);
+    else
+      CloseAttachedAssets(Workspace, _Path);
   }
 }
 
@@ -180,16 +196,10 @@ void CWorkspaceManager::RelocateAssets(const std::filesystem::path & _OldPath, c
 {
   for (const auto & Workspace : m_Workspaces)
   {
-    auto & Document = Workspace->GetDocument();
+    RelocateDocument(Workspace->GetDocument(), _OldPath, _NewPath, _AssetsRoot);
 
-    if (!IsSameOrInside(Document.GetRecord().RelativePath, _OldPath))
-      continue;
-
-    TAssetRecord Record = Document.GetRecord();
-    Record.RelativePath = RebasePath(Record.RelativePath, _OldPath, _NewPath);
-    Record.AbsolutePath = (_AssetsRoot / Record.RelativePath).lexically_normal();
-
-    Document.SetRecord(std::move(Record));
+    for (const auto & Editor : Workspace->GetAttachedEditors())
+      RelocateDocument(Editor->GetDocument(), _OldPath, _NewPath, _AssetsRoot);
   }
 
   RebuildPathIndex();
@@ -202,6 +212,45 @@ std::optional<std::size_t> CWorkspaceManager::FindWorkspace(const std::filesyste
     return std::nullopt;
 
   return WorkspaceIterator->second;
+}
+
+std::shared_ptr<IAttachedEditor> CWorkspaceManager::FindAttachedEditor(std::size_t _WorkspaceIndex, const std::filesystem::path & _AbsolutePath) const
+{
+  if (_WorkspaceIndex >= m_Workspaces.size())
+    return nullptr;
+
+  const auto PathKey = MakePathKey(_AbsolutePath);
+
+  for (const auto & Editor : m_Workspaces[_WorkspaceIndex]->GetAttachedEditors())
+  {
+    if (MakePathKey(Editor->GetDocument().GetRecord().AbsolutePath) == PathKey)
+      return Editor;
+  }
+
+  return nullptr;
+}
+
+bool CWorkspaceManager::AttachEditor(std::size_t _WorkspaceIndex, std::shared_ptr<IAttachedEditor> _Editor)
+{
+  if (!_Editor || _WorkspaceIndex >= m_Workspaces.size())
+    return false;
+
+  if (FindAttachedEditor(_WorkspaceIndex, _Editor->GetDocument().GetRecord().AbsolutePath))
+    return false;
+
+  m_Workspaces[_WorkspaceIndex]->AttachEditor(std::move(_Editor));
+  m_AttachedChangedSignal.Emit();
+
+  return true;
+}
+
+void CWorkspaceManager::DetachEditor(std::size_t _WorkspaceIndex, const IAttachedEditor & _Editor)
+{
+  if (_WorkspaceIndex >= m_Workspaces.size())
+    return;
+
+  m_Workspaces[_WorkspaceIndex]->DetachEditor(_Editor);
+  m_AttachedChangedSignal.Emit();
 }
 
 bool CWorkspaceManager::HasDirtyWorkspaces() const
@@ -261,9 +310,47 @@ CWorkspaceManager::TActiveChangedSignal & CWorkspaceManager::GetActiveChangedSig
   return m_ActiveChangedSignal;
 }
 
+CWorkspaceManager::TAttachedChangedSignal & CWorkspaceManager::GetAttachedChangedSignal() noexcept
+{
+  return m_AttachedChangedSignal;
+}
+
 //
 // Implementation
 //
+
+std::optional<std::size_t> CWorkspaceManager::FindWorkspaceIf(const std::function<bool(const CEditorWorkspace &)> & _Predicate) const
+{
+  if (m_HasActive && _Predicate(*m_Workspaces[m_ActiveIndex]))
+    return m_ActiveIndex;
+
+  for (std::size_t WorkspaceIndex = 0; WorkspaceIndex < m_Workspaces.size(); ++WorkspaceIndex)
+  {
+    if (_Predicate(*m_Workspaces[WorkspaceIndex]))
+      return WorkspaceIndex;
+  }
+
+  return std::nullopt;
+}
+
+void CWorkspaceManager::CloseAttachedAssets(CEditorWorkspace & _Workspace, const std::filesystem::path & _Path)
+{
+  std::vector<std::shared_ptr<IAttachedEditor>> ClosedEditors;
+
+  for (const auto & Editor : _Workspace.GetAttachedEditors())
+  {
+    if (IsSameOrInside(Editor->GetDocument().GetRecord().RelativePath, _Path))
+      ClosedEditors.push_back(Editor);
+  }
+
+  if (ClosedEditors.empty())
+    return;
+
+  for (const auto & Editor : ClosedEditors)
+    _Workspace.DetachEditor(*Editor);
+
+  m_AttachedChangedSignal.Emit();
+}
 
 void CWorkspaceManager::RebuildPathIndex()
 {

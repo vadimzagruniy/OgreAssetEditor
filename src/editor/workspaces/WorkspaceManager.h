@@ -1,9 +1,12 @@
 #pragma once
 
+#include "EditorWorkspace.h"
+#include "core/EditorService.h"
 #include "core/Signal.h"
 
 #include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -20,13 +23,14 @@ class CLog;
 
 struct TAssetRecord;
 class CAssetTypeRegistry;
-class CEditorWorkspace;
+class IAttachedEditor;
 
 class CWorkspaceManager
 {
 public: // Types
 
-  using TActiveChangedSignal = core::CSignal<>;
+  using TActiveChangedSignal   = core::CSignal<>;
+  using TAttachedChangedSignal = core::CSignal<>;
 
 public: // Constructor/Destructor
 
@@ -54,6 +58,15 @@ public: // Interface
 
   std::optional<std::size_t> FindWorkspace(const std::filesystem::path & _AbsolutePath) const;
 
+  template <class THost>
+  std::optional<std::size_t> FindHost() const;
+
+  std::shared_ptr<IAttachedEditor> FindAttachedEditor(std::size_t _WorkspaceIndex, const std::filesystem::path & _AbsolutePath) const;
+
+  bool AttachEditor(std::size_t _WorkspaceIndex, std::shared_ptr<IAttachedEditor> _Editor);
+
+  void DetachEditor(std::size_t _WorkspaceIndex, const IAttachedEditor & _Editor);
+
   bool HasDirtyWorkspaces() const;
 
   bool SaveAll(std::string & _Error);
@@ -70,7 +83,13 @@ public: // Signals
 
   TActiveChangedSignal & GetActiveChangedSignal() noexcept;
 
+  TAttachedChangedSignal & GetAttachedChangedSignal() noexcept;
+
 private: // Implementation
+
+  std::optional<std::size_t> FindWorkspaceIf(const std::function<bool(const CEditorWorkspace &)> & _Predicate) const;
+
+  void CloseAttachedAssets(CEditorWorkspace & _Workspace, const std::filesystem::path & _Path);
 
   void RebuildPathIndex();
 
@@ -83,6 +102,20 @@ private: // Attributes
   std::size_t                                    m_ActiveIndex;
   bool                                           m_HasActive;
   TActiveChangedSignal                           m_ActiveChangedSignal;
+  TAttachedChangedSignal                         m_AttachedChangedSignal;
 };
+
+//
+// Template implementation
+//
+
+template <class THost>
+std::optional<std::size_t> CWorkspaceManager::FindHost() const
+{
+  return FindWorkspaceIf([](const CEditorWorkspace & _Workspace)
+  {
+    return _Workspace.GetServices().HasService<THost>();
+  });
+}
 
 } // namespace editor

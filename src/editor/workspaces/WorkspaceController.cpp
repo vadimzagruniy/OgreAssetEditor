@@ -1,11 +1,13 @@
 #include "WorkspaceController.h"
 #include "EditorWorkspace.h"
+#include "IAttachedEditor.h"
 #include "WorkspaceManager.h"
 #include "core/Log.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetDocument.h"
 #include "ui/ChoiceModal.h"
 #include "ui/ChoiceModalDesc.h"
+#include "ui/DockedWindow.h"
 #include "ui/WindowManager.h"
 
 #include <algorithm>
@@ -23,9 +25,15 @@ CWorkspaceController::CWorkspaceController(std::shared_ptr<CWorkspaceManager> _W
   m_WorkspaceManager(std::move(_WorkspaceManager)),
   m_WindowManager(std::move(_WindowManager)),
   m_Log(std::move(_Log)),
-  m_ActiveChangedConnection(0)
+  m_ActiveChangedConnection(0),
+  m_AttachedChangedConnection(0)
 {
   m_ActiveChangedConnection = m_WorkspaceManager->GetActiveChangedSignal().Connect([this]
+  {
+    UpdateToolBoxes();
+  });
+
+  m_AttachedChangedConnection = m_WorkspaceManager->GetAttachedChangedSignal().Connect([this]
   {
     UpdateToolBoxes();
   });
@@ -34,6 +42,7 @@ CWorkspaceController::CWorkspaceController(std::shared_ptr<CWorkspaceManager> _W
 CWorkspaceController::~CWorkspaceController()
 {
   m_WorkspaceManager->GetActiveChangedSignal().Disconnect(m_ActiveChangedConnection);
+  m_WorkspaceManager->GetAttachedChangedSignal().Disconnect(m_AttachedChangedConnection);
 }
 
 //
@@ -71,24 +80,24 @@ void CWorkspaceController::SaveActive()
 
 std::string CWorkspaceController::GetUndoName() const
 {
-  return m_WorkspaceManager->HasActive() ? m_WorkspaceManager->GetActive()->GetDocument().GetHistory().GetUndoName() : std::string();
+  return m_WorkspaceManager->HasActive() ? GetFocusedDocument(*m_WorkspaceManager->GetActive()).GetHistory().GetUndoName() : std::string();
 }
 
 std::string CWorkspaceController::GetRedoName() const
 {
-  return m_WorkspaceManager->HasActive() ? m_WorkspaceManager->GetActive()->GetDocument().GetHistory().GetRedoName() : std::string();
+  return m_WorkspaceManager->HasActive() ? GetFocusedDocument(*m_WorkspaceManager->GetActive()).GetHistory().GetRedoName() : std::string();
 }
 
 void CWorkspaceController::UndoActive()
 {
   if (m_WorkspaceManager->HasActive())
-    m_WorkspaceManager->GetActive()->GetDocument().GetHistory().Undo();
+    GetFocusedDocument(*m_WorkspaceManager->GetActive()).GetHistory().Undo();
 }
 
 void CWorkspaceController::RedoActive()
 {
   if (m_WorkspaceManager->HasActive())
-    m_WorkspaceManager->GetActive()->GetDocument().GetHistory().Redo();
+    GetFocusedDocument(*m_WorkspaceManager->GetActive()).GetHistory().Redo();
 }
 
 void CWorkspaceController::RequestClose(std::size_t _Index)
@@ -176,12 +185,52 @@ void CWorkspaceController::ConfirmUnsavedChanges(std::function<void()> _OnConfir
 // Implementation
 //
 
+CAssetDocument & CWorkspaceController::GetFocusedDocument(const CEditorWorkspace & _Workspace) const
+{
+  std::shared_ptr<IAttachedEditor> FocusedEditor;
+  int                              FocusFrame = std::max(_Workspace.GetFocusFrame(), GetFocusFrame(_Workspace.GetToolBoxes()));
+
+  for (const auto & Editor : _Workspace.GetAttachedEditors())
+  {
+    const int EditorFocusFrame = GetFocusFrame(Editor->GetToolBoxes());
+    if (EditorFocusFrame <= FocusFrame)
+      continue;
+
+    FocusedEditor = Editor;
+    FocusFrame    = EditorFocusFrame;
+  }
+
+  return FocusedEditor ? FocusedEditor->GetDocument() : _Workspace.GetDocument();
+}
+
+int CWorkspaceController::GetFocusFrame(const std::vector<core::TTypeKey> & _ToolBoxes) const
+{
+  int FocusFrame = -1;
+
+  for (const auto & ToolBox : _ToolBoxes)
+  {
+    if (const auto Window = m_WindowManager->GetToolBox(ToolBox))
+      FocusFrame = std::max(FocusFrame, Window->GetFocusFrame());
+  }
+
+  return FocusFrame;
+}
+
 void CWorkspaceController::UpdateToolBoxes()
 {
   std::vector<core::TTypeKey> ToolBoxes;
 
   if (m_WorkspaceManager->HasActive())
-    ToolBoxes = m_WorkspaceManager->GetActive()->GetToolBoxes();
+  {
+    const auto & Workspace = *m_WorkspaceManager->GetActive();
+    ToolBoxes = Workspace.GetToolBoxes();
+
+    for (const auto & Editor : Workspace.GetAttachedEditors())
+    {
+      const auto EditorToolBoxes = Editor->GetToolBoxes();
+      ToolBoxes.insert(ToolBoxes.end(), EditorToolBoxes.begin(), EditorToolBoxes.end());
+    }
+  }
 
   for (const auto & ToolBox : m_ShownToolBoxes)
   {
