@@ -1,6 +1,6 @@
 #include "PrimitiveNode.h"
 #include "editor/inspector/PropertyDesc.h"
-#include "modules/scene/SceneJsonFields.h"
+#include "editor/json/JsonFields.h"
 
 #include <nlohmann/json.hpp>
 
@@ -98,12 +98,12 @@ bool CPrimitiveNode::SetValue(const std::string & _Identifier, const TPropertyVa
   return true;
 }
 
-void CPrimitiveNode::OnWriteData(TSceneJson & _Data) const
+void CPrimitiveNode::OnWriteData(TJson & _Data) const
 {
   _Data[ShapeKey] = ShapeOptions[FindShapeIndex(m_Shape)].Key;
 }
 
-bool CPrimitiveNode::OnReadData(const TSceneJson & _Data, std::string & _Error)
+bool CPrimitiveNode::OnReadData(const TJson & _Data, std::string & _Error)
 {
   std::string ShapeName = ShapeOptions[FindShapeIndex(m_Shape)].Key;
   if (!ReadString(_Data, ShapeKey, ShapeName, _Error))

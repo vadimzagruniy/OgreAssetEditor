@@ -1,6 +1,6 @@
 #include "LightNode.h"
 #include "editor/inspector/PropertyDesc.h"
-#include "modules/scene/SceneJsonFields.h"
+#include "editor/json/JsonFields.h"
 
 #include <nlohmann/json.hpp>
 
@@ -162,7 +162,7 @@ bool CLightNode::SetValue(const std::string & _Identifier, const TPropertyValue 
   return CSceneNode::SetValue(_Identifier, _Value);
 }
 
-void CLightNode::OnWriteData(TSceneJson & _Data) const
+void CLightNode::OnWriteData(TJson & _Data) const
 {
   _Data[TypeKey]      = LightTypeOptions[FindLightTypeIndex(m_LightType)].Key;
   _Data[ColourKey]    = WriteColour(m_Colour);
@@ -172,7 +172,7 @@ void CLightNode::OnWriteData(TSceneJson & _Data) const
   _Data[OuterKey]     = m_SpotOuterAngle;
 }
 
-bool CLightNode::OnReadData(const TSceneJson & _Data, std::string & _Error)
+bool CLightNode::OnReadData(const TJson & _Data, std::string & _Error)
 {
   std::string TypeName = LightTypeOptions[FindLightTypeIndex(m_LightType)].Key;
 

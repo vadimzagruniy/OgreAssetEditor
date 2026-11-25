@@ -1,6 +1,6 @@
 #include "MeshNode.h"
 #include "editor/inspector/PropertyDesc.h"
-#include "modules/scene/SceneJsonFields.h"
+#include "editor/json/JsonFields.h"
 
 #include <nlohmann/json.hpp>
 
@@ -57,13 +57,13 @@ bool CMeshNode::SetValue(const std::string & _Identifier, const TPropertyValue &
   return true;
 }
 
-void CMeshNode::OnWriteData(TSceneJson & _Data) const
+void CMeshNode::OnWriteData(TJson & _Data) const
 {
   if (!m_MeshName.empty())
     _Data[MeshKey] = m_MeshName;
 }
 
-bool CMeshNode::OnReadData(const TSceneJson & _Data, std::string & _Error)
+bool CMeshNode::OnReadData(const TJson & _Data, std::string & _Error)
 {
   std::string MeshName;
   if (!ReadString(_Data, MeshKey, MeshName, _Error))

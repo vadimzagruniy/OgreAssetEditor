@@ -129,12 +129,12 @@ bool CSceneNode::SetValue(const std::string & _Identifier, const TPropertyValue 
 // Events
 //
 
-void CSceneNode::OnWriteData(TSceneJson & /*_Data*/) const
+void CSceneNode::OnWriteData(TJson & /*_Data*/) const
 {
   // Empty
 }
 
-bool CSceneNode::OnReadData(const TSceneJson & /*_Data*/, std::string & /*_Error*/)
+bool CSceneNode::OnReadData(const TJson & /*_Data*/, std::string & /*_Error*/)
 {
   return true;
 }

@@ -1,4 +1,4 @@
-#include "SceneJsonFields.h"
+#include "JsonFields.h"
 
 #include <nlohmann/json.hpp>
 
@@ -12,7 +12,7 @@ namespace
 {
 
 template <std::size_t TCount>
-bool ReadNumbers(const TSceneJson & _Object, const std::string & _Key, std::array<float, TCount> & _Numbers, std::string & _Error)
+bool ReadNumbers(const TJson & _Object, const std::string & _Key, std::array<float, TCount> & _Numbers, std::string & _Error)
 {
   const auto Field = _Object.find(_Key);
   if (Field == _Object.end())
@@ -41,7 +41,39 @@ bool ReadNumbers(const TSceneJson & _Object, const std::string & _Key, std::arra
 
 } // namespace
 
-bool ReadFloat(const TSceneJson & _Object, const std::string & _Key, float & _Value, std::string & _Error)
+bool ReadBool(const TJson & _Object, const std::string & _Key, bool & _Value, std::string & _Error)
+{
+  const auto Field = _Object.find(_Key);
+  if (Field == _Object.end())
+    return true;
+
+  if (!Field->is_boolean())
+  {
+    _Error = "'" + _Key + "' must be a boolean.";
+    return false;
+  }
+
+  _Value = Field->get<bool>();
+  return true;
+}
+
+bool ReadInt64(const TJson & _Object, const std::string & _Key, std::int64_t & _Value, std::string & _Error)
+{
+  const auto Field = _Object.find(_Key);
+  if (Field == _Object.end())
+    return true;
+
+  if (!Field->is_number_integer())
+  {
+    _Error = "'" + _Key + "' must be an integer.";
+    return false;
+  }
+
+  _Value = Field->get<std::int64_t>();
+  return true;
+}
+
+bool ReadFloat(const TJson & _Object, const std::string & _Key, float & _Value, std::string & _Error)
 {
   const auto Field = _Object.find(_Key);
   if (Field == _Object.end())
@@ -57,7 +89,7 @@ bool ReadFloat(const TSceneJson & _Object, const std::string & _Key, float & _Va
   return true;
 }
 
-bool ReadString(const TSceneJson & _Object, const std::string & _Key, std::string & _Value, std::string & _Error)
+bool ReadString(const TJson & _Object, const std::string & _Key, std::string & _Value, std::string & _Error)
 {
   const auto Field = _Object.find(_Key);
   if (Field == _Object.end())
@@ -73,7 +105,7 @@ bool ReadString(const TSceneJson & _Object, const std::string & _Key, std::strin
   return true;
 }
 
-bool ReadVector3(const TSceneJson & _Object, const std::string & _Key, Ogre::Vector3 & _Vector, std::string & _Error)
+bool ReadVector3(const TJson & _Object, const std::string & _Key, Ogre::Vector3 & _Vector, std::string & _Error)
 {
   std::array<float, 3> Numbers{_Vector.x, _Vector.y, _Vector.z};
   if (!ReadNumbers(_Object, _Key, Numbers, _Error))
@@ -83,7 +115,7 @@ bool ReadVector3(const TSceneJson & _Object, const std::string & _Key, Ogre::Vec
   return true;
 }
 
-bool ReadQuaternion(const TSceneJson & _Object, const std::string & _Key, Ogre::Quaternion & _Quaternion, std::string & _Error)
+bool ReadQuaternion(const TJson & _Object, const std::string & _Key, Ogre::Quaternion & _Quaternion, std::string & _Error)
 {
   std::array<float, 4> Numbers{_Quaternion.w, _Quaternion.x, _Quaternion.y, _Quaternion.z};
   if (!ReadNumbers(_Object, _Key, Numbers, _Error))
@@ -93,7 +125,7 @@ bool ReadQuaternion(const TSceneJson & _Object, const std::string & _Key, Ogre::
   return true;
 }
 
-bool ReadColour(const TSceneJson & _Object, const std::string & _Key, Ogre::ColourValue & _Colour, std::string & _Error)
+bool ReadColour(const TJson & _Object, const std::string & _Key, Ogre::ColourValue & _Colour, std::string & _Error)
 {
   std::array<float, 3> Numbers{_Colour.r, _Colour.g, _Colour.b};
   if (!ReadNumbers(_Object, _Key, Numbers, _Error))
@@ -103,17 +135,17 @@ bool ReadColour(const TSceneJson & _Object, const std::string & _Key, Ogre::Colo
   return true;
 }
 
-TSceneJson WriteVector3(const Ogre::Vector3 & _Vector)
+TJson WriteVector3(const Ogre::Vector3 & _Vector)
 {
   return {_Vector.x, _Vector.y, _Vector.z};
 }
 
-TSceneJson WriteQuaternion(const Ogre::Quaternion & _Quaternion)
+TJson WriteQuaternion(const Ogre::Quaternion & _Quaternion)
 {
   return {_Quaternion.w, _Quaternion.x, _Quaternion.y, _Quaternion.z};
 }
 
-TSceneJson WriteColour(const Ogre::ColourValue & _Colour)
+TJson WriteColour(const Ogre::ColourValue & _Colour)
 {
   return {_Colour.r, _Colour.g, _Colour.b};
 }

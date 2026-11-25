@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SceneTransform.h"
-#include "modules/scene/SceneJson.h"
+#include "editor/json/Json.h"
 
 #include <nlohmann/json.hpp>
 
@@ -14,7 +14,7 @@ struct TSceneNodeSnapshot
 {
   std::string     TypeId;
   TSceneTransform Transform;
-  TSceneJson      Data = TSceneJson::object();
+  TJson           Data = TJson::object();
 
   bool operator==(const TSceneNodeSnapshot &) const = default;
 };

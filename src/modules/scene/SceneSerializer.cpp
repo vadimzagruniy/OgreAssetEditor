@@ -1,6 +1,6 @@
 #include "SceneSerializer.h"
-#include "SceneJson.h"
-#include "SceneJsonFields.h"
+#include "editor/json/Json.h"
+#include "editor/json/JsonFields.h"
 #include "model/SceneGraph.h"
 #include "model/SceneNode.h"
 #include "model/SceneNodeSnapshot.h"
@@ -41,7 +41,7 @@ bool IsReservedKey(const std::string & _Key)
   return false;
 }
 
-std::string ReadTypeId(const TSceneJson & _Json, std::string & _Error)
+std::string ReadTypeId(const TJson & _Json, std::string & _Error)
 {
   const auto TypeField = _Json.find(TypeKey);
   if (TypeField == _Json.end())
@@ -56,7 +56,7 @@ std::string ReadTypeId(const TSceneJson & _Json, std::string & _Error)
   return TypeField->get<std::string>();
 }
 
-bool ReadSnapshot(const TSceneJson & _Json, TSceneNodeSnapshot & _Snapshot, std::string & _Error)
+bool ReadSnapshot(const TJson & _Json, TSceneNodeSnapshot & _Snapshot, std::string & _Error)
 {
   _Snapshot.TypeId = ReadTypeId(_Json, _Error);
   if (_Snapshot.TypeId.empty())
@@ -80,7 +80,7 @@ bool ReadSnapshot(const TSceneJson & _Json, TSceneNodeSnapshot & _Snapshot, std:
   return true;
 }
 
-bool ReadNode(const TSceneJson & _Json, const std::string & _ParentName, CSceneGraph & _Scene, std::string & _Error)
+bool ReadNode(const TJson & _Json, const std::string & _ParentName, CSceneGraph & _Scene, std::string & _Error)
 {
   if (!_Json.is_object())
   {
@@ -123,12 +123,12 @@ bool ReadNode(const TSceneJson & _Json, const std::string & _ParentName, CSceneG
   return true;
 }
 
-TSceneJson WriteNode(const CSceneGraph & _Scene, const std::string & _Name)
+TJson WriteNode(const CSceneGraph & _Scene, const std::string & _Name)
 {
   const auto & Node     = _Scene.GetNode(_Name);
   const auto   Snapshot = Node.CaptureSnapshot();
 
-  TSceneJson Json = TSceneJson::object();
+  TJson Json = TJson::object();
   Json[NameKey]        = Node.GetName();
   Json[TypeKey]        = Snapshot.TypeId;
   Json[PositionKey]    = WriteVector3(Snapshot.Transform.Position);
@@ -141,7 +141,7 @@ TSceneJson WriteNode(const CSceneGraph & _Scene, const std::string & _Name)
   if (Node.GetChildren().empty())
     return Json;
 
-  auto & Children = Json[ChildrenKey] = TSceneJson::array();
+  auto & Children = Json[ChildrenKey] = TJson::array();
   for (const auto & ChildName : Node.GetChildren())
     Children.push_back(WriteNode(_Scene, ChildName));
 
@@ -154,7 +154,7 @@ bool ReadScene(const std::string & _Text, CSceneGraph & _Scene, std::string & _E
 {
   assert(_Scene.GetRootNodes().empty() && "Scene must be empty before reading");
 
-  const auto Root = TSceneJson::parse(_Text, nullptr, false);
+  const auto Root = TJson::parse(_Text, nullptr, false);
   if (Root.is_discarded() || !Root.is_object())
   {
     _Error = "Scene file is not a valid JSON object.";
@@ -196,14 +196,14 @@ bool ReadScene(const std::string & _Text, CSceneGraph & _Scene, std::string & _E
 
 std::string WriteScene(const CSceneGraph & _Scene)
 {
-  TSceneJson Root = TSceneJson::object();
+  TJson Root = TJson::object();
   Root["version"] = SceneFormatVersion;
 
-  auto & Nodes = Root["nodes"] = TSceneJson::array();
+  auto & Nodes = Root["nodes"] = TJson::array();
   for (const auto & Name : _Scene.GetRootNodes())
     Nodes.push_back(WriteNode(_Scene, Name));
 
-  return Root.dump(2, ' ', false, TSceneJson::error_handler_t::replace) + "\n";
+  return Root.dump(2, ' ', false, TJson::error_handler_t::replace) + "\n";
 }
 
 } // namespace editor

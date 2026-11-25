@@ -28,9 +28,9 @@ public: // CSceneNode
 
 protected: // CSceneNode
 
-  void OnWriteData(TSceneJson & _Data) const override;
+  void OnWriteData(TJson & _Data) const override;
 
-  bool OnReadData(const TSceneJson & _Data, std::string & _Error) override;
+  bool OnReadData(const TJson & _Data, std::string & _Error) override;
 
 public: // Interface
 

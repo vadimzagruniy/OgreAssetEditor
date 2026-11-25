@@ -2,7 +2,7 @@
 
 #include "SceneTransform.h"
 #include "editor/inspector/PropertyValue.h"
-#include "modules/scene/SceneJson.h"
+#include "editor/json/Json.h"
 
 #include <string>
 #include <string_view>
@@ -56,9 +56,9 @@ public: // Interface
 
 protected: // Events
 
-  virtual void OnWriteData(TSceneJson & _Data) const;
+  virtual void OnWriteData(TJson & _Data) const;
 
-  virtual bool OnReadData(const TSceneJson & _Data, std::string & _Error);
+  virtual bool OnReadData(const TJson & _Data, std::string & _Error);
 
 private: // Friends
 
