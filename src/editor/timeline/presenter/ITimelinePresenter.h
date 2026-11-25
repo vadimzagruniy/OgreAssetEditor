@@ -39,6 +39,10 @@ public: // State
 
   virtual bool CanAddKey(TTimelineId _TrackId) const = 0;
 
+  virtual bool IsTargetValid(const TTimelineTrack & _Track) const = 0;
+
+  virtual bool CanBindToSelection(const TTimelineTrack & _Track) const = 0;
+
   virtual std::vector<TTimelineTrackTemplate> GetTrackTemplates() const = 0;
 
 public: // Actions
@@ -72,6 +76,8 @@ public: // Actions
   virtual void DeleteTrack(TTimelineId _TrackId) = 0;
 
   virtual void RenameTrack(TTimelineId _TrackId, const std::string & _Name) = 0;
+
+  virtual void BindToSelection(const TTimelineTrack & _Track) = 0;
 };
 
 } // namespace editor

@@ -1,10 +1,15 @@
 #include "AnimationTimelineWindow.h"
+#include "core/ActionQueue.h"
+#include "core/EditorService.h"
+#include "editor/assets/AssetManager.h"
+#include "editor/assets/AssetNode.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/workspaces/EditorWorkspace.h"
 #include "editor/workspaces/WorkspaceManager.h"
 #include "modules/animation/AnimationDocument.h"
 #include "modules/animation/AnimationEditor.h"
 #include "modules/animation/AnimationEditors.h"
+#include "modules/scene/animation/ISceneAnimationHost.h"
 #include "editor/timeline/presenter/TimelinePresenter.h"
 #include "editor/timeline/views/TimelineView.h"
 #include "ui/ChoiceModal.h"
@@ -38,10 +43,12 @@ std::string MakeTabLabel(const CAnimationEditor & _Editor)
 // Constructor
 //
 
-CAnimationTimelineWindow::CAnimationTimelineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<ui::CWindowManager> _WindowManager):
+CAnimationTimelineWindow::CAnimationTimelineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<ui::CWindowManager> _WindowManager, std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<core::CActionQueue> _ActionQueue):
   CDockedWindow(_Desc.Title, "AnimationTimeline", _Desc.Visible),
   m_WorkspaceManager(std::move(_WorkspaceManager)),
-  m_WindowManager(std::move(_WindowManager))
+  m_WindowManager(std::move(_WindowManager)),
+  m_AssetManager(std::move(_AssetManager)),
+  m_ActionQueue(std::move(_ActionQueue))
 {
   // Empty
 }
@@ -67,7 +74,11 @@ void CAnimationTimelineWindow::OnGui()
 
   if (Editors.empty())
   {
-    ImGui::TextDisabled("Double-click an animation asset to edit it here.");
+    if (Workspace)
+      DrawSceneAnimations(*Workspace);
+    else
+      ImGui::TextDisabled("Open a scene to edit animations.");
+
     return;
   }
 
@@ -85,6 +96,7 @@ void CAnimationTimelineWindow::OnGui()
     if (ImGui::BeginTabItem(MakeTabLabel(*Editor).c_str(), &IsOpen, TabFlags))
     {
       m_SelectedPath = Editor->GetDocument().GetRecord().AbsolutePath;
+      DrawSceneMembership(*Editor);
       Editor->GetTimelineView().Draw(Editor->GetPresenter());
       ImGui::EndTabItem();
     }
@@ -106,6 +118,75 @@ void CAnimationTimelineWindow::OnGui()
 //
 // Implementation
 //
+
+void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Workspace) const
+{
+  const auto Host = _Workspace.GetServices().GetService<ISceneAnimationHost>();
+  if (!Host)
+  {
+    ImGui::TextDisabled("Open a scene to edit animations.");
+    return;
+  }
+
+  const auto Paths = Host->GetAnimations();
+  if (Paths.empty())
+  {
+    ImGui::TextDisabled("Double-click an animation asset to edit it here.");
+    return;
+  }
+
+  ImGui::TextUnformatted("Scene animations");
+
+  for (const auto & Path : Paths)
+  {
+    ImGui::PushID(Path.c_str());
+
+    const bool IsMissing = !m_AssetManager->HasNode(Path);
+
+    ImGui::BeginDisabled(IsMissing);
+    if (ImGui::SmallButton("Open"))
+      OpenAnimation(Path);
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+
+    if (IsMissing)
+      ImGui::TextDisabled("%s (missing)", Path.c_str());
+    else
+      ImGui::TextUnformatted(Path.c_str());
+
+    ImGui::PopID();
+  }
+}
+
+void CAnimationTimelineWindow::DrawSceneMembership(const CAnimationEditor & _Editor) const
+{
+  if (_Editor.IsInScene())
+  {
+    ImGui::TextDisabled("In scene");
+    ImGui::SameLine();
+
+    if (ImGui::SmallButton("Remove from Scene"))
+      _Editor.RemoveFromScene();
+
+    return;
+  }
+
+  if (ImGui::SmallButton("Add to Scene"))
+    _Editor.AddToScene();
+
+  ImGui::SameLine();
+  ImGui::TextDisabled("Node renames update only animations added to the scene");
+}
+
+void CAnimationTimelineWindow::OpenAnimation(const std::string & _Path) const
+{
+  m_ActionQueue->Post([AssetManager = m_AssetManager, WorkspaceManager = m_WorkspaceManager, _Path]
+  {
+    if (AssetManager->HasNode(_Path))
+      WorkspaceManager->OpenAsset(AssetManager->GetNode(_Path).Record);
+  });
+}
 
 void CAnimationTimelineWindow::StopHiddenPreviews(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors) const
 {

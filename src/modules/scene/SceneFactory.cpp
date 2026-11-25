@@ -1,6 +1,7 @@
 #include "SceneFactory.h"
 #include "SceneSerializer.h"
 #include "editor/assets/AssetFactoryInfo.h"
+#include "model/SceneAnimation.h"
 #include "model/SceneGraph.h"
 
 #include <utility>
@@ -32,7 +33,7 @@ bool CSceneFactory::CreateContent(std::string & _Content, std::string & /*_Error
 {
   const CSceneGraph EmptyScene(m_NodeTypes);
 
-  _Content = WriteScene(EmptyScene);
+  _Content = WriteScene(EmptyScene, {});
 
   return true;
 }

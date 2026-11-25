@@ -21,6 +21,12 @@ public: // Interface
   virtual std::vector<TTimelineTrackTemplate> GetTrackTemplates(const CTimeline & _Timeline) const = 0;
 
   virtual TPropertyValue CaptureValue(const TTimelineTrack & _Track) const = 0;
+
+  virtual bool IsTargetValid(const TTimelineTrack & _Track) const = 0;
+
+  virtual bool CanBindToSelection(const TTimelineTrack & _Track) const = 0;
+
+  virtual void BindToSelection(const TTimelineTrack & _Track) const = 0;
 };
 
 } // namespace editor

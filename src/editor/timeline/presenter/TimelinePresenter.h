@@ -54,6 +54,10 @@ public: // ITimelinePresenter
 
   bool CanAddKey(TTimelineId _TrackId) const override;
 
+  bool IsTargetValid(const TTimelineTrack & _Track) const override;
+
+  bool CanBindToSelection(const TTimelineTrack & _Track) const override;
+
   std::vector<TTimelineTrackTemplate> GetTrackTemplates() const override;
 
   void Play() override;
@@ -85,6 +89,8 @@ public: // ITimelinePresenter
   void DeleteTrack(TTimelineId _TrackId) override;
 
   void RenameTrack(TTimelineId _TrackId, const std::string & _Name) override;
+
+  void BindToSelection(const TTimelineTrack & _Track) override;
 
 public: // Interface
 

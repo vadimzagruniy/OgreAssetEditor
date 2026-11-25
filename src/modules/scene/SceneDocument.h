@@ -3,6 +3,7 @@
 #include "core/Signal.h"
 #include "editor/documents/AssetDocument.h"
 #include "editor/inspector/PropertyValue.h"
+#include "model/SceneAnimation.h"
 #include "model/SceneGraph.h"
 #include "model/SceneNodeSnapshot.h"
 
@@ -49,6 +50,14 @@ public: // Interface
 
   const CSceneGraph & GetGraph() const noexcept;
 
+  const std::vector<TSceneAnimation> & GetAnimations() const noexcept;
+
+  bool HasAnimation(const std::string & _Path) const;
+
+  std::string ResolveSlot(const std::string & _Path, const std::string & _Slot) const;
+
+  std::string FindSlot(const std::string & _Path, const std::string & _NodeName) const;
+
   std::unordered_set<std::string> TakeDirtyNodes();
 
   bool CanRename(const std::string & _Name, const std::string & _NewName, std::string & _Error) const;
@@ -66,6 +75,12 @@ public: // Interface
   void MoveNode(const std::string & _Name, const std::string & _NewParentName);
 
   void RenameNode(const std::string & _Name, const std::string & _NewName);
+
+  void AddAnimation(const std::string & _Path);
+
+  void RemoveAnimation(const std::string & _Path);
+
+  void BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName);
 
   void PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value, const std::string & _CommandName);
 
@@ -100,11 +115,16 @@ private: // Implementation
 
   void Notify(ESceneChangeKind _Kind, const std::string & _Name, const std::string & _NewName = {}) const;
 
+  void ReplaceAnimations(std::string _CommandName, std::vector<TSceneAnimation> _Animations);
+
+  std::vector<TSceneAnimation>::const_iterator FindAnimation(const std::string & _Path) const;
+
 private: // Attributes
 
-  CSceneGraph             m_Graph;
-  std::optional<TPreview> m_Preview;
-  TChangedSignal          m_ChangedSignal;
+  CSceneGraph                  m_Graph;
+  std::vector<TSceneAnimation> m_Animations;
+  std::optional<TPreview>      m_Preview;
+  TChangedSignal               m_ChangedSignal;
 };
 
 } // namespace editor

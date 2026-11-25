@@ -31,6 +31,7 @@ constexpr float WheelScrollStep  = 40.0f;
 constexpr float PlayheadWidth    = 1.5f;
 constexpr float MinBoxSize       = 3.0f;
 constexpr ImU32 OutOfRangeShade  = IM_COL32(0, 0, 0, 70);
+constexpr ImU32 MissingTarget    = IM_COL32(230, 150, 60, 255);
 
 constexpr std::array<const char *, 2> TimeFormatNames{"Seconds", "Frames"};
 
@@ -309,8 +310,19 @@ bool CTimelineView::DrawTrackHeader(ITimelinePresenter & _Presenter, const TTime
   const bool        IsRenaming = m_RenamingTrack == _Track.Id;
   const std::string Label      = IsRenaming ? std::string() : GetTrackLabel(_Track);
 
+  const bool IsMissing = !_Presenter.IsTargetValid(_Track);
+
+  if (IsMissing)
+    ImGui::PushStyleColor(ImGuiCol_Text, MissingTarget);
+
   ImGui::AlignTextToFramePadding();
   const bool IsOpen = ImGui::TreeNodeEx("##Track", Flags, "%s", Label.c_str());
+
+  if (IsMissing)
+  {
+    ImGui::PopStyleColor();
+    ImGui::SetItemTooltip("Target node '%s' is not in the scene", _Track.Target.Slot.c_str());
+  }
 
   if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) || ImGui::IsItemClicked(ImGuiMouseButton_Right)) && !ImGui::IsItemToggledOpen())
     _Presenter.SelectTrack(_Track.Id);
@@ -337,6 +349,9 @@ void CTimelineView::DrawTrackContextMenu(ITimelinePresenter & _Presenter, const 
 
   if (ImGui::MenuItem("Rename"))
     BeginRename(_Track);
+
+  if (ImGui::MenuItem("Bind to Selected Node", nullptr, false, _Presenter.CanBindToSelection(_Track)))
+    _Presenter.BindToSelection(_Track);
 
   if (ImGui::MenuItem("Delete", "Del"))
     _Presenter.DeleteTrack(_Track.Id);

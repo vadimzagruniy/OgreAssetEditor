@@ -336,6 +336,9 @@ void CSceneWorkspace::OnDocumentChanged(const TSceneChange & _Change)
       if (!m_Document->GetGraph().HasNode(m_Selection->GetNode()))
         m_Selection->Clear();
       break;
+
+    case ESceneChangeKind::AnimationsChanged:
+      break;
   }
 }
 

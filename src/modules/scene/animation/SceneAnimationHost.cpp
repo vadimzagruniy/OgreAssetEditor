@@ -16,7 +16,7 @@ namespace editor
 // Constructor
 //
 
-CSceneAnimationHost::CSceneAnimationHost(std::shared_ptr<const CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection, CSceneSync & _Sync):
+CSceneAnimationHost::CSceneAnimationHost(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection, CSceneSync & _Sync):
   m_Document(std::move(_Document)),
   m_Selection(std::move(_Selection)),
   m_Sync(_Sync)
@@ -47,6 +47,46 @@ void CSceneAnimationHost::RestoreNode(const std::string & _Name)
 {
   m_PreviewValues.erase(_Name);
   m_Sync.RestoreNode(m_Document->GetGraph(), _Name);
+}
+
+std::vector<std::string> CSceneAnimationHost::GetAnimations() const
+{
+  std::vector<std::string> Paths;
+
+  for (const auto & Animation : m_Document->GetAnimations())
+    Paths.push_back(Animation.Path);
+
+  return Paths;
+}
+
+bool CSceneAnimationHost::HasAnimation(const std::string & _Path) const
+{
+  return m_Document->HasAnimation(_Path);
+}
+
+void CSceneAnimationHost::AddAnimation(const std::string & _Path)
+{
+  m_Document->AddAnimation(_Path);
+}
+
+void CSceneAnimationHost::RemoveAnimation(const std::string & _Path)
+{
+  m_Document->RemoveAnimation(_Path);
+}
+
+std::string CSceneAnimationHost::ResolveSlot(const std::string & _Path, const std::string & _Slot) const
+{
+  return m_Document->ResolveSlot(_Path, _Slot);
+}
+
+std::string CSceneAnimationHost::FindSlot(const std::string & _Path, const std::string & _NodeName) const
+{
+  return m_Document->FindSlot(_Path, _NodeName);
+}
+
+void CSceneAnimationHost::BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName)
+{
+  m_Document->BindSlot(_Path, _Slot, _NodeName);
 }
 
 //

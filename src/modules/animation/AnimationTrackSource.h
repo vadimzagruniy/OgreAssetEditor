@@ -7,14 +7,14 @@
 namespace editor
 {
 
-class ISceneAnimationHost;
+class CAnimationSlots;
 
 class CAnimationTrackSource final:
   public ITimelineTrackSource
 {
 public: // Constructor
 
-  explicit CAnimationTrackSource(std::weak_ptr<ISceneAnimationHost> _Host);
+  explicit CAnimationTrackSource(std::shared_ptr<const CAnimationSlots> _Slots);
 
 public: // ITimelineTrackSource
 
@@ -22,9 +22,15 @@ public: // ITimelineTrackSource
 
   TPropertyValue CaptureValue(const TTimelineTrack & _Track) const override;
 
+  bool IsTargetValid(const TTimelineTrack & _Track) const override;
+
+  bool CanBindToSelection(const TTimelineTrack & _Track) const override;
+
+  void BindToSelection(const TTimelineTrack & _Track) const override;
+
 private: // Attributes
 
-  std::weak_ptr<ISceneAnimationHost> m_Host;
+  std::shared_ptr<const CAnimationSlots> m_Slots;
 };
 
 } // namespace editor

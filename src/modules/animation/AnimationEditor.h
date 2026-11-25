@@ -13,6 +13,7 @@ class CActionQueue;
 } // namespace core
 
 class CAnimationDocument;
+class CAnimationSlots;
 class CTimelinePresenter;
 class CTimelineView;
 class ISceneAnimationHost;
@@ -48,11 +49,18 @@ public: // Interface
 
   CTimelinePresenter & GetPresenter() const noexcept;
 
+  bool IsInScene() const;
+
+  void AddToScene() const;
+
+  void RemoveFromScene() const;
+
 private: // Attributes
 
-  std::shared_ptr<CAnimationDocument> m_Document;
-  std::unique_ptr<CTimelineView>      m_TimelineView;
-  std::unique_ptr<CTimelinePresenter> m_Presenter;
+  std::shared_ptr<CAnimationDocument>    m_Document;
+  std::shared_ptr<const CAnimationSlots> m_Slots;
+  std::unique_ptr<CTimelineView>         m_TimelineView;
+  std::unique_ptr<CTimelinePresenter>    m_Presenter;
 };
 
 } // namespace editor

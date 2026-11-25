@@ -1,4 +1,5 @@
 #include "AnimationTrackSource.h"
+#include "AnimationSlots.h"
 #include "AnimationTracks.h"
 #include "editor/inspector/PropertySchema.h"
 #include "editor/timeline/model/Timeline.h"
@@ -27,13 +28,13 @@ bool HasTrack(const std::vector<TTimelineTrack> & _Tracks, const TTimelineTarget
   return false;
 }
 
-void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std::string & _GroupLabel, const std::string & _NodeName, const CTimeline & _Timeline, std::vector<TTimelineTrackTemplate> & _Templates)
+void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std::string & _GroupLabel, const std::string & _Slot, const std::string & _NodeName, const CTimeline & _Timeline, std::vector<TTimelineTrackTemplate> & _Templates)
 {
   for (const auto & Property : _Properties)
   {
     if (Property.Type == EPropertyType::Group)
     {
-      CollectTemplates(Property.Children, Property.Label, _NodeName, _Timeline, _Templates);
+      CollectTemplates(Property.Children, Property.Label, _Slot, _NodeName, _Timeline, _Templates);
       continue;
     }
 
@@ -43,7 +44,7 @@ void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std:
     TTimelineTrack Track;
     Track.TypeId = NodePropertyTrackType;
     Track.Name   = _NodeName + " " + Property.Label;
-    Track.Target = {_NodeName, Property.Identifier};
+    Track.Target = {_Slot, Property.Identifier};
 
     if (HasTrack(_Timeline.GetTracks(), Track.Target))
       continue;
@@ -59,8 +60,8 @@ void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std:
 // Constructor
 //
 
-CAnimationTrackSource::CAnimationTrackSource(std::weak_ptr<ISceneAnimationHost> _Host):
-  m_Host(std::move(_Host))
+CAnimationTrackSource::CAnimationTrackSource(std::shared_ptr<const CAnimationSlots> _Slots):
+  m_Slots(std::move(_Slots))
 {
   // Empty
 }
@@ -71,7 +72,7 @@ CAnimationTrackSource::CAnimationTrackSource(std::weak_ptr<ISceneAnimationHost> 
 
 std::vector<TTimelineTrackTemplate> CAnimationTrackSource::GetTrackTemplates(const CTimeline & _Timeline) const
 {
-  const auto Host = m_Host.lock();
+  const auto Host = m_Slots->LockHost();
   if (!Host)
     return {};
 
@@ -82,24 +83,55 @@ std::vector<TTimelineTrackTemplate> CAnimationTrackSource::GetTrackTemplates(con
     return {};
 
   const auto & Schema = Graph.GetNodeTypes().GetSchema(std::string(Graph.GetNode(NodeName).GetTypeId()));
+  const auto   Slot   = Host->FindSlot(m_Slots->GetAnimationPath(), NodeName);
 
   std::vector<TTimelineTrackTemplate> Templates;
-  CollectTemplates(Schema.Properties, {}, NodeName, _Timeline, Templates);
+  CollectTemplates(Schema.Properties, {}, Slot, NodeName, _Timeline, Templates);
 
   return Templates;
 }
 
 TPropertyValue CAnimationTrackSource::CaptureValue(const TTimelineTrack & _Track) const
 {
-  const auto Host = m_Host.lock();
+  const auto Host = m_Slots->LockHost();
   if (!Host || _Track.TypeId != NodePropertyTrackType)
     return {};
 
-  const auto & Graph = Host->GetGraph();
-  if (!Graph.HasNode(_Track.Target.Slot))
+  const auto & Graph    = Host->GetGraph();
+  const auto   NodeName = m_Slots->ResolveSlot(_Track.Target.Slot);
+
+  if (!Graph.HasNode(NodeName))
     return {};
 
-  return Graph.GetNode(_Track.Target.Slot).GetValue(_Track.Target.Property);
+  return Graph.GetNode(NodeName).GetValue(_Track.Target.Property);
+}
+
+bool CAnimationTrackSource::IsTargetValid(const TTimelineTrack & _Track) const
+{
+  const auto Host = m_Slots->LockHost();
+  if (!Host || _Track.TypeId != NodePropertyTrackType)
+    return true;
+
+  return Host->GetGraph().HasNode(m_Slots->ResolveSlot(_Track.Target.Slot));
+}
+
+bool CAnimationTrackSource::CanBindToSelection(const TTimelineTrack & _Track) const
+{
+  const auto Host = m_Slots->LockHost();
+  if (!Host || _Track.TypeId != NodePropertyTrackType || _Track.Target.Slot.empty())
+    return false;
+
+  const auto NodeName = Host->GetSelectedNode();
+  return !NodeName.empty() && Host->HasAnimation(m_Slots->GetAnimationPath()) && m_Slots->ResolveSlot(_Track.Target.Slot) != NodeName;
+}
+
+void CAnimationTrackSource::BindToSelection(const TTimelineTrack & _Track) const
+{
+  if (!CanBindToSelection(_Track))
+    return;
+
+  const auto Host = m_Slots->LockHost();
+  Host->BindSlot(m_Slots->GetAnimationPath(), _Track.Target.Slot, Host->GetSelectedNode());
 }
 
 } // namespace editor

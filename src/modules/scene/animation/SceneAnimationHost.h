@@ -18,7 +18,7 @@ class CSceneAnimationHost final:
 {
 public: // Constructor
 
-  CSceneAnimationHost(std::shared_ptr<const CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection, CSceneSync & _Sync);
+  CSceneAnimationHost(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection, CSceneSync & _Sync);
 
 public: // ISceneAnimationHost
 
@@ -30,6 +30,20 @@ public: // ISceneAnimationHost
 
   void RestoreNode(const std::string & _Name) override;
 
+  std::vector<std::string> GetAnimations() const override;
+
+  bool HasAnimation(const std::string & _Path) const override;
+
+  void AddAnimation(const std::string & _Path) override;
+
+  void RemoveAnimation(const std::string & _Path) override;
+
+  std::string ResolveSlot(const std::string & _Path, const std::string & _Slot) const override;
+
+  std::string FindSlot(const std::string & _Path, const std::string & _NodeName) const override;
+
+  void BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName) override;
+
 public: // Interface
 
   void ApplyPreview();
@@ -40,7 +54,7 @@ private: // Types
 
 private: // Attributes
 
-  std::shared_ptr<const CSceneDocument>           m_Document;
+  std::shared_ptr<CSceneDocument>                 m_Document;
   std::shared_ptr<const CSceneSelection>          m_Selection;
   CSceneSync &                                    m_Sync;
   std::unordered_map<std::string, TPreviewValues> m_PreviewValues;

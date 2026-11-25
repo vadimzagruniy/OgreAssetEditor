@@ -9,14 +9,14 @@
 namespace editor
 {
 
-class ISceneAnimationHost;
+class CAnimationSlots;
 
 class CNodePropertyEvaluator final:
   public ITimelineTrackEvaluator
 {
 public: // Constructor
 
-  explicit CNodePropertyEvaluator(std::weak_ptr<ISceneAnimationHost> _Host);
+  explicit CNodePropertyEvaluator(std::shared_ptr<const CAnimationSlots> _Slots);
 
 public: // ITimelineTrackEvaluator
 
@@ -28,8 +28,8 @@ public: // ITimelineTrackEvaluator
 
 private: // Attributes
 
-  std::weak_ptr<ISceneAnimationHost> m_Host;
-  std::unordered_set<std::string>    m_TouchedNodes;
+  std::shared_ptr<const CAnimationSlots> m_Slots;
+  std::unordered_set<std::string>        m_TouchedNodes;
 };
 
 } // namespace editor

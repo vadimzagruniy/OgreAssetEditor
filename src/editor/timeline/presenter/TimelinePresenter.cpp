@@ -94,6 +94,16 @@ bool CTimelinePresenter::CanAddKey(TTimelineId _TrackId) const
   return !std::holds_alternative<std::monostate>(FindKeyValue(Track, m_Player->GetTime()));
 }
 
+bool CTimelinePresenter::IsTargetValid(const TTimelineTrack & _Track) const
+{
+  return m_TrackSource->IsTargetValid(_Track);
+}
+
+bool CTimelinePresenter::CanBindToSelection(const TTimelineTrack & _Track) const
+{
+  return m_TrackSource->CanBindToSelection(_Track);
+}
+
 std::vector<TTimelineTrackTemplate> CTimelinePresenter::GetTrackTemplates() const
 {
   return m_TrackSource->GetTrackTemplates(m_Document->GetTimeline());
@@ -240,6 +250,11 @@ void CTimelinePresenter::RenameTrack(TTimelineId _TrackId, const std::string & _
   {
     Document->RenameTrack(_TrackId, _Name);
   });
+}
+
+void CTimelinePresenter::BindToSelection(const TTimelineTrack & _Track)
+{
+  m_TrackSource->BindToSelection(_Track);
 }
 
 //

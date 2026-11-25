@@ -1,8 +1,10 @@
 #include "AnimationEditor.h"
 #include "AnimationDocument.h"
+#include "AnimationSlots.h"
 #include "AnimationTrackSource.h"
 #include "AnimationTracks.h"
 #include "NodePropertyEvaluator.h"
+#include "modules/scene/animation/ISceneAnimationHost.h"
 #include "editor/timeline/presenter/TimelinePresenter.h"
 #include "editor/timeline/tracks/TimelineTrackTypes.h"
 #include "editor/timeline/views/TimelineView.h"
@@ -16,10 +18,10 @@ namespace editor
 namespace
 {
 
-std::shared_ptr<const CTimelineTrackTypes> CreateTrackTypes(const std::weak_ptr<ISceneAnimationHost> & _Host)
+std::shared_ptr<const CTimelineTrackTypes> CreateTrackTypes(const std::shared_ptr<const CAnimationSlots> & _Slots)
 {
   auto TrackTypes = std::make_shared<CTimelineTrackTypes>();
-  TrackTypes->Register({std::string(NodePropertyTrackType), "Node Property", ETimelineItemKind::Keys}, std::make_shared<CNodePropertyEvaluator>(_Host));
+  TrackTypes->Register({std::string(NodePropertyTrackType), "Node Property", ETimelineItemKind::Keys}, std::make_shared<CNodePropertyEvaluator>(_Slots));
 
   return TrackTypes;
 }
@@ -32,8 +34,9 @@ std::shared_ptr<const CTimelineTrackTypes> CreateTrackTypes(const std::weak_ptr<
 
 CAnimationEditor::CAnimationEditor(std::shared_ptr<CAnimationDocument> _Document, std::weak_ptr<ISceneAnimationHost> _Host, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_Document(std::move(_Document)),
+  m_Slots(std::make_shared<CAnimationSlots>(std::move(_Host), m_Document)),
   m_TimelineView(std::make_unique<CTimelineView>()),
-  m_Presenter(std::make_unique<CTimelinePresenter>(m_Document, CreateTrackTypes(_Host), std::make_shared<CAnimationTrackSource>(_Host), std::move(_ActionQueue)))
+  m_Presenter(std::make_unique<CTimelinePresenter>(m_Document, CreateTrackTypes(m_Slots), std::make_shared<CAnimationTrackSource>(m_Slots), std::move(_ActionQueue)))
 {
   // Empty
 }
@@ -92,6 +95,24 @@ CTimelineView & CAnimationEditor::GetTimelineView() const noexcept
 CTimelinePresenter & CAnimationEditor::GetPresenter() const noexcept
 {
   return *m_Presenter;
+}
+
+bool CAnimationEditor::IsInScene() const
+{
+  const auto Host = m_Slots->LockHost();
+  return Host && Host->HasAnimation(m_Slots->GetAnimationPath());
+}
+
+void CAnimationEditor::AddToScene() const
+{
+  if (const auto Host = m_Slots->LockHost())
+    Host->AddAnimation(m_Slots->GetAnimationPath());
+}
+
+void CAnimationEditor::RemoveFromScene() const
+{
+  if (const auto Host = m_Slots->LockHost())
+    Host->RemoveAnimation(m_Slots->GetAnimationPath());
 }
 
 } // namespace editor

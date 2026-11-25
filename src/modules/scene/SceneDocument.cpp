@@ -24,6 +24,27 @@ void ExpectSuccess(bool _IsDone)
   (void)_IsDone;
 }
 
+std::vector<TSceneAnimation> RenameBindings(std::vector<TSceneAnimation> _Animations, const std::string & _Name, const std::string & _NewName)
+{
+  for (auto & Animation : _Animations)
+  {
+    for (auto & [Slot, NodeName] : Animation.Bindings)
+    {
+      if (NodeName == _Name)
+        NodeName = _NewName;
+    }
+
+    Animation.Bindings.try_emplace(_Name, _NewName);
+
+    std::erase_if(Animation.Bindings, [](const auto & _Binding)
+    {
+      return _Binding.first == _Binding.second;
+    });
+  }
+
+  return _Animations;
+}
+
 TSceneTransform ToLocalTransform(const CSceneGraph & _Graph, const std::string & _ParentName, const Ogre::Affine3 & _World)
 {
   Ogre::Affine3 Local = _World;
@@ -63,7 +84,7 @@ bool CSceneDocument::OnSave(std::string & _Error)
   CommitPreview();
 
   std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
-  File << WriteScene(m_Graph);
+  File << WriteScene(m_Graph, m_Animations);
   File.close();
 
   if (!File)
@@ -81,12 +102,47 @@ bool CSceneDocument::OnSave(std::string & _Error)
 
 bool CSceneDocument::Load(const std::string & _Text, std::string & _Error)
 {
-  return ReadScene(_Text, m_Graph, _Error);
+  return ReadScene(_Text, m_Graph, m_Animations, _Error);
 }
 
 const CSceneGraph & CSceneDocument::GetGraph() const noexcept
 {
   return m_Graph;
+}
+
+const std::vector<TSceneAnimation> & CSceneDocument::GetAnimations() const noexcept
+{
+  return m_Animations;
+}
+
+bool CSceneDocument::HasAnimation(const std::string & _Path) const
+{
+  return FindAnimation(_Path) != m_Animations.end();
+}
+
+std::string CSceneDocument::ResolveSlot(const std::string & _Path, const std::string & _Slot) const
+{
+  const auto Animation = FindAnimation(_Path);
+  if (Animation == m_Animations.end())
+    return _Slot;
+
+  const auto Binding = Animation->Bindings.find(_Slot);
+  return Binding == Animation->Bindings.end() ? _Slot : Binding->second;
+}
+
+std::string CSceneDocument::FindSlot(const std::string & _Path, const std::string & _NodeName) const
+{
+  const auto Animation = FindAnimation(_Path);
+  if (Animation == m_Animations.end())
+    return _NodeName;
+
+  for (const auto & [Slot, NodeName] : Animation->Bindings)
+  {
+    if (NodeName == _NodeName)
+      return Slot;
+  }
+
+  return _NodeName;
 }
 
 std::unordered_set<std::string> CSceneDocument::TakeDirtyNodes()
@@ -206,17 +262,59 @@ void CSceneDocument::RenameNode(const std::string & _Name, const std::string & _
   if (_Name == _NewName || !m_Graph.HasNode(_Name) || !CanRename(_Name, _NewName, ValidationError))
     return;
 
-  auto Rename = [](const std::string & _From, const std::string & _To)
+  auto Rename = [](const std::string & _From, const std::string & _To, std::vector<TSceneAnimation> _Animations)
   {
-    return [_From, _To](CSceneDocument & _Document)
+    return [_From, _To, Animations = std::move(_Animations)](CSceneDocument & _Document)
     {
       std::string Error;
       ExpectSuccess(_Document.m_Graph.RenameNode(_From, _To, Error));
+      _Document.m_Animations = Animations;
       _Document.Notify(ESceneChangeKind::Renamed, _From, _To);
     };
   };
 
-  ExecuteCommand("Rename Node", Rename(_Name, _NewName), Rename(_NewName, _Name));
+  ExecuteCommand("Rename Node", Rename(_Name, _NewName, RenameBindings(m_Animations, _Name, _NewName)), Rename(_NewName, _Name, m_Animations));
+}
+
+void CSceneDocument::AddAnimation(const std::string & _Path)
+{
+  if (_Path.empty() || HasAnimation(_Path))
+    return;
+
+  auto Animations = m_Animations;
+  Animations.push_back({_Path, {}});
+
+  ReplaceAnimations("Add Animation", std::move(Animations));
+}
+
+void CSceneDocument::RemoveAnimation(const std::string & _Path)
+{
+  auto Animations = m_Animations;
+  std::erase_if(Animations, [&_Path](const TSceneAnimation & _Animation)
+  {
+    return _Animation.Path == _Path;
+  });
+
+  ReplaceAnimations("Remove Animation", std::move(Animations));
+}
+
+void CSceneDocument::BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName)
+{
+  auto Animations = m_Animations;
+  auto Animation  = std::find_if(Animations.begin(), Animations.end(), [&_Path](const TSceneAnimation & _Animation)
+  {
+    return _Animation.Path == _Path;
+  });
+
+  if (Animation == Animations.end() || _Slot.empty())
+    return;
+
+  if (_Slot == _NodeName)
+    Animation->Bindings.erase(_Slot);
+  else
+    Animation->Bindings[_Slot] = _NodeName;
+
+  ReplaceAnimations("Bind Slot", std::move(Animations));
 }
 
 void CSceneDocument::PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value, const std::string & _CommandName)
@@ -372,6 +470,31 @@ void CSceneDocument::InsertSubtree(std::string _CommandName, const TSceneSubtree
 void CSceneDocument::Notify(ESceneChangeKind _Kind, const std::string & _Name, const std::string & _NewName) const
 {
   m_ChangedSignal.Emit(TSceneChange{_Kind, _Name, _NewName});
+}
+
+void CSceneDocument::ReplaceAnimations(std::string _CommandName, std::vector<TSceneAnimation> _Animations)
+{
+  if (_Animations == m_Animations)
+    return;
+
+  auto Apply = [](std::vector<TSceneAnimation> _Value)
+  {
+    return [Value = std::move(_Value)](CSceneDocument & _Document)
+    {
+      _Document.m_Animations = Value;
+      _Document.Notify(ESceneChangeKind::AnimationsChanged, {});
+    };
+  };
+
+  ExecuteCommand(std::move(_CommandName), Apply(std::move(_Animations)), Apply(m_Animations));
+}
+
+std::vector<TSceneAnimation>::const_iterator CSceneDocument::FindAnimation(const std::string & _Path) const
+{
+  return std::find_if(m_Animations.begin(), m_Animations.end(), [&_Path](const TSceneAnimation & _Animation)
+  {
+    return _Animation.Path == _Path;
+  });
 }
 
 } // namespace editor

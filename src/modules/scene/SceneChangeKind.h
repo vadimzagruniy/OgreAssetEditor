@@ -8,7 +8,8 @@ enum class ESceneChangeKind
   Added,
   Removed,
   Renamed,
-  Changed
+  Changed,
+  AnimationsChanged
 };
 
 } // namespace editor
