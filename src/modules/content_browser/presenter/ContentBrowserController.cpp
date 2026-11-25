@@ -56,6 +56,7 @@ CContentBrowserController::CContentBrowserController(std::shared_ptr<CAssetManag
   m_ActionQueue(std::move(_ActionQueue)),
   m_ViewMode(EContentViewMode::Grid),
   m_IsDeleteRequested(false),
+  m_CreationRequest(),
   m_ChangedConnection(0),
   m_RenamedConnection(0)
 {
@@ -110,6 +111,19 @@ bool CContentBrowserController::IsSelected(const std::filesystem::path & _Path) 
 bool CContentBrowserController::IsDeleteRequested() const noexcept
 {
   return m_IsDeleteRequested;
+}
+
+const std::optional<TAssetCreationRequest> & CContentBrowserController::GetCreationRequest() const noexcept
+{
+  return m_CreationRequest;
+}
+
+bool CContentBrowserController::CheckAssetName(const std::filesystem::path & _Folder, const std::string & _Name, std::string & _Error) const
+{
+  if (!m_CreationRequest)
+    return false;
+
+  return m_AssetManager->CheckAssetName(m_CreationRequest->FactoryIdentifier, _Folder, _Name, _Error);
 }
 
 EContentViewMode CContentBrowserController::GetViewMode() const noexcept
@@ -203,11 +217,27 @@ void CContentBrowserController::CreateFolder()
   });
 }
 
-void CContentBrowserController::CreateAsset(const std::string & _FactoryIdentifier)
+void CContentBrowserController::RequestCreateAsset(const std::string & _FactoryIdentifier)
 {
   Post([this, _FactoryIdentifier]
   {
-    ApplyCreateAsset(_FactoryIdentifier);
+    ApplyRequestCreateAsset(_FactoryIdentifier);
+  });
+}
+
+void CContentBrowserController::ConfirmCreateAsset(const std::filesystem::path & _Folder, const std::string & _Name)
+{
+  Post([this, _Folder, _Name]
+  {
+    ApplyCreateAsset(_Folder, _Name);
+  });
+}
+
+void CContentBrowserController::CancelCreateAsset()
+{
+  Post([this]
+  {
+    m_CreationRequest.reset();
   });
 }
 
@@ -368,12 +398,32 @@ void CContentBrowserController::ApplyCreateFolder()
   m_SelectionAnchor = CreatedPath;
 }
 
-void CContentBrowserController::ApplyCreateAsset(const std::string & _FactoryIdentifier)
+void CContentBrowserController::ApplyRequestCreateAsset(const std::string & _FactoryIdentifier)
 {
+  const auto Factory = m_AssetFactories->FindByIdentifier(_FactoryIdentifier);
+  if (!Factory)
+  {
+    ReportError("Unknown asset factory: " + _FactoryIdentifier);
+    return;
+  }
+
+  const auto & Info = Factory->GetInfo();
+
+  m_CreationRequest = TAssetCreationRequest{_FactoryIdentifier, Info.Label, m_CurrentFolder, m_AssetManager->MakeAssetName(_FactoryIdentifier, m_CurrentFolder)};
+}
+
+void CContentBrowserController::ApplyCreateAsset(const std::filesystem::path & _Folder, const std::string & _Name)
+{
+  if (!m_CreationRequest)
+    return;
+
+  const std::string FactoryIdentifier = m_CreationRequest->FactoryIdentifier;
+  m_CreationRequest.reset();
+
   std::filesystem::path CreatedPath;
   std::string           Error;
 
-  if (!m_AssetManager->CreateAsset(_FactoryIdentifier, m_CurrentFolder, CreatedPath, Error))
+  if (!m_AssetManager->CreateAsset(FactoryIdentifier, _Folder, _Name, CreatedPath, Error))
   {
     ReportError(Error);
     return;

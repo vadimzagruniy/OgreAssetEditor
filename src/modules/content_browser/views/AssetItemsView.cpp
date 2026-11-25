@@ -247,7 +247,7 @@ void CAssetItemsView::DrawCreateMenu()
   for (const auto & Factory : Factories)
   {
     if (ImGui::MenuItem(Factory.Label.c_str()))
-      m_Presenter.CreateAsset(Factory.Identifier);
+      m_Presenter.RequestCreateAsset(Factory.Identifier);
   }
 
   ImGui::EndMenu();

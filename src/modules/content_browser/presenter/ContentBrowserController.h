@@ -48,6 +48,10 @@ public: // IContentBrowserPresenter state
 
   bool IsDeleteRequested() const noexcept override;
 
+  const std::optional<TAssetCreationRequest> & GetCreationRequest() const noexcept override;
+
+  bool CheckAssetName(const std::filesystem::path & _Folder, const std::string & _Name, std::string & _Error) const override;
+
   EContentViewMode GetViewMode() const noexcept override;
 
   std::vector<TAssetMenuEntry> GetContextActions(const std::filesystem::path & _Path) const override;
@@ -68,7 +72,11 @@ public: // IContentBrowserPresenter actions
 
   void CreateFolder() override;
 
-  void CreateAsset(const std::string & _FactoryIdentifier) override;
+  void RequestCreateAsset(const std::string & _FactoryIdentifier) override;
+
+  void ConfirmCreateAsset(const std::filesystem::path & _Folder, const std::string & _Name) override;
+
+  void CancelCreateAsset() override;
 
   void Rename(const std::filesystem::path & _Path, const std::string & _NewName) override;
 
@@ -98,7 +106,9 @@ private: // Implementation
 
   void ApplyCreateFolder();
 
-  void ApplyCreateAsset(const std::string & _FactoryIdentifier);
+  void ApplyRequestCreateAsset(const std::string & _FactoryIdentifier);
+
+  void ApplyCreateAsset(const std::filesystem::path & _Folder, const std::string & _Name);
 
   void ApplyRename(const std::filesystem::path & _Path, const std::string & _NewName);
 
@@ -139,6 +149,7 @@ private: // Attributes
   std::string                            m_Filter;
   EContentViewMode                       m_ViewMode;
   bool                                   m_IsDeleteRequested;
+  std::optional<TAssetCreationRequest>   m_CreationRequest;
   std::size_t                            m_ChangedConnection;
   std::size_t                            m_RenamedConnection;
 };

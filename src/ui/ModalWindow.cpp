@@ -1,8 +1,9 @@
 #include "ModalWindow.h"
-#include "ui/elements/Button.h"
 
 #include <imgui.h>
 
+#include <algorithm>
+#include <optional>
 #include <utility>
 
 namespace editor::ui
@@ -11,8 +12,13 @@ namespace editor::ui
 namespace
 {
 
-constexpr float ContentWidthScale = 30.0f;
-constexpr float ButtonWidthScale  = 7.0f;
+constexpr float ButtonWidthScale = 10.0f;
+
+float CalcButtonsPanelHeight()
+{
+  const ImGuiStyle & Style = ImGui::GetStyle();
+  return ImGui::GetFrameHeight() + Style.ItemSpacing.y * 2.0f + Style.WindowPadding.y;
+}
 
 } // namespace
 
@@ -20,9 +26,9 @@ constexpr float ButtonWidthScale  = 7.0f;
 // Constructor
 //
 
-CModalWindow::CModalWindow(const std::string & _Title):
+CModalWindow::CModalWindow(const std::string & _Title, const ImVec2 & _Size):
   CWindow(_Title, _Title + "##Modal"),
-  m_Buttons(ELayoutDirection::Row, ELayoutAlign::Center),
+  m_Size(_Size),
   m_IsOpened(false),
   m_IsClosed(false)
 {
@@ -46,7 +52,11 @@ bool CModalWindow::BeginWindow()
     m_IsOpened = true;
   }
 
-  if (!ImGui::BeginPopupModal(GetLabel().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+  const float FontSize = ImGui::GetFontSize();
+  ImGui::SetNextWindowSize(ImVec2(FontSize * m_Size.x, FontSize * m_Size.y), ImGuiCond_Appearing);
+
+  bool IsVisible = true;
+  if (!ImGui::BeginPopupModal(GetLabel().c_str(), &IsVisible, ImGuiWindowFlags_NoCollapse))
   {
     Cancel();
     return false;
@@ -71,9 +81,7 @@ void CModalWindow::EndWindow(bool _IsBegun)
 
 void CModalWindow::OnGui()
 {
-  const float ContentWidth = ImGui::GetFontSize() * ContentWidthScale;
-
-  if (ImGui::BeginChild("##Content", ImVec2(ContentWidth, 0.0f), ImGuiChildFlags_AutoResizeY))
+  if (ImGui::BeginChild("##Content", ImVec2(0.0f, -CalcButtonsPanelHeight())))
     OnContentGui();
 
   ImGui::EndChild();
@@ -81,16 +89,22 @@ void CModalWindow::OnGui()
   ImGui::Separator();
   ImGui::Spacing();
 
-  m_Buttons.Draw();
+  DrawButtons();
 }
 
 //
 // Interface
 //
 
-CButton & CModalWindow::AddButton(std::string _Label, std::function<void()> _Action)
+std::size_t CModalWindow::AddButton(std::string _Label, std::function<void()> _Action)
 {
-  return m_Buttons.Add(CButton(std::move(_Label))).SetWidth(ImGui::GetFontSize() * ButtonWidthScale).OnClick(std::move(_Action));
+  m_Buttons.push_back(TModalButton{std::move(_Label), std::move(_Action)});
+  return m_Buttons.size() - 1;
+}
+
+void CModalWindow::SetButtonEnabled(std::size_t _ButtonIndex, bool _IsEnabled)
+{
+  m_Buttons.at(_ButtonIndex).IsEnabled = _IsEnabled;
 }
 
 void CModalWindow::Close() noexcept
@@ -101,6 +115,39 @@ void CModalWindow::Close() noexcept
 //
 // Implementation
 //
+
+void CModalWindow::DrawButtons()
+{
+  if (m_Buttons.empty())
+    return;
+
+  const float  Spacing      = ImGui::GetStyle().ItemSpacing.x;
+  const float  ButtonCount  = static_cast<float>(m_Buttons.size());
+  const ImVec2 ButtonSize(ImGui::GetFontSize() * ButtonWidthScale, ImGui::GetFrameHeight());
+  const float  ButtonsWidth = ButtonSize.x * ButtonCount + Spacing * (ButtonCount - 1.0f);
+
+  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max((ImGui::GetContentRegionAvail().x - ButtonsWidth) * 0.5f, 0.0f));
+
+  std::optional<std::size_t> ClickedIndex;
+
+  for (std::size_t ButtonIndex = 0; ButtonIndex < m_Buttons.size(); ++ButtonIndex)
+  {
+    const auto & Button = m_Buttons[ButtonIndex];
+
+    if (ButtonIndex > 0)
+      ImGui::SameLine();
+
+    ImGui::BeginDisabled(!Button.IsEnabled);
+
+    if (ImGui::Button(Button.Label.c_str(), ButtonSize))
+      ClickedIndex = ButtonIndex;
+
+    ImGui::EndDisabled();
+  }
+
+  if (ClickedIndex && m_Buttons[*ClickedIndex].Action)
+    m_Buttons[*ClickedIndex].Action();
+}
 
 void CModalWindow::Cancel()
 {

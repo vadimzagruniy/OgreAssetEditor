@@ -22,7 +22,7 @@ const ImVec4 ErrorColour(1.0f, 0.4f, 0.4f, 1.0f);
 //
 
 CChoiceModal::CChoiceModal(TChoiceModalDesc _Desc):
-  CModalWindow(_Desc.Title),
+  CModalWindow(_Desc.Title, _Desc.Size),
   m_Desc(std::move(_Desc))
 {
   for (std::size_t ChoiceIndex = 0; ChoiceIndex < m_Desc.Choices.size(); ++ChoiceIndex)

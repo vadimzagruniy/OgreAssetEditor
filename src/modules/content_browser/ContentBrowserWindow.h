@@ -20,6 +20,7 @@ class CNavigationBarView;
 class CAssetListView;
 class CAssetGridView;
 class CDeleteConfirmationView;
+class CCreateAssetView;
 
 class CContentBrowserWindow final:
   public ui::CDockedWindow
@@ -43,6 +44,7 @@ private: // Attributes
   std::unique_ptr<CAssetListView>            m_AssetListView;
   std::unique_ptr<CAssetGridView>            m_AssetGridView;
   std::unique_ptr<CDeleteConfirmationView>   m_DeleteConfirmationView;
+  std::unique_ptr<CCreateAssetView>          m_CreateAssetView;
   float                                      m_SplitRatio;
 };
 

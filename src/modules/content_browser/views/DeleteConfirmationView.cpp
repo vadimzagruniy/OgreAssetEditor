@@ -52,6 +52,7 @@ void CDeleteConfirmationView::OpenModal(const IContentBrowserPresenter & _Presen
 
   ui::TChoiceModalDesc Desc;
   Desc.Title   = "Delete Assets";
+  Desc.Size    = ImVec2(40.0f, 12.0f);
   Desc.Message = "Delete " + std::to_string(Selection.size()) + " item(s)? This cannot be undone.";
 
   for (const auto & Path : Selection)

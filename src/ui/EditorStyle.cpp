@@ -113,7 +113,7 @@ void ApplyColors(ImGuiStyle & _Style)
   Colors[ImGuiCol_NavHighlight]              = ToColor(AccentColor);
   Colors[ImGuiCol_NavWindowingHighlight]     = ToColor(TextColor, 0.7f);
   Colors[ImGuiCol_NavWindowingDimBg]         = ToColor(0x000000, 0.4f);
-  Colors[ImGuiCol_ModalWindowDimBg]          = ToColor(0x000000, 0.5f);
+  Colors[ImGuiCol_ModalWindowDimBg]          = ToColor(0x000000, 0.0f);
 }
 
 void ApplyMetrics(ImGuiStyle & _Style)

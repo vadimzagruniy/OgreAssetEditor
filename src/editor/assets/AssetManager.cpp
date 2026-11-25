@@ -186,42 +186,24 @@ bool CAssetManager::CreateFolder(const std::filesystem::path & _ParentFolder, st
   return true;
 }
 
-bool CAssetManager::CreateAsset(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, std::filesystem::path & _CreatedPath, std::string & _Error)
+bool CAssetManager::CreateAsset(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, const std::string & _Name, std::filesystem::path & _CreatedPath, std::string & _Error)
 {
-  if (!HasNode(_Folder) || !GetNode(_Folder).IsDirectory)
-  {
-    _Error = "Folder does not exist: " + _Folder.generic_string();
-    return false;
-  }
+  std::shared_ptr<IAssetFactory> Factory;
+  std::string                    Extension;
 
-  const auto Factory = m_AssetFactories->FindByIdentifier(_FactoryIdentifier);
-  if (!Factory)
-  {
-    _Error = "Unknown asset factory: " + _FactoryIdentifier;
+  if (!CheckAssetName(_FactoryIdentifier, _Folder, _Name, _Error) || !FindFactory(_FactoryIdentifier, Factory, Extension, _Error))
     return false;
-  }
-
-  const auto & FactoryInfo = Factory->GetInfo();
-  const auto & AssetTypes  = m_AssetTypes->GetTypes();
-
-  const auto AssetTypeIterator = AssetTypes.find(FactoryInfo.TypeIdentifier);
-  if (AssetTypeIterator == AssetTypes.end() || AssetTypeIterator->second->GetInfo().Extensions.empty())
-  {
-    _Error = "Asset factory '" + _FactoryIdentifier + "' creates an unknown asset type: " + FactoryInfo.TypeIdentifier;
-    return false;
-  }
 
   std::string Content;
   if (!Factory->CreateContent(Content, _Error))
     return false;
 
-  const std::string &         Extension    = AssetTypeIterator->second->GetInfo().Extensions.front();
-  const std::filesystem::path AbsolutePath = MakeUniquePath(ToAbsolute(_Folder), FactoryInfo.DefaultName, Extension);
+  const std::filesystem::path RelativePath = _Folder / (_Name + Extension);
 
-  if (!WriteContent(AbsolutePath, Content, _Error))
+  if (!WriteContent(ToAbsolute(RelativePath), Content, _Error))
     return false;
 
-  _CreatedPath = _Folder / AbsolutePath.filename();
+  _CreatedPath = RelativePath;
 
   Refresh();
 
@@ -360,6 +342,48 @@ const std::string & CAssetManager::GetLastError() const noexcept
   return m_LastError;
 }
 
+std::string CAssetManager::MakeAssetName(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder) const
+{
+  std::shared_ptr<IAssetFactory> Factory;
+  std::string                    Extension;
+  std::string                    Error;
+
+  if (!FindFactory(_FactoryIdentifier, Factory, Extension, Error))
+    return {};
+
+  return MakeUniquePath(ToAbsolute(_Folder), Factory->GetInfo().DefaultName, Extension).stem().string();
+}
+
+bool CAssetManager::CheckAssetName(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, const std::string & _Name, std::string & _Error) const
+{
+  if (!HasNode(_Folder) || !GetNode(_Folder).IsDirectory)
+  {
+    _Error = "Folder does not exist: " + _Folder.generic_string();
+    return false;
+  }
+
+  if (!IsValidName(_Name))
+  {
+    _Error = _Name.empty() ? "Enter a name." : "The name contains characters that are not allowed: \\ / : * ? \" < > |";
+    return false;
+  }
+
+  std::shared_ptr<IAssetFactory> Factory;
+  std::string                    Extension;
+
+  if (!FindFactory(_FactoryIdentifier, Factory, Extension, _Error))
+    return false;
+
+  std::error_code ErrorCode;
+  if (std::filesystem::exists(ToAbsolute(_Folder / (_Name + Extension)), ErrorCode))
+  {
+    _Error = "'" + _Name + Extension + "' already exists in this folder.";
+    return false;
+  }
+
+  return true;
+}
+
 //
 // Signals
 //
@@ -450,6 +474,30 @@ void CAssetManager::RemountResources()
 std::filesystem::path CAssetManager::ToAbsolute(const std::filesystem::path & _RelativePath) const
 {
   return (m_AssetsRoot / _RelativePath).lexically_normal();
+}
+
+bool CAssetManager::FindFactory(const std::string & _FactoryIdentifier, std::shared_ptr<IAssetFactory> & _Factory, std::string & _Extension, std::string & _Error) const
+{
+  _Factory = m_AssetFactories->FindByIdentifier(_FactoryIdentifier);
+  if (!_Factory)
+  {
+    _Error = "Unknown asset factory: " + _FactoryIdentifier;
+    return false;
+  }
+
+  const auto & TypeIdentifier = _Factory->GetInfo().TypeIdentifier;
+  const auto & AssetTypes     = m_AssetTypes->GetTypes();
+
+  const auto AssetTypeIterator = AssetTypes.find(TypeIdentifier);
+  if (AssetTypeIterator == AssetTypes.end() || AssetTypeIterator->second->GetInfo().Extensions.empty())
+  {
+    _Error = "Asset factory '" + _FactoryIdentifier + "' creates an unknown asset type: " + TypeIdentifier;
+    return false;
+  }
+
+  _Extension = AssetTypeIterator->second->GetInfo().Extensions.front();
+
+  return true;
 }
 
 } // namespace editor

@@ -5,6 +5,7 @@
 #include "views/AssetGridView.h"
 #include "views/AssetListView.h"
 #include "views/ContentToolbarView.h"
+#include "views/CreateAssetView.h"
 #include "views/DeleteConfirmationView.h"
 #include "views/FolderTreeView.h"
 #include "views/NavigationBarView.h"
@@ -29,6 +30,7 @@ CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std
   m_AssetListView(std::make_unique<CAssetListView>(*m_Controller)),
   m_AssetGridView(std::make_unique<CAssetGridView>(*m_Controller)),
   m_DeleteConfirmationView(std::make_unique<CDeleteConfirmationView>(m_Controller, _WindowManager)),
+  m_CreateAssetView(std::make_unique<CCreateAssetView>(m_Controller, _WindowManager)),
   m_SplitRatio(0.4f)
 {
   // Empty
@@ -65,6 +67,7 @@ void CContentBrowserWindow::OnGui()
     m_AssetListView->Draw();
 
   m_DeleteConfirmationView->Draw();
+  m_CreateAssetView->Draw();
 }
 
 } // namespace editor

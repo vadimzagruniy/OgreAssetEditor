@@ -28,7 +28,7 @@ CContentToolbarView::CContentToolbarView(IContentBrowserPresenter & _Presenter):
 
   m_CreateMenu.OnSelected([this](std::size_t _FactoryIndex)
   {
-    m_Presenter.CreateAsset(m_FactoryIdentifiers[_FactoryIndex]);
+    m_Presenter.RequestCreateAsset(m_FactoryIdentifiers[_FactoryIndex]);
   });
 
   m_Layout.Add(ui::CButton("Refresh")).OnClick([this]

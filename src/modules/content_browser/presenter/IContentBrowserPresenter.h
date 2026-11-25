@@ -1,9 +1,11 @@
 #pragma once
 
+#include "AssetCreationRequest.h"
 #include "ContentViewMode.h"
 #include "SelectionMode.h"
 
 #include <filesystem>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -36,6 +38,10 @@ public: // State
 
   virtual bool IsDeleteRequested() const noexcept = 0;
 
+  virtual const std::optional<TAssetCreationRequest> & GetCreationRequest() const noexcept = 0;
+
+  virtual bool CheckAssetName(const std::filesystem::path & _Folder, const std::string & _Name, std::string & _Error) const = 0;
+
   virtual EContentViewMode GetViewMode() const noexcept = 0;
 
   virtual std::vector<TAssetMenuEntry> GetContextActions(const std::filesystem::path & _Path) const = 0;
@@ -56,7 +62,11 @@ public: // Actions
 
   virtual void CreateFolder() = 0;
 
-  virtual void CreateAsset(const std::string & _FactoryIdentifier) = 0;
+  virtual void RequestCreateAsset(const std::string & _FactoryIdentifier) = 0;
+
+  virtual void ConfirmCreateAsset(const std::filesystem::path & _Folder, const std::string & _Name) = 0;
+
+  virtual void CancelCreateAsset() = 0;
 
   virtual void Rename(const std::filesystem::path & _Path, const std::string & _NewName) = 0;
 

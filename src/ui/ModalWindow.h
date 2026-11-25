@@ -1,22 +1,24 @@
 #pragma once
 
+#include "ModalButton.h"
 #include "Window.h"
-#include "ui/layout/Layout.h"
 
+#include <imgui.h>
+
+#include <cstddef>
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace editor::ui
 {
-
-class CButton;
 
 class CModalWindow:
   public CWindow
 {
 protected: // Constructor
 
-  explicit CModalWindow(const std::string & _Title);
+  CModalWindow(const std::string & _Title, const ImVec2 & _Size);
 
 public: // CWindow
 
@@ -32,11 +34,15 @@ protected: // CWindow
 
 protected: // Interface
 
-  CButton & AddButton(std::string _Label, std::function<void()> _Action);
+  std::size_t AddButton(std::string _Label, std::function<void()> _Action);
+
+  void SetButtonEnabled(std::size_t _ButtonIndex, bool _IsEnabled);
 
   void Close() noexcept;
 
 private: // Implementation
+
+  void DrawButtons();
 
   void Cancel();
 
@@ -48,9 +54,10 @@ protected: // Events
 
 private: // Attributes
 
-  CLayout m_Buttons;
-  bool    m_IsOpened;
-  bool    m_IsClosed;
+  ImVec2                    m_Size;
+  std::vector<TModalButton> m_Buttons;
+  bool                      m_IsOpened;
+  bool                      m_IsClosed;
 };
 
 } // namespace editor::ui

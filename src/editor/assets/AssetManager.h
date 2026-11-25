@@ -14,6 +14,7 @@ namespace editor
 
 class CAssetFactoryRegistry;
 class CAssetTypeRegistry;
+class IAssetFactory;
 
 class CAssetManager
 {
@@ -45,7 +46,7 @@ public: // Operations
 
   bool CreateFolder(const std::filesystem::path & _ParentFolder, std::filesystem::path & _CreatedPath, std::string & _Error);
 
-  bool CreateAsset(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, std::filesystem::path & _CreatedPath, std::string & _Error);
+  bool CreateAsset(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, const std::string & _Name, std::filesystem::path & _CreatedPath, std::string & _Error);
 
   bool Rename(const std::filesystem::path & _Path, const std::string & _NewName, std::filesystem::path & _RenamedPath, std::string & _Error);
 
@@ -67,6 +68,10 @@ public: // Accessors
 
   const std::string & GetLastError() const noexcept;
 
+  std::string MakeAssetName(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder) const;
+
+  bool CheckAssetName(const std::string & _FactoryIdentifier, const std::filesystem::path & _Folder, const std::string & _Name, std::string & _Error) const;
+
 public: // Signals
 
   TChangedSignal & GetChangedSignal() noexcept;
@@ -84,6 +89,8 @@ private: // Implementation
   void RemountResources();
 
   std::filesystem::path ToAbsolute(const std::filesystem::path & _RelativePath) const;
+
+  bool FindFactory(const std::string & _FactoryIdentifier, std::shared_ptr<IAssetFactory> & _Factory, std::string & _Extension, std::string & _Error) const;
 
 private: // Attributes
 
