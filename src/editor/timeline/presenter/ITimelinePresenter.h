@@ -12,6 +12,7 @@ namespace editor
 
 class CTimeline;
 class CTimelineSelection;
+enum class ETimelineItemKind;
 enum class ETimelineSelectMode;
 
 class ITimelinePresenter
@@ -33,6 +34,8 @@ public: // State
   virtual bool IsPreviewing() const = 0;
 
   virtual bool IsLooping() const = 0;
+
+  virtual ETimelineItemKind GetItemKind(const TTimelineTrack & _Track) const = 0;
 
   virtual bool CanAddKey(TTimelineId _TrackId) const = 0;
 

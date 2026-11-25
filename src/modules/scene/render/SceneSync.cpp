@@ -100,23 +100,26 @@ std::optional<float> CSceneSync::PickDistance(const Ogre::Ray & _Ray) const
   return Distance;
 }
 
-Ogre::SceneNode * CSceneSync::FindOgreNode(const std::string & _Name) const
+void CSceneSync::ApplyPreview(const std::string & _Name, const CSceneNode & _Node)
 {
   const auto BindingIterator = m_Bindings.find(_Name);
-  return BindingIterator == m_Bindings.end() ? nullptr : BindingIterator->second.Node;
-}
-
-void CSceneSync::RestoreTransform(const CSceneGraph & _Graph, const std::string & _Name)
-{
-  auto * Node = FindOgreNode(_Name);
-  if (!Node || !_Graph.HasNode(_Name))
+  if (BindingIterator == m_Bindings.end())
     return;
 
-  const auto & Transform = _Graph.GetNode(_Name).GetTransform();
+  auto &       Binding   = BindingIterator->second;
+  const auto & Transform = _Node.GetTransform();
 
-  Node->setPosition(Transform.Position);
-  Node->setOrientation(Transform.Orientation);
-  Node->setScale(Transform.Scale);
+  Binding.Node->setPosition(Transform.Position);
+  Binding.Node->setOrientation(Transform.Orientation);
+  Binding.Node->setScale(Transform.Scale);
+
+  ApplyObject(Binding, _Node);
+}
+
+void CSceneSync::RestoreNode(const CSceneGraph & _Graph, const std::string & _Name)
+{
+  if (_Graph.HasNode(_Name) && m_Bindings.contains(_Name))
+    ApplyNode(_Graph, _Name);
 }
 
 //

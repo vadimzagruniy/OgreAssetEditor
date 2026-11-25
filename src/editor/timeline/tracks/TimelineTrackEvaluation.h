@@ -3,22 +3,20 @@
 #include "editor/timeline/playback/ITimelineEvaluator.h"
 
 #include <memory>
-#include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace editor
 {
 
-class ISceneAnimationHost;
+class CTimelineTrackTypes;
 struct TTimelineTrack;
 
-class CAnimationPreview final:
+class CTimelineTrackEvaluation final:
   public ITimelineEvaluator
 {
 public: // Constructor
 
-  explicit CAnimationPreview(std::weak_ptr<ISceneAnimationHost> _Host);
+  explicit CTimelineTrackEvaluation(std::shared_ptr<const CTimelineTrackTypes> _TrackTypes);
 
 public: // ITimelineEvaluator
 
@@ -30,14 +28,11 @@ public: // ITimelineEvaluator
 
 private: // Implementation
 
-  void EvaluateTracks(const std::vector<TTimelineTrack> & _Tracks, TTimelineTicks _Time, ISceneAnimationHost & _Host);
-
-  void ApplyTransform(const TTimelineTrack & _Track, TTimelineTicks _Time, ISceneAnimationHost & _Host);
+  void EvaluateTracks(const std::vector<TTimelineTrack> & _Tracks, TTimelineTicks _From, TTimelineTicks _To, ETimelineEvaluateMode _Mode) const;
 
 private: // Attributes
 
-  std::weak_ptr<ISceneAnimationHost> m_Host;
-  std::unordered_set<std::string>    m_TouchedNodes;
+  std::shared_ptr<const CTimelineTrackTypes> m_TrackTypes;
 };
 
 } // namespace editor

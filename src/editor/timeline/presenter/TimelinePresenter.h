@@ -19,7 +19,7 @@ class CTimelineDocument;
 class CTimelineKeyPropertySource;
 class IPropertySource;
 class CTimelinePlayer;
-class ITimelineEvaluator;
+class CTimelineTrackTypes;
 class ITimelineTrackSource;
 struct TTimelineChange;
 
@@ -28,7 +28,7 @@ class CTimelinePresenter final:
 {
 public: // Constructor/Destructor
 
-  CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<ITimelineEvaluator> _Evaluator, std::shared_ptr<const ITimelineTrackSource> _TrackSource, std::shared_ptr<core::CActionQueue> _ActionQueue);
+  CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<const CTimelineTrackTypes> _TrackTypes, std::shared_ptr<const ITimelineTrackSource> _TrackSource, std::shared_ptr<core::CActionQueue> _ActionQueue);
 
   ~CTimelinePresenter() override;
 
@@ -49,6 +49,8 @@ public: // ITimelinePresenter
   bool IsPreviewing() const override;
 
   bool IsLooping() const override;
+
+  ETimelineItemKind GetItemKind(const TTimelineTrack & _Track) const override;
 
   bool CanAddKey(TTimelineId _TrackId) const override;
 
@@ -105,6 +107,7 @@ private: // Events
 private: // Attributes
 
   std::shared_ptr<CTimelineDocument>          m_Document;
+  std::shared_ptr<const CTimelineTrackTypes>  m_TrackTypes;
   std::unique_ptr<CTimelinePlayer>            m_Player;
   std::shared_ptr<const ITimelineTrackSource> m_TrackSource;
   std::shared_ptr<CTimelineSelection>         m_Selection;

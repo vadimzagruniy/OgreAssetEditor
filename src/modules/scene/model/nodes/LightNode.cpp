@@ -100,11 +100,11 @@ void CLightNode::DescribeProperties(std::vector<TPropertyDesc> & _Properties) co
 
   TPropertyDesc Light{"Light", "Light", EPropertyType::Group};
   Light.Children.push_back({TypeIdentifier,      "Type",       EPropertyType::Enum,  {.Options = std::move(TypeLabels)}});
-  Light.Children.push_back({ColourIdentifier,    "Colour",     EPropertyType::Color, {}});
-  Light.Children.push_back({IntensityIdentifier, "Intensity",  EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 100.0f,    .Speed = 0.05f, .Format = "%.2f"}});
-  Light.Children.push_back({RangeIdentifier,     "Range",      EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 100000.0f, .Speed = 1.0f,  .Format = "%.1f"}});
-  Light.Children.push_back({InnerIdentifier,     "Spot Inner", EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 179.0f,    .Speed = 0.5f,  .Format = "%.1f"}});
-  Light.Children.push_back({OuterIdentifier,     "Spot Outer", EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 179.0f,    .Speed = 0.5f,  .Format = "%.1f"}});
+  Light.Children.push_back({ColourIdentifier,    "Colour",     EPropertyType::Color, {.IsAnimatable = true}});
+  Light.Children.push_back({IntensityIdentifier, "Intensity",  EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 100.0f,    .Speed = 0.05f, .Format = "%.2f", .IsAnimatable = true}});
+  Light.Children.push_back({RangeIdentifier,     "Range",      EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 100000.0f, .Speed = 1.0f,  .Format = "%.1f", .IsAnimatable = true}});
+  Light.Children.push_back({InnerIdentifier,     "Spot Inner", EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 179.0f,    .Speed = 0.5f,  .Format = "%.1f", .IsAnimatable = true}});
+  Light.Children.push_back({OuterIdentifier,     "Spot Outer", EPropertyType::Float, {.Minimum = 0.0f, .Maximum = 179.0f,    .Speed = 0.5f,  .Format = "%.1f", .IsAnimatable = true}});
 
   _Properties.push_back(std::move(Light));
 }

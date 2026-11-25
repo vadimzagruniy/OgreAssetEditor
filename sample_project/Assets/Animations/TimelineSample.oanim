@@ -9,10 +9,10 @@
         "name": "Head",
         "children": [
           {
-            "type": "transform",
-            "name": "Position",
+            "type": "property",
+            "name": "Head Position",
             "slot": "Head",
-            "property": "position",
+            "property": "Transform.Position",
             "valueType": "vector3",
             "keys": [
               { "time": 0, "value": [0, 0, 0], "interpolation": "spline" },
@@ -22,10 +22,10 @@
             ]
           },
           {
-            "type": "transform",
-            "name": "Rotation",
+            "type": "property",
+            "name": "Head Rotation",
             "slot": "Head",
-            "property": "orientation",
+            "property": "Transform.Rotation",
             "valueType": "rotation",
             "keys": [
               { "time": 0, "value": [1, 0, 0, 0], "interpolation": "linear" },
@@ -36,23 +36,15 @@
         ]
       },
       {
-        "type": "transform",
+        "type": "property",
         "name": "Head_1 Scale",
         "slot": "Head_1",
-        "property": "scale",
+        "property": "Transform.Scale",
         "valueType": "vector3",
         "keys": [
           { "time": 0, "value": [0.5, 0.5, 0.5], "interpolation": "step" },
           { "time": 60000, "value": [0.8, 0.8, 0.8], "interpolation": "step" },
           { "time": 150000, "value": [0.5, 0.5, 0.5], "interpolation": "step" }
-        ]
-      },
-      {
-        "type": "audio",
-        "name": "Sound",
-        "clips": [
-          { "start": 15000, "length": 75000, "offset": 0, "source": "Sounds/door_open.wav" },
-          { "start": 165000, "length": 45000, "offset": 0, "source": "Sounds/door_close.wav" }
         ]
       }
     ]

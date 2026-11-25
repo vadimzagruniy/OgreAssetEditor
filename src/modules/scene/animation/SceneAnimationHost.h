@@ -3,6 +3,8 @@
 #include "ISceneAnimationHost.h"
 
 #include <memory>
+#include <string>
+#include <unordered_map>
 
 namespace editor
 {
@@ -24,15 +26,24 @@ public: // ISceneAnimationHost
 
   std::string GetSelectedNode() const override;
 
-  Ogre::SceneNode * FindSceneNode(const std::string & _Name) const override;
+  void PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value) override;
 
   void RestoreNode(const std::string & _Name) override;
 
+public: // Interface
+
+  void ApplyPreview();
+
+private: // Types
+
+  using TPreviewValues = std::unordered_map<std::string, TPropertyValue>;
+
 private: // Attributes
 
-  std::shared_ptr<const CSceneDocument>  m_Document;
-  std::shared_ptr<const CSceneSelection> m_Selection;
-  CSceneSync &                           m_Sync;
+  std::shared_ptr<const CSceneDocument>           m_Document;
+  std::shared_ptr<const CSceneSelection>          m_Selection;
+  CSceneSync &                                    m_Sync;
+  std::unordered_map<std::string, TPreviewValues> m_PreviewValues;
 };
 
 } // namespace editor

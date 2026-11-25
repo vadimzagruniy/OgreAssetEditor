@@ -5,6 +5,7 @@
 #include "editor/timeline/presenter/ITimelinePresenter.h"
 #include "editor/timeline/presenter/TimelineSelectMode.h"
 #include "editor/timeline/presenter/TimelineSelection.h"
+#include "editor/timeline/tracks/TimelineItemKind.h"
 
 #include <imgui.h>
 
@@ -323,7 +324,7 @@ bool CTimelineView::DrawTrackHeader(ITimelinePresenter & _Presenter, const TTime
     return IsOpen;
   }
 
-  if (!HasChildren && _Track.TypeId != TimelineGroupType)
+  if (_Presenter.GetItemKind(_Track) == ETimelineItemKind::Keys)
     DrawAddKeyButton(_Presenter, _Track);
 
   return IsOpen;

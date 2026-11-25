@@ -1,6 +1,6 @@
 #pragma once
 
-#include <OgrePrerequisites.h>
+#include "editor/inspector/PropertyValue.h"
 
 #include <string>
 
@@ -21,7 +21,7 @@ public: // Interface
 
   virtual std::string GetSelectedNode() const = 0;
 
-  virtual Ogre::SceneNode * FindSceneNode(const std::string & _Name) const = 0;
+  virtual void PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value) = 0;
 
   virtual void RestoreNode(const std::string & _Name) = 0;
 };

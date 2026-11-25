@@ -5,9 +5,6 @@
 namespace editor
 {
 
-inline constexpr std::string_view TransformTrackType  = "transform";
-inline constexpr std::string_view PositionProperty    = "position";
-inline constexpr std::string_view OrientationProperty = "orientation";
-inline constexpr std::string_view ScaleProperty       = "scale";
+inline constexpr std::string_view NodePropertyTrackType = "property";
 
 } // namespace editor

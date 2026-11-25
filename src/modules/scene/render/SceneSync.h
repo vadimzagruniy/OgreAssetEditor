@@ -47,9 +47,9 @@ public: // Interface
 
   std::optional<float> PickDistance(const Ogre::Ray & _Ray) const;
 
-  Ogre::SceneNode * FindOgreNode(const std::string & _Name) const;
+  void ApplyPreview(const std::string & _Name, const CSceneNode & _Node);
 
-  void RestoreTransform(const CSceneGraph & _Graph, const std::string & _Name);
+  void RestoreNode(const CSceneGraph & _Graph, const std::string & _Name);
 
 private: // Implementation
 

@@ -129,6 +129,8 @@ void CSceneWorkspace::OnGui()
     UpdateHeadlight();
   }
 
+  m_AnimationHost->ApplyPreview();
+
   m_Sync->SetHighlightedNode(m_Selection->GetNode());
 
   HandleShortcuts();

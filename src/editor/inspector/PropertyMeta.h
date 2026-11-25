@@ -17,6 +17,7 @@ struct TPropertyMeta
   std::string              AssetType;
   bool                     IsAlphaEnabled = false;
   bool                     IsReadOnly     = false;
+  bool                     IsAnimatable   = false;
 };
 
 } // namespace editor

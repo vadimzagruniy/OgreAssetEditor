@@ -85,9 +85,9 @@ bool CSceneNode::ApplySnapshot(const TSceneNodeSnapshot & _Snapshot, std::string
 void CSceneNode::DescribeProperties(std::vector<TPropertyDesc> & _Properties) const
 {
   TPropertyDesc Transform{"Transform", "Transform", EPropertyType::Group};
-  Transform.Children.push_back({PositionIdentifier, "Position", EPropertyType::Vector3,  {.Speed = 0.1f,  .Format = "%.2f"}});
-  Transform.Children.push_back({RotationIdentifier, "Rotation", EPropertyType::Rotation, {.Speed = 0.5f,  .Format = "%.1f"}});
-  Transform.Children.push_back({ScaleIdentifier,    "Scale",    EPropertyType::Vector3,  {.Speed = 0.01f, .Format = "%.3f"}});
+  Transform.Children.push_back({PositionIdentifier, "Position", EPropertyType::Vector3,  {.Speed = 0.1f,  .Format = "%.2f", .IsAnimatable = true}});
+  Transform.Children.push_back({RotationIdentifier, "Rotation", EPropertyType::Rotation, {.Speed = 0.5f,  .Format = "%.1f", .IsAnimatable = true}});
+  Transform.Children.push_back({ScaleIdentifier,    "Scale",    EPropertyType::Vector3,  {.Speed = 0.01f, .Format = "%.3f", .IsAnimatable = true}});
 
   _Properties.push_back(std::move(Transform));
 }

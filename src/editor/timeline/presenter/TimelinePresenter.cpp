@@ -7,6 +7,9 @@
 #include "editor/timeline/inspector/TimelineKeyPropertySource.h"
 #include "editor/timeline/playback/TimelineKeyEvaluation.h"
 #include "editor/timeline/playback/TimelinePlayer.h"
+#include "editor/timeline/tracks/TimelineItemKind.h"
+#include "editor/timeline/tracks/TimelineTrackEvaluation.h"
+#include "editor/timeline/tracks/TimelineTrackTypes.h"
 
 #include <algorithm>
 #include <utility>
@@ -18,9 +21,10 @@ namespace editor
 // Constructor/Destructor
 //
 
-CTimelinePresenter::CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<ITimelineEvaluator> _Evaluator, std::shared_ptr<const ITimelineTrackSource> _TrackSource, std::shared_ptr<core::CActionQueue> _ActionQueue):
+CTimelinePresenter::CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<const CTimelineTrackTypes> _TrackTypes, std::shared_ptr<const ITimelineTrackSource> _TrackSource, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_Document(std::move(_Document)),
-  m_Player(std::make_unique<CTimelinePlayer>(std::move(_Evaluator))),
+  m_TrackTypes(std::move(_TrackTypes)),
+  m_Player(std::make_unique<CTimelinePlayer>(std::make_shared<CTimelineTrackEvaluation>(m_TrackTypes))),
   m_TrackSource(std::move(_TrackSource)),
   m_Selection(std::make_shared<CTimelineSelection>()),
   m_KeyProperties(std::make_shared<CTimelineKeyPropertySource>(m_Document, m_Selection)),
@@ -72,6 +76,11 @@ bool CTimelinePresenter::IsLooping() const
   return m_Player->IsLooping();
 }
 
+ETimelineItemKind CTimelinePresenter::GetItemKind(const TTimelineTrack & _Track) const
+{
+  return m_TrackTypes->GetItemKind(_Track.TypeId);
+}
+
 bool CTimelinePresenter::CanAddKey(TTimelineId _TrackId) const
 {
   const auto & Timeline = m_Document->GetTimeline();
@@ -79,7 +88,7 @@ bool CTimelinePresenter::CanAddKey(TTimelineId _TrackId) const
     return false;
 
   const auto & Track = Timeline.GetTrack(_TrackId);
-  if (Track.TypeId == TimelineGroupType || !Track.Children.empty())
+  if (GetItemKind(Track) != ETimelineItemKind::Keys)
     return false;
 
   return !std::holds_alternative<std::monostate>(FindKeyValue(Track, m_Player->GetTime()));
@@ -275,7 +284,7 @@ TTimelineTrackLocation CTimelinePresenter::FindNewTrackLocation() const
     return {InvalidTimelineId, Timeline.GetTracks().size()};
 
   const auto & Track = Timeline.GetTrack(TrackId);
-  if (Track.TypeId == TimelineGroupType)
+  if (GetItemKind(Track) == ETimelineItemKind::Group)
     return {TrackId, Track.Children.size()};
 
   return {Location->ParentId, Location->Index + 1};
