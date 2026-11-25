@@ -20,9 +20,10 @@ namespace editor
 // Constructor
 //
 
-CAnimationAssetType::CAnimationAssetType(std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<CAnimationTimelineWindow> _TimelineWindow):
+CAnimationAssetType::CAnimationAssetType(std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<CAnimationTimelineWindow> _TimelineWindow, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_WorkspaceManager(std::move(_WorkspaceManager)),
-  m_TimelineWindow(std::move(_TimelineWindow))
+  m_TimelineWindow(std::move(_TimelineWindow)),
+  m_ActionQueue(std::move(_ActionQueue))
 {
   // Empty
 }
@@ -80,7 +81,7 @@ bool CAnimationAssetType::AttachNewEditor(std::size_t _HostIndex, const TAssetRe
 
   auto Host = m_WorkspaceManager->GetWorkspaces()[_HostIndex]->GetServices().GetService<ISceneAnimationHost>();
 
-  return m_WorkspaceManager->AttachEditor(_HostIndex, std::make_shared<CAnimationEditor>(std::move(Document), std::move(Host)));
+  return m_WorkspaceManager->AttachEditor(_HostIndex, std::make_shared<CAnimationEditor>(std::move(Document), std::move(Host), m_ActionQueue));
 }
 
 } // namespace editor

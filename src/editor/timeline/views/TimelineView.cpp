@@ -2,7 +2,9 @@
 #include "TimelineTime.h"
 #include "TimelineTimeFormat.h"
 #include "editor/timeline/model/Timeline.h"
-#include "editor/timeline/playback/TimelinePlayer.h"
+#include "editor/timeline/presenter/ITimelinePresenter.h"
+#include "editor/timeline/presenter/TimelineSelectMode.h"
+#include "editor/timeline/presenter/TimelineSelection.h"
 
 #include <imgui.h>
 
@@ -21,10 +23,12 @@ constexpr float TrackColumnWidth = 200.0f;
 constexpr float MinGridSpacing   = 80.0f;
 constexpr int   MinorTickCount   = 5;
 constexpr float KeyRadius        = 5.0f;
+constexpr float KeyHitRadius     = 7.0f;
 constexpr float ClipInset        = 2.0f;
 constexpr float ZoomStep         = 1.15f;
 constexpr float WheelScrollStep  = 40.0f;
 constexpr float PlayheadWidth    = 1.5f;
+constexpr float MinBoxSize       = 3.0f;
 constexpr ImU32 OutOfRangeShade  = IM_COL32(0, 0, 0, 70);
 
 constexpr std::array<const char *, 2> TimeFormatNames{"Seconds", "Frames"};
@@ -32,6 +36,11 @@ constexpr std::array<const char *, 2> TimeFormatNames{"Seconds", "Frames"};
 float GetRowHeight()
 {
   return ImGui::GetFrameHeight();
+}
+
+float GetCenterY(const ImVec2 & _Min, const ImVec2 & _Max)
+{
+  return (_Min.y + _Max.y) * 0.5f;
 }
 
 std::string GetTrackLabel(const TTimelineTrack & _Track)
@@ -50,6 +59,12 @@ TTimelineTicks FloorToStep(TTimelineTicks _Time, TTimelineTicks _Step)
   return _Time / _Step * _Step;
 }
 
+TTimelineTicks SnapDeltaToFrame(TTimelineTicks _Delta, int _FrameRate)
+{
+  const double FrameTicks = static_cast<double>(TimelineTicksPerSecond) / static_cast<double>(std::max(_FrameRate, 1));
+  return static_cast<TTimelineTicks>(std::llround(std::round(static_cast<double>(_Delta) / FrameTicks) * FrameTicks));
+}
+
 } // namespace
 
 //
@@ -59,6 +74,7 @@ TTimelineTicks FloorToStep(TTimelineTicks _Time, TTimelineTicks _Step)
 CTimelineView::CTimelineView():
   m_Format(ETimelineTimeFormat::Seconds),
   m_CurrentTime(0),
+  m_IsSnapping(true),
   m_IsFitPending(true)
 {
   // Empty
@@ -68,11 +84,14 @@ CTimelineView::CTimelineView():
 // Interface
 //
 
-void CTimelineView::Draw(const CTimeline & _Timeline, CTimelinePlayer & _Player)
+void CTimelineView::Draw(ITimelinePresenter & _Presenter)
 {
-  m_CurrentTime = _Player.GetTime();
+  const auto & Timeline = _Presenter.GetTimeline();
 
-  DrawToolbar(_Timeline, _Player);
+  m_CurrentTime = _Presenter.GetTime();
+  m_KeyHits.clear();
+
+  DrawToolbar(Timeline, _Presenter);
 
   const ImGuiTableFlags TableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg;
   if (!ImGui::BeginTable("##TimelineTracks", 2, TableFlags))
@@ -82,28 +101,33 @@ void CTimelineView::Draw(const CTimeline & _Timeline, CTimelinePlayer & _Player)
   ImGui::TableSetupColumn("Tracks", ImGuiTableColumnFlags_WidthFixed, TrackColumnWidth);
   ImGui::TableSetupColumn("Lanes", ImGuiTableColumnFlags_WidthStretch);
 
-  DrawRulerRow(_Timeline, _Player);
+  DrawRulerRow(Timeline, _Presenter);
 
-  for (const auto & Track : _Timeline.GetTracks())
-    DrawTrackRow(_Timeline, Track);
+  for (const auto & Track : Timeline.GetTracks())
+    DrawTrackRow(_Presenter, Track);
 
-  if (_Timeline.GetTracks().empty())
+  if (Timeline.GetTracks().empty())
   {
     ImGui::TableNextRow(ImGuiTableRowFlags_None, GetRowHeight());
     ImGui::TableSetColumnIndex(0);
     ImGui::TextDisabled("No tracks");
   }
 
+  DrawSelectionBox(_Presenter);
+
   ImGui::EndTable();
+
+  if (ImGui::Shortcut(ImGuiKey_Delete))
+    _Presenter.DeleteSelection();
 }
 
 //
 // Implementation
 //
 
-void CTimelineView::DrawToolbar(const CTimeline & _Timeline, CTimelinePlayer & _Player)
+void CTimelineView::DrawToolbar(const CTimeline & _Timeline, ITimelinePresenter & _Presenter)
 {
-  DrawPlaybackButtons(_Player);
+  DrawPlaybackButtons(_Presenter);
 
   int FormatIndex = static_cast<int>(m_Format);
 
@@ -112,6 +136,9 @@ void CTimelineView::DrawToolbar(const CTimeline & _Timeline, CTimelinePlayer & _
   ImGui::SetNextItemWidth(ImGui::GetFontSize() * 7.0f);
   if (ImGui::Combo("##TimeFormat", &FormatIndex, TimeFormatNames.data(), static_cast<int>(TimeFormatNames.size())))
     m_Format = static_cast<ETimelineTimeFormat>(FormatIndex);
+
+  ImGui::SameLine();
+  ImGui::Checkbox("Snap", &m_IsSnapping);
 
   ImGui::SameLine();
   if (ImGui::Button("Fit"))
@@ -125,30 +152,30 @@ void CTimelineView::DrawToolbar(const CTimeline & _Timeline, CTimelinePlayer & _
   ImGui::TextUnformatted(TimeText.c_str());
 }
 
-void CTimelineView::DrawPlaybackButtons(CTimelinePlayer & _Player) const
+void CTimelineView::DrawPlaybackButtons(ITimelinePresenter & _Presenter) const
 {
-  if (ImGui::Button(_Player.IsPlaying() ? "Pause" : "Play"))
+  if (ImGui::Button(_Presenter.IsPlaying() ? "Pause" : "Play"))
   {
-    if (_Player.IsPlaying())
-      _Player.Pause();
+    if (_Presenter.IsPlaying())
+      _Presenter.Pause();
     else
-      _Player.Play();
+      _Presenter.Play();
   }
 
   ImGui::SameLine();
-  ImGui::BeginDisabled(!_Player.IsPreviewing());
+  ImGui::BeginDisabled(!_Presenter.IsPreviewing());
   if (ImGui::Button("Stop"))
-    _Player.Stop();
+    _Presenter.Stop();
   ImGui::EndDisabled();
 
-  bool IsLooping = _Player.IsLooping();
+  bool IsLooping = _Presenter.IsLooping();
 
   ImGui::SameLine();
   if (ImGui::Checkbox("Loop", &IsLooping))
-    _Player.SetLooping(IsLooping);
+    _Presenter.SetLooping(IsLooping);
 }
 
-void CTimelineView::DrawRulerRow(const CTimeline & _Timeline, CTimelinePlayer & _Player)
+void CTimelineView::DrawRulerRow(const CTimeline & _Timeline, ITimelinePresenter & _Presenter)
 {
   const float RowHeight = GetRowHeight();
 
@@ -167,9 +194,9 @@ void CTimelineView::DrawRulerRow(const CTimeline & _Timeline, CTimelinePlayer & 
 
   ImGui::InvisibleButton("##Ruler", ImVec2(Width, RowHeight));
   if (ImGui::IsItemActive())
-    ScrubTo(_Player, ImGui::GetIO().MousePos.x - Min.x, _Timeline.GetFrameRate());
+    ScrubTo(_Presenter, ImGui::GetIO().MousePos.x - Min.x, _Timeline.GetFrameRate());
 
-  HandleLaneInput(Min);
+  HandleNavigation(Min);
 
   auto & DrawList = *ImGui::GetWindowDrawList();
   DrawList.AddRectFilled(Min, Max, ImGui::GetColorU32(ImGuiCol_TableHeaderBg));
@@ -206,28 +233,21 @@ void CTimelineView::DrawRulerTicks(ImDrawList & _DrawList, const ImVec2 & _Min, 
     _DrawList.AddRectFilled(ImVec2(std::max(DurationX, _Min.x), _Min.y), _Max, OutOfRangeShade);
 }
 
-void CTimelineView::DrawTrackRow(const CTimeline & _Timeline, const TTimelineTrack & _Track)
+void CTimelineView::DrawTrackRow(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track)
 {
   ImGui::TableNextRow(ImGuiTableRowFlags_None, GetRowHeight());
   ImGui::TableSetColumnIndex(0);
   ImGui::PushID(static_cast<int>(_Track.Id));
 
-  const bool         HasChildren = !_Track.Children.empty();
-  ImGuiTreeNodeFlags Flags       = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen;
-
-  if (!HasChildren)
-    Flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-
-  ImGui::AlignTextToFramePadding();
-  const bool IsOpen = ImGui::TreeNodeEx("##Track", Flags, "%s", GetTrackLabel(_Track).c_str());
+  const bool IsOpen = DrawTrackHeader(_Presenter, _Track);
 
   ImGui::TableSetColumnIndex(1);
-  DrawLane(_Timeline, _Track);
+  DrawLane(_Presenter, _Track);
 
-  if (HasChildren && IsOpen)
+  if (!_Track.Children.empty() && IsOpen)
   {
     for (const auto & Child : _Track.Children)
-      DrawTrackRow(_Timeline, Child);
+      DrawTrackRow(_Presenter, Child);
 
     ImGui::TreePop();
   }
@@ -235,22 +255,61 @@ void CTimelineView::DrawTrackRow(const CTimeline & _Timeline, const TTimelineTra
   ImGui::PopID();
 }
 
-void CTimelineView::DrawLane(const CTimeline & _Timeline, const TTimelineTrack & _Track)
+bool CTimelineView::DrawTrackHeader(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track)
 {
+  const bool         HasChildren = !_Track.Children.empty();
+  ImGuiTreeNodeFlags Flags       = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_AllowOverlap;
+
+  if (!HasChildren)
+    Flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+  if (_Presenter.GetSelection().GetTrack() == _Track.Id)
+    Flags |= ImGuiTreeNodeFlags_Selected;
+
+  ImGui::AlignTextToFramePadding();
+  const bool IsOpen = ImGui::TreeNodeEx("##Track", Flags, "%s", GetTrackLabel(_Track).c_str());
+
+  if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    _Presenter.SelectTrack(_Track.Id);
+
+  if (HasChildren)
+    return IsOpen;
+
+  const float ButtonWidth = ImGui::CalcTextSize("+").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+
+  ImGui::SameLine();
+  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(ImGui::GetContentRegionAvail().x - ButtonWidth, 0.0f));
+
+  ImGui::BeginDisabled(!_Presenter.CanAddKey(_Track.Id));
+  if (ImGui::SmallButton("+"))
+    _Presenter.AddKey(_Track.Id, m_CurrentTime);
+  ImGui::EndDisabled();
+
+  ImGui::SetItemTooltip("Add key at playhead");
+
+  return IsOpen;
+}
+
+void CTimelineView::DrawLane(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track)
+{
+  const auto & Timeline  = _Presenter.GetTimeline();
+  const auto & Selection = _Presenter.GetSelection();
   const float  RowHeight = GetRowHeight();
   const ImVec2 Min       = ImGui::GetCursorScreenPos();
   const float  Width     = std::max(ImGui::GetContentRegionAvail().x, 1.0f);
   const ImVec2 Max(Min.x + Width, Min.y + RowHeight);
 
   ImGui::InvisibleButton("##Lane", ImVec2(Width, RowHeight));
-  HandleLaneInput(Min);
+  HandleNavigation(Min);
+  HandleLaneMouse(_Presenter, _Track, Min, Max);
+  CollectKeyHits(Min, Max, _Track);
 
   auto & DrawList = *ImGui::GetWindowDrawList();
 
-  DrawGrid(DrawList, Min, Max, _Timeline);
+  DrawGrid(DrawList, Min, Max, Timeline);
   DrawClips(DrawList, Min, Max, _Track);
-  DrawKeys(DrawList, Min, Max, _Track, ImGui::GetColorU32(ImGuiCol_Text));
-  DrawChildKeys(DrawList, Min, Max, _Track, ImGui::GetColorU32(ImGuiCol_TextDisabled));
+  DrawKeys(DrawList, Min, Max, _Track, Selection, false);
+  DrawChildKeys(DrawList, Min, Max, _Track, Selection);
   DrawPlayhead(DrawList, Min, Max);
 }
 
@@ -273,9 +332,11 @@ void CTimelineView::DrawGrid(ImDrawList & _DrawList, const ImVec2 & _Min, const 
     _DrawList.AddRectFilled(ImVec2(std::max(DurationX, _Min.x), _Min.y), _Max, OutOfRangeShade);
 }
 
-void CTimelineView::DrawKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, unsigned int _Color) const
+void CTimelineView::DrawKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, const CTimelineSelection & _Selection, bool _IsSummary) const
 {
-  const float CenterY = (_Min.y + _Max.y) * 0.5f;
+  const float CenterY       = GetCenterY(_Min, _Max);
+  const ImU32 NormalColor   = ImGui::GetColorU32(_IsSummary ? ImGuiCol_TextDisabled : ImGuiCol_Text);
+  const ImU32 SelectedColor = ImGui::GetColorU32(ImGuiCol_SliderGrab);
 
   for (const auto & Key : _Track.Keys)
   {
@@ -283,22 +344,24 @@ void CTimelineView::DrawKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const 
     if (PositionX < _Min.x - KeyRadius || PositionX > _Max.x + KeyRadius)
       continue;
 
+    const ImU32 Color = !_IsSummary && _Selection.IsSelected(Key.Id) ? SelectedColor : NormalColor;
+
     if (Key.Interpolation == ETimelineInterpolation::Step)
     {
-      _DrawList.AddRectFilled(ImVec2(PositionX - KeyRadius * 0.8f, CenterY - KeyRadius * 0.8f), ImVec2(PositionX + KeyRadius * 0.8f, CenterY + KeyRadius * 0.8f), _Color);
+      _DrawList.AddRectFilled(ImVec2(PositionX - KeyRadius * 0.8f, CenterY - KeyRadius * 0.8f), ImVec2(PositionX + KeyRadius * 0.8f, CenterY + KeyRadius * 0.8f), Color);
       continue;
     }
 
-    _DrawList.AddQuadFilled(ImVec2(PositionX, CenterY - KeyRadius), ImVec2(PositionX + KeyRadius, CenterY), ImVec2(PositionX, CenterY + KeyRadius), ImVec2(PositionX - KeyRadius, CenterY), _Color);
+    _DrawList.AddQuadFilled(ImVec2(PositionX, CenterY - KeyRadius), ImVec2(PositionX + KeyRadius, CenterY), ImVec2(PositionX, CenterY + KeyRadius), ImVec2(PositionX - KeyRadius, CenterY), Color);
   }
 }
 
-void CTimelineView::DrawChildKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, unsigned int _Color) const
+void CTimelineView::DrawChildKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, const CTimelineSelection & _Selection) const
 {
   for (const auto & Child : _Track.Children)
   {
-    DrawKeys(_DrawList, _Min, _Max, Child, _Color);
-    DrawChildKeys(_DrawList, _Min, _Max, Child, _Color);
+    DrawKeys(_DrawList, _Min, _Max, Child, _Selection, true);
+    DrawChildKeys(_DrawList, _Min, _Max, Child, _Selection);
   }
 }
 
@@ -334,7 +397,79 @@ void CTimelineView::DrawPlayhead(ImDrawList & _DrawList, const ImVec2 & _Min, co
   _DrawList.AddLine(ImVec2(PositionX, _Min.y), ImVec2(PositionX, _Max.y), ImGui::GetColorU32(ImGuiCol_SliderGrab), PlayheadWidth);
 }
 
-void CTimelineView::HandleLaneInput(const ImVec2 & _Min)
+void CTimelineView::DrawSelectionBox(ITimelinePresenter & _Presenter)
+{
+  if (m_Drag.Mode != ETimelineDragMode::BoxSelect)
+    return;
+
+  const ImVec2 Mouse = ImGui::GetIO().MousePos;
+  const ImVec2 BoxMin(std::min(m_Drag.StartX, Mouse.x), std::min(m_Drag.StartY, Mouse.y));
+  const ImVec2 BoxMax(std::max(m_Drag.StartX, Mouse.x), std::max(m_Drag.StartY, Mouse.y));
+  const bool   IsBox = BoxMax.x - BoxMin.x >= MinBoxSize || BoxMax.y - BoxMin.y >= MinBoxSize;
+
+  if (!m_Drag.IsPending)
+  {
+    if (IsBox)
+    {
+      const ImVec2 WindowMin = ImGui::GetWindowPos();
+      const ImVec2 WindowMax(WindowMin.x + ImGui::GetWindowWidth(), WindowMin.y + ImGui::GetWindowHeight());
+      auto &       DrawList  = *ImGui::GetWindowDrawList();
+
+      DrawList.PushClipRect(WindowMin, WindowMax, false);
+      DrawList.AddRectFilled(BoxMin, BoxMax, ImGui::GetColorU32(ImGuiCol_SliderGrab, 0.15f));
+      DrawList.AddRect(BoxMin, BoxMax, ImGui::GetColorU32(ImGuiCol_SliderGrab));
+      DrawList.PopClipRect();
+    }
+
+    return;
+  }
+
+  if (IsBox)
+  {
+    std::vector<TTimelineId> ItemIds;
+
+    for (const auto & Hit : m_KeyHits)
+    {
+      if (Hit.PositionX >= BoxMin.x && Hit.PositionX <= BoxMax.x && Hit.PositionY >= BoxMin.y && Hit.PositionY <= BoxMax.y)
+        ItemIds.push_back(Hit.Id);
+    }
+
+    _Presenter.SelectItems(ItemIds, m_Drag.IsAdding);
+  }
+
+  m_Drag = TTimelineDrag();
+}
+
+void CTimelineView::CollectKeyHits(const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track)
+{
+  const float CenterY = GetCenterY(_Min, _Max);
+
+  for (const auto & Key : _Track.Keys)
+    m_KeyHits.push_back({Key.Id, _Min.x + m_Range.ToOffset(Key.Time), CenterY});
+}
+
+TTimelineId CTimelineView::FindKeyAt(const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, const ImVec2 & _Point) const
+{
+  if (std::abs(_Point.y - GetCenterY(_Min, _Max)) > KeyHitRadius)
+    return InvalidTimelineId;
+
+  TTimelineId BestId       = InvalidTimelineId;
+  float       BestDistance = KeyHitRadius;
+
+  for (const auto & Key : _Track.Keys)
+  {
+    const float Distance = std::abs(_Point.x - (_Min.x + m_Range.ToOffset(Key.Time)));
+    if (Distance > BestDistance)
+      continue;
+
+    BestId       = Key.Id;
+    BestDistance = Distance;
+  }
+
+  return BestId;
+}
+
+void CTimelineView::HandleNavigation(const ImVec2 & _Min)
 {
   if (!ImGui::IsItemHovered())
     return;
@@ -357,10 +492,106 @@ void CTimelineView::HandleLaneInput(const ImVec2 & _Min)
     m_Range.Scroll(-Io.MouseDelta.x);
 }
 
-void CTimelineView::ScrubTo(CTimelinePlayer & _Player, float _Offset, int _FrameRate)
+void CTimelineView::HandleLaneMouse(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track, const ImVec2 & _Min, const ImVec2 & _Max)
+{
+  const int FrameRate = _Presenter.GetTimeline().GetFrameRate();
+
+  const bool IsDoubleClick = ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+
+  if (IsDoubleClick && FindKeyAt(_Min, _Max, _Track, ImGui::GetIO().MousePos) == InvalidTimelineId)
+  {
+    _Presenter.AddKey(_Track.Id, GetMouseTime(_Min, FrameRate));
+    m_Drag = TTimelineDrag();
+    return;
+  }
+
+  if (ImGui::IsItemActivated())
+    HandleLanePress(_Presenter, _Track, _Min, _Max);
+
+  if (ImGui::IsItemActive())
+    HandleLaneDrag(_Presenter, FrameRate);
+
+  if (ImGui::IsItemDeactivated())
+    HandleLaneRelease(_Presenter);
+}
+
+void CTimelineView::HandleLanePress(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track, const ImVec2 & _Min, const ImVec2 & _Max)
+{
+  const auto &      Io    = ImGui::GetIO();
+  const TTimelineId KeyId = FindKeyAt(_Min, _Max, _Track, Io.MousePos);
+
+  m_Drag          = TTimelineDrag();
+  m_Drag.StartX   = Io.MousePos.x;
+  m_Drag.StartY   = Io.MousePos.y;
+  m_Drag.LaneLeft = _Min.x;
+
+  if (KeyId == InvalidTimelineId)
+  {
+    m_Drag.Mode     = ETimelineDragMode::BoxSelect;
+    m_Drag.IsAdding = Io.KeyCtrl || Io.KeyShift;
+
+    if (!m_Drag.IsAdding)
+      _Presenter.SelectTrack(_Track.Id);
+
+    return;
+  }
+
+  if (Io.KeyCtrl)
+  {
+    _Presenter.SelectItem(KeyId, ETimelineSelectMode::Toggle);
+    return;
+  }
+
+  if (!_Presenter.GetSelection().IsSelected(KeyId))
+    _Presenter.SelectItem(KeyId, Io.KeyShift ? ETimelineSelectMode::Add : ETimelineSelectMode::Replace);
+
+  m_Drag.Mode = ETimelineDragMode::MoveKeys;
+}
+
+void CTimelineView::HandleLaneDrag(ITimelinePresenter & _Presenter, int _FrameRate)
+{
+  if (m_Drag.Mode != ETimelineDragMode::MoveKeys)
+    return;
+
+  const auto & Io    = ImGui::GetIO();
+  auto         Delta = m_Range.ToTime(Io.MousePos.x - m_Drag.LaneLeft) - m_Range.ToTime(m_Drag.StartX - m_Drag.LaneLeft);
+
+  if (m_IsSnapping && !Io.KeyAlt)
+    Delta = SnapDeltaToFrame(Delta, _FrameRate);
+
+  if (Delta == m_Drag.Delta)
+    return;
+
+  m_Drag.Delta   = Delta;
+  m_Drag.IsMoved = true;
+
+  _Presenter.PreviewMoveSelection(Delta);
+}
+
+void CTimelineView::HandleLaneRelease(ITimelinePresenter & _Presenter)
+{
+  if (m_Drag.Mode == ETimelineDragMode::BoxSelect)
+  {
+    m_Drag.IsPending = true;
+    return;
+  }
+
+  if (m_Drag.Mode == ETimelineDragMode::MoveKeys && m_Drag.IsMoved)
+    _Presenter.CommitMove();
+
+  m_Drag = TTimelineDrag();
+}
+
+TTimelineTicks CTimelineView::GetMouseTime(const ImVec2 & _Min, int _FrameRate) const
+{
+  const auto Time = m_Range.ToTime(ImGui::GetIO().MousePos.x - _Min.x);
+  return std::max<TTimelineTicks>(m_IsSnapping ? SnapToFrame(Time, _FrameRate) : Time, 0);
+}
+
+void CTimelineView::ScrubTo(ITimelinePresenter & _Presenter, float _Offset, int _FrameRate)
 {
   m_CurrentTime = std::max<TTimelineTicks>(SnapToFrame(m_Range.ToTime(_Offset), _FrameRate), 0);
-  _Player.Scrub(m_CurrentTime);
+  _Presenter.Scrub(m_CurrentTime);
 }
 
 } // namespace editor

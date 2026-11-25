@@ -1,7 +1,7 @@
 #include "AnimationEditor.h"
 #include "AnimationDocument.h"
 #include "AnimationPreview.h"
-#include "editor/timeline/playback/TimelinePlayer.h"
+#include "editor/timeline/presenter/TimelinePresenter.h"
 #include "editor/timeline/views/TimelineView.h"
 #include "views/AnimationTimelineWindow.h"
 
@@ -14,10 +14,10 @@ namespace editor
 // Constructor/Destructor
 //
 
-CAnimationEditor::CAnimationEditor(std::shared_ptr<CAnimationDocument> _Document, std::weak_ptr<ISceneAnimationHost> _Host):
+CAnimationEditor::CAnimationEditor(std::shared_ptr<CAnimationDocument> _Document, std::weak_ptr<ISceneAnimationHost> _Host, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_Document(std::move(_Document)),
   m_TimelineView(std::make_unique<CTimelineView>()),
-  m_Player(std::make_unique<CTimelinePlayer>(std::make_shared<CAnimationPreview>(std::move(_Host))))
+  m_Presenter(std::make_unique<CTimelinePresenter>(m_Document, std::make_shared<CAnimationPreview>(std::move(_Host)), std::move(_ActionQueue)))
 {
   // Empty
 }
@@ -40,7 +40,7 @@ std::vector<core::TTypeKey> CAnimationEditor::GetToolBoxes() const
 
 void CAnimationEditor::Tick(float _DeltaTime)
 {
-  m_Player->Update(m_Document->GetTimeline(), _DeltaTime);
+  m_Presenter->Tick(_DeltaTime);
 }
 
 void CAnimationEditor::OnActivated()
@@ -50,7 +50,7 @@ void CAnimationEditor::OnActivated()
 
 void CAnimationEditor::OnDeactivated()
 {
-  m_Player->Stop();
+  m_Presenter->Stop();
   m_Document->CommitPreview();
 }
 
@@ -68,9 +68,9 @@ CTimelineView & CAnimationEditor::GetTimelineView() const noexcept
   return *m_TimelineView;
 }
 
-CTimelinePlayer & CAnimationEditor::GetPlayer() const noexcept
+CTimelinePresenter & CAnimationEditor::GetPresenter() const noexcept
 {
-  return *m_Player;
+  return *m_Presenter;
 }
 
 } // namespace editor

@@ -7,8 +7,13 @@
 namespace editor
 {
 
+namespace core
+{
+class CActionQueue;
+} // namespace core
+
 class CAnimationDocument;
-class CTimelinePlayer;
+class CTimelinePresenter;
 class CTimelineView;
 class ISceneAnimationHost;
 
@@ -17,7 +22,7 @@ class CAnimationEditor final:
 {
 public: // Constructor/Destructor
 
-  CAnimationEditor(std::shared_ptr<CAnimationDocument> _Document, std::weak_ptr<ISceneAnimationHost> _Host);
+  CAnimationEditor(std::shared_ptr<CAnimationDocument> _Document, std::weak_ptr<ISceneAnimationHost> _Host, std::shared_ptr<core::CActionQueue> _ActionQueue);
 
   ~CAnimationEditor() override;
 
@@ -39,13 +44,13 @@ public: // Interface
 
   CTimelineView & GetTimelineView() const noexcept;
 
-  CTimelinePlayer & GetPlayer() const noexcept;
+  CTimelinePresenter & GetPresenter() const noexcept;
 
 private: // Attributes
 
   std::shared_ptr<CAnimationDocument> m_Document;
   std::unique_ptr<CTimelineView>      m_TimelineView;
-  std::unique_ptr<CTimelinePlayer>    m_Player;
+  std::unique_ptr<CTimelinePresenter> m_Presenter;
 };
 
 } // namespace editor

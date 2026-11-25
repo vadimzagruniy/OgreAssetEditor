@@ -7,6 +7,11 @@
 namespace editor
 {
 
+namespace core
+{
+class CActionQueue;
+} // namespace core
+
 class CAnimationTimelineWindow;
 class CWorkspaceManager;
 
@@ -15,7 +20,7 @@ class CAnimationAssetType final:
 {
 public: // Constructor
 
-  CAnimationAssetType(std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<CAnimationTimelineWindow> _TimelineWindow);
+  CAnimationAssetType(std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<CAnimationTimelineWindow> _TimelineWindow, std::shared_ptr<core::CActionQueue> _ActionQueue);
 
 public: // IAssetType
 
@@ -31,6 +36,7 @@ private: // Attributes
 
   std::shared_ptr<CWorkspaceManager>        m_WorkspaceManager;
   std::shared_ptr<CAnimationTimelineWindow> m_TimelineWindow;
+  std::shared_ptr<core::CActionQueue>       m_ActionQueue;
 };
 
 } // namespace editor

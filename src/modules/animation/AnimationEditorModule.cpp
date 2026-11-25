@@ -1,6 +1,7 @@
 #include "AnimationEditorModule.h"
 #include "AnimationAssetType.h"
 #include "AnimationFactory.h"
+#include "core/ActionQueue.h"
 #include "core/EditorService.h"
 #include "editor/assets/AssetFactoryRegistry.h"
 #include "editor/assets/AssetTypeRegistry.h"
@@ -32,10 +33,11 @@ bool CAnimationEditorModule::Startup(core::CEditorService & _Services, std::stri
   auto AssetFactories   = _Services.GetService<CAssetFactoryRegistry>();
   auto WindowManager    = _Services.GetService<ui::CWindowManager>();
   auto WorkspaceManager = _Services.GetService<CWorkspaceManager>();
+  auto ActionQueue      = _Services.GetService<core::CActionQueue>();
 
-  if (!AssetTypes || !AssetFactories || !WindowManager || !WorkspaceManager)
+  if (!AssetTypes || !AssetFactories || !WindowManager || !WorkspaceManager || !ActionQueue)
   {
-    _Error = "Animation Editor module requires the asset type registry, asset factory registry, window manager and workspace manager services.";
+    _Error = "Animation Editor module requires the asset type registry, asset factory registry, window manager, workspace manager and action queue services.";
     return false;
   }
 
@@ -46,7 +48,7 @@ bool CAnimationEditorModule::Startup(core::CEditorService & _Services, std::stri
 
   m_WindowManager->RegisterToolBox(TimelineDesc, TimelineWindow);
 
-  AssetTypes->Register(std::make_shared<CAnimationAssetType>(std::move(WorkspaceManager), std::move(TimelineWindow)));
+  AssetTypes->Register(std::make_shared<CAnimationAssetType>(std::move(WorkspaceManager), std::move(TimelineWindow), std::move(ActionQueue)));
   AssetFactories->Register(std::make_shared<CAnimationFactory>());
 
   return true;

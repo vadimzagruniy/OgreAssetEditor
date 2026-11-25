@@ -5,7 +5,7 @@
 #include "modules/animation/AnimationDocument.h"
 #include "modules/animation/AnimationEditor.h"
 #include "modules/animation/AnimationEditors.h"
-#include "editor/timeline/playback/TimelinePlayer.h"
+#include "editor/timeline/presenter/TimelinePresenter.h"
 #include "editor/timeline/views/TimelineView.h"
 #include "ui/ChoiceModal.h"
 #include "ui/ChoiceModalDesc.h"
@@ -85,7 +85,7 @@ void CAnimationTimelineWindow::OnGui()
     if (ImGui::BeginTabItem(MakeTabLabel(*Editor).c_str(), &IsOpen, TabFlags))
     {
       m_SelectedPath = Editor->GetDocument().GetRecord().AbsolutePath;
-      Editor->GetTimelineView().Draw(Editor->GetAnimation().GetTimeline(), Editor->GetPlayer());
+      Editor->GetTimelineView().Draw(Editor->GetPresenter());
       ImGui::EndTabItem();
     }
 
@@ -111,8 +111,8 @@ void CAnimationTimelineWindow::StopHiddenPreviews(const std::vector<std::shared_
 {
   for (const auto & Editor : _Editors)
   {
-    if (Editor->GetDocument().GetRecord().AbsolutePath != m_SelectedPath && Editor->GetPlayer().IsPreviewing())
-      Editor->GetPlayer().Stop();
+    if (Editor->GetDocument().GetRecord().AbsolutePath != m_SelectedPath && Editor->GetPresenter().IsPreviewing())
+      Editor->GetPresenter().Stop();
   }
 }
 
