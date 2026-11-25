@@ -21,6 +21,8 @@ public: // Interface
 
   virtual std::vector<core::TTypeKey> GetToolBoxes() const = 0;
 
+  virtual void Tick(float _DeltaTime) = 0;
+
 public: // Events
 
   virtual void OnActivated() = 0;

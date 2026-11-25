@@ -100,6 +100,14 @@ bool CEditorWorkspace::IsActive() const noexcept
   return m_IsActive;
 }
 
+void CEditorWorkspace::Tick(float _DeltaTime)
+{
+  OnTick(_DeltaTime);
+
+  for (const auto & Editor : m_AttachedEditors)
+    Editor->Tick(_DeltaTime);
+}
+
 core::CEditorService & CEditorWorkspace::GetServices() const noexcept
 {
   return *m_Services;
@@ -164,6 +172,11 @@ void CEditorWorkspace::OnActivated()
 }
 
 void CEditorWorkspace::OnDeactivated()
+{
+  // Empty
+}
+
+void CEditorWorkspace::OnTick(float /*_DeltaTime*/)
 {
   // Empty
 }

@@ -91,12 +91,12 @@ private: // Attributes
   std::shared_ptr<CSceneSelection>          m_Selection;
   std::shared_ptr<CSceneEditorController>   m_Controller;
   std::shared_ptr<CSceneNodePropertySource> m_NodeProperties;
-  std::shared_ptr<CSceneAnimationHost>      m_AnimationHost;
   std::unique_ptr<CRenderScene>             m_RenderScene;
   std::unique_ptr<CSceneSync>               m_Sync;
   std::unique_ptr<CViewport>                m_Viewport;
   std::unique_ptr<CTransformGizmo>          m_Gizmo;
   std::unique_ptr<CSceneViewportIcons>      m_Icons;
+  std::shared_ptr<CSceneAnimationHost>      m_AnimationHost;
   ui::CLayout                               m_Toolbar;
   ui::CComboBox &                           m_ModeCombo;
   ui::CComboBox &                           m_SpaceCombo;

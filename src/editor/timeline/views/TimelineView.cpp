@@ -2,6 +2,7 @@
 #include "TimelineTime.h"
 #include "TimelineTimeFormat.h"
 #include "editor/timeline/model/Timeline.h"
+#include "editor/timeline/playback/TimelinePlayer.h"
 
 #include <imgui.h>
 
@@ -67,9 +68,11 @@ CTimelineView::CTimelineView():
 // Interface
 //
 
-void CTimelineView::Draw(const CTimeline & _Timeline)
+void CTimelineView::Draw(const CTimeline & _Timeline, CTimelinePlayer & _Player)
 {
-  DrawToolbar(_Timeline);
+  m_CurrentTime = _Player.GetTime();
+
+  DrawToolbar(_Timeline, _Player);
 
   const ImGuiTableFlags TableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg;
   if (!ImGui::BeginTable("##TimelineTracks", 2, TableFlags))
@@ -79,7 +82,7 @@ void CTimelineView::Draw(const CTimeline & _Timeline)
   ImGui::TableSetupColumn("Tracks", ImGuiTableColumnFlags_WidthFixed, TrackColumnWidth);
   ImGui::TableSetupColumn("Lanes", ImGuiTableColumnFlags_WidthStretch);
 
-  DrawRulerRow(_Timeline);
+  DrawRulerRow(_Timeline, _Player);
 
   for (const auto & Track : _Timeline.GetTracks())
     DrawTrackRow(_Timeline, Track);
@@ -94,23 +97,17 @@ void CTimelineView::Draw(const CTimeline & _Timeline)
   ImGui::EndTable();
 }
 
-TTimelineTicks CTimelineView::GetCurrentTime() const noexcept
-{
-  return m_CurrentTime;
-}
-
-void CTimelineView::SetCurrentTime(TTimelineTicks _Time) noexcept
-{
-  m_CurrentTime = std::max<TTimelineTicks>(_Time, 0);
-}
-
 //
 // Implementation
 //
 
-void CTimelineView::DrawToolbar(const CTimeline & _Timeline)
+void CTimelineView::DrawToolbar(const CTimeline & _Timeline, CTimelinePlayer & _Player)
 {
+  DrawPlaybackButtons(_Player);
+
   int FormatIndex = static_cast<int>(m_Format);
+
+  ImGui::SameLine();
 
   ImGui::SetNextItemWidth(ImGui::GetFontSize() * 7.0f);
   if (ImGui::Combo("##TimeFormat", &FormatIndex, TimeFormatNames.data(), static_cast<int>(TimeFormatNames.size())))
@@ -128,7 +125,30 @@ void CTimelineView::DrawToolbar(const CTimeline & _Timeline)
   ImGui::TextUnformatted(TimeText.c_str());
 }
 
-void CTimelineView::DrawRulerRow(const CTimeline & _Timeline)
+void CTimelineView::DrawPlaybackButtons(CTimelinePlayer & _Player) const
+{
+  if (ImGui::Button(_Player.IsPlaying() ? "Pause" : "Play"))
+  {
+    if (_Player.IsPlaying())
+      _Player.Pause();
+    else
+      _Player.Play();
+  }
+
+  ImGui::SameLine();
+  ImGui::BeginDisabled(!_Player.IsPreviewing());
+  if (ImGui::Button("Stop"))
+    _Player.Stop();
+  ImGui::EndDisabled();
+
+  bool IsLooping = _Player.IsLooping();
+
+  ImGui::SameLine();
+  if (ImGui::Checkbox("Loop", &IsLooping))
+    _Player.SetLooping(IsLooping);
+}
+
+void CTimelineView::DrawRulerRow(const CTimeline & _Timeline, CTimelinePlayer & _Player)
 {
   const float RowHeight = GetRowHeight();
 
@@ -147,7 +167,7 @@ void CTimelineView::DrawRulerRow(const CTimeline & _Timeline)
 
   ImGui::InvisibleButton("##Ruler", ImVec2(Width, RowHeight));
   if (ImGui::IsItemActive())
-    ScrubTo(ImGui::GetIO().MousePos.x - Min.x, _Timeline.GetFrameRate());
+    ScrubTo(_Player, ImGui::GetIO().MousePos.x - Min.x, _Timeline.GetFrameRate());
 
   HandleLaneInput(Min);
 
@@ -337,9 +357,10 @@ void CTimelineView::HandleLaneInput(const ImVec2 & _Min)
     m_Range.Scroll(-Io.MouseDelta.x);
 }
 
-void CTimelineView::ScrubTo(float _Offset, int _FrameRate)
+void CTimelineView::ScrubTo(CTimelinePlayer & _Player, float _Offset, int _FrameRate)
 {
-  SetCurrentTime(SnapToFrame(m_Range.ToTime(_Offset), _FrameRate));
+  m_CurrentTime = std::max<TTimelineTicks>(SnapToFrame(m_Range.ToTime(_Offset), _FrameRate), 0);
+  _Player.Scrub(m_CurrentTime);
 }
 
 } // namespace editor

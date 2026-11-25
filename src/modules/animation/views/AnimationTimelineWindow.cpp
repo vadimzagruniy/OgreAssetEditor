@@ -4,6 +4,8 @@
 #include "editor/workspaces/WorkspaceManager.h"
 #include "modules/animation/AnimationDocument.h"
 #include "modules/animation/AnimationEditor.h"
+#include "modules/animation/AnimationEditors.h"
+#include "editor/timeline/playback/TimelinePlayer.h"
 #include "editor/timeline/views/TimelineView.h"
 #include "ui/ChoiceModal.h"
 #include "ui/ChoiceModalDesc.h"
@@ -21,19 +23,6 @@ namespace editor
 
 namespace
 {
-
-std::vector<std::shared_ptr<CAnimationEditor>> FindAnimationEditors(const CEditorWorkspace & _Workspace)
-{
-  std::vector<std::shared_ptr<CAnimationEditor>> Editors;
-
-  for (const auto & Attached : _Workspace.GetAttachedEditors())
-  {
-    if (auto Editor = std::dynamic_pointer_cast<CAnimationEditor>(Attached))
-      Editors.push_back(std::move(Editor));
-  }
-
-  return Editors;
-}
 
 std::string MakeTabLabel(const CAnimationEditor & _Editor)
 {
@@ -95,7 +84,8 @@ void CAnimationTimelineWindow::OnGui()
 
     if (ImGui::BeginTabItem(MakeTabLabel(*Editor).c_str(), &IsOpen, TabFlags))
     {
-      Editor->GetTimelineView().Draw(Editor->GetAnimation().GetTimeline());
+      m_SelectedPath = Editor->GetDocument().GetRecord().AbsolutePath;
+      Editor->GetTimelineView().Draw(Editor->GetAnimation().GetTimeline(), Editor->GetPlayer());
       ImGui::EndTabItem();
     }
 
@@ -107,6 +97,8 @@ void CAnimationTimelineWindow::OnGui()
 
   m_RequestedPath.clear();
 
+  StopHiddenPreviews(Editors);
+
   if (ClosedEditor)
     RequestClose(ClosedEditor);
 }
@@ -114,6 +106,15 @@ void CAnimationTimelineWindow::OnGui()
 //
 // Implementation
 //
+
+void CAnimationTimelineWindow::StopHiddenPreviews(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors) const
+{
+  for (const auto & Editor : _Editors)
+  {
+    if (Editor->GetDocument().GetRecord().AbsolutePath != m_SelectedPath && Editor->GetPlayer().IsPreviewing())
+      Editor->GetPlayer().Stop();
+  }
+}
 
 void CAnimationTimelineWindow::RequestClose(const std::shared_ptr<CAnimationEditor> & _Editor) const
 {

@@ -1,6 +1,7 @@
 #include "AnimationAssetType.h"
 #include "AnimationDocument.h"
 #include "AnimationEditor.h"
+#include "core/EditorService.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
 #include "editor/workspaces/EditorWorkspace.h"
@@ -77,7 +78,9 @@ bool CAnimationAssetType::AttachNewEditor(std::size_t _HostIndex, const TAssetRe
     return false;
   }
 
-  return m_WorkspaceManager->AttachEditor(_HostIndex, std::make_shared<CAnimationEditor>(std::move(Document)));
+  auto Host = m_WorkspaceManager->GetWorkspaces()[_HostIndex]->GetServices().GetService<ISceneAnimationHost>();
+
+  return m_WorkspaceManager->AttachEditor(_HostIndex, std::make_shared<CAnimationEditor>(std::move(Document), std::move(Host)));
 }
 
 } // namespace editor

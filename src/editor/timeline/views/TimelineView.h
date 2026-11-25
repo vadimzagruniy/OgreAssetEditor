@@ -10,6 +10,7 @@ namespace editor
 {
 
 class CTimeline;
+class CTimelinePlayer;
 enum class ETimelineTimeFormat;
 struct TTimelineTrack;
 
@@ -21,17 +22,15 @@ public: // Constructor
 
 public: // Interface
 
-  void Draw(const CTimeline & _Timeline);
-
-  TTimelineTicks GetCurrentTime() const noexcept;
-
-  void SetCurrentTime(TTimelineTicks _Time) noexcept;
+  void Draw(const CTimeline & _Timeline, CTimelinePlayer & _Player);
 
 private: // Implementation
 
-  void DrawToolbar(const CTimeline & _Timeline);
+  void DrawToolbar(const CTimeline & _Timeline, CTimelinePlayer & _Player);
 
-  void DrawRulerRow(const CTimeline & _Timeline);
+  void DrawPlaybackButtons(CTimelinePlayer & _Player) const;
+
+  void DrawRulerRow(const CTimeline & _Timeline, CTimelinePlayer & _Player);
 
   void DrawRulerTicks(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const CTimeline & _Timeline) const;
 
@@ -51,7 +50,7 @@ private: // Implementation
 
   void HandleLaneInput(const ImVec2 & _Min);
 
-  void ScrubTo(float _Offset, int _FrameRate);
+  void ScrubTo(CTimelinePlayer & _Player, float _Offset, int _FrameRate);
 
 private: // Attributes
 

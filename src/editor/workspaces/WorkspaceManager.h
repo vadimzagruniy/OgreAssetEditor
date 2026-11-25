@@ -71,6 +71,8 @@ public: // Interface
 
   bool SaveAll(std::string & _Error);
 
+  void Tick(float _DeltaTime);
+
   bool HasActive() const noexcept;
 
   std::size_t GetActiveIndex() const noexcept;

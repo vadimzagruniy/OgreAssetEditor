@@ -284,6 +284,12 @@ bool CWorkspaceManager::SaveAll(std::string & _Error)
   return IsSaved;
 }
 
+void CWorkspaceManager::Tick(float _DeltaTime)
+{
+  for (const auto & Workspace : m_Workspaces)
+    Workspace->Tick(_DeltaTime);
+}
+
 bool CWorkspaceManager::HasActive() const noexcept
 {
   return m_HasActive;

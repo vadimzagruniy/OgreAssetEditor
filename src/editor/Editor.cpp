@@ -94,6 +94,7 @@ void CEditor::Shutdown() noexcept
 void CEditor::Tick(float _DeltaTime)
 {
   m_Modules->Tick(_DeltaTime);
+  m_WorkspaceManager->Tick(_DeltaTime);
 }
 
 void CEditor::Draw()

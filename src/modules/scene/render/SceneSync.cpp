@@ -100,6 +100,25 @@ std::optional<float> CSceneSync::PickDistance(const Ogre::Ray & _Ray) const
   return Distance;
 }
 
+Ogre::SceneNode * CSceneSync::FindOgreNode(const std::string & _Name) const
+{
+  const auto BindingIterator = m_Bindings.find(_Name);
+  return BindingIterator == m_Bindings.end() ? nullptr : BindingIterator->second.Node;
+}
+
+void CSceneSync::RestoreTransform(const CSceneGraph & _Graph, const std::string & _Name)
+{
+  auto * Node = FindOgreNode(_Name);
+  if (!Node || !_Graph.HasNode(_Name))
+    return;
+
+  const auto & Transform = _Graph.GetNode(_Name).GetTransform();
+
+  Node->setPosition(Transform.Position);
+  Node->setOrientation(Transform.Orientation);
+  Node->setScale(Transform.Scale);
+}
+
 //
 // Implementation
 //

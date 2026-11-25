@@ -46,6 +46,8 @@ public: // Interface
 
   bool IsActive() const noexcept;
 
+  void Tick(float _DeltaTime);
+
   core::CEditorService & GetServices() const noexcept;
 
   void AttachEditor(std::shared_ptr<IAttachedEditor> _Editor);
@@ -67,6 +69,8 @@ public: // Events
   virtual void OnActivated();
 
   virtual void OnDeactivated();
+
+  virtual void OnTick(float _DeltaTime);
 
   virtual void OnGui() = 0;
 
