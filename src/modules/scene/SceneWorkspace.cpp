@@ -65,7 +65,7 @@ CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std:
   m_Viewport(std::make_unique<CViewport>(*m_RenderScene)),
   m_Gizmo(std::make_unique<CTransformGizmo>(*m_RenderScene)),
   m_Icons(std::make_unique<CSceneViewportIcons>(*m_RenderScene)),
-  m_AnimationHost(std::make_shared<CSceneAnimationHost>(m_Document, *m_Sync)),
+  m_AnimationHost(std::make_shared<CSceneAnimationHost>(m_Document, m_Selection, *m_Sync)),
   m_Toolbar(ui::ELayoutDirection::Row),
   m_ModeCombo(m_Toolbar.Add(ui::CComboBox("Tool"))),
   m_SpaceCombo(m_Toolbar.Add(ui::CComboBox("Space"))),

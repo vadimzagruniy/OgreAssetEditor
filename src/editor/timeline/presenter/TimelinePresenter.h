@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ITimelinePresenter.h"
+#include "editor/inspector/PropertyValue.h"
+#include "editor/timeline/model/TimelineTrackLocation.h"
 
 #include <cstddef>
 #include <memory>
@@ -16,6 +18,7 @@ class CActionQueue;
 class CTimelineDocument;
 class CTimelinePlayer;
 class ITimelineEvaluator;
+class ITimelineTrackSource;
 struct TTimelineChange;
 
 class CTimelinePresenter final:
@@ -23,7 +26,7 @@ class CTimelinePresenter final:
 {
 public: // Constructor/Destructor
 
-  CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<ITimelineEvaluator> _Evaluator, std::shared_ptr<core::CActionQueue> _ActionQueue);
+  CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<ITimelineEvaluator> _Evaluator, std::shared_ptr<const ITimelineTrackSource> _TrackSource, std::shared_ptr<core::CActionQueue> _ActionQueue);
 
   ~CTimelinePresenter() override;
 
@@ -46,6 +49,8 @@ public: // ITimelinePresenter
   bool IsLooping() const override;
 
   bool CanAddKey(TTimelineId _TrackId) const override;
+
+  std::vector<TTimelineTrackTemplate> GetTrackTemplates() const override;
 
   void Play() override;
 
@@ -71,6 +76,12 @@ public: // ITimelinePresenter
 
   void AddKey(TTimelineId _TrackId, TTimelineTicks _Time) override;
 
+  void AddTrack(const TTimelineTrack & _Track) override;
+
+  void DeleteTrack(TTimelineId _TrackId) override;
+
+  void RenameTrack(TTimelineId _TrackId, const std::string & _Name) override;
+
 public: // Interface
 
   void Tick(float _DeltaTime);
@@ -79,17 +90,22 @@ private: // Implementation
 
   std::vector<TTimelineId> GetSelectedItems() const;
 
+  TPropertyValue FindKeyValue(const TTimelineTrack & _Track, TTimelineTicks _Time) const;
+
+  TTimelineTrackLocation FindNewTrackLocation() const;
+
 private: // Events
 
   void OnDocumentChanged(const TTimelineChange & _Change);
 
 private: // Attributes
 
-  std::shared_ptr<CTimelineDocument>  m_Document;
-  std::unique_ptr<CTimelinePlayer>    m_Player;
-  std::shared_ptr<CTimelineSelection> m_Selection;
-  std::shared_ptr<core::CActionQueue> m_ActionQueue;
-  std::size_t                         m_ChangedConnection;
+  std::shared_ptr<CTimelineDocument>          m_Document;
+  std::unique_ptr<CTimelinePlayer>            m_Player;
+  std::shared_ptr<const ITimelineTrackSource> m_TrackSource;
+  std::shared_ptr<CTimelineSelection>         m_Selection;
+  std::shared_ptr<core::CActionQueue>         m_ActionQueue;
+  std::size_t                                 m_ChangedConnection;
 };
 
 } // namespace editor

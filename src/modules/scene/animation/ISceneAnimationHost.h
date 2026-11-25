@@ -19,6 +19,8 @@ public: // Interface
 
   virtual const CSceneGraph & GetGraph() const = 0;
 
+  virtual std::string GetSelectedNode() const = 0;
+
   virtual Ogre::SceneNode * FindSceneNode(const std::string & _Name) const = 0;
 
   virtual void RestoreNode(const std::string & _Name) = 0;

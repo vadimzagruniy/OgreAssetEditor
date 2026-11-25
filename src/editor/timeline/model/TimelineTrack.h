@@ -6,10 +6,13 @@
 #include "TimelineTarget.h"
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace editor
 {
+
+inline constexpr std::string_view TimelineGroupType = "group";
 
 struct TTimelineTrack
 {

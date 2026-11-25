@@ -1,4 +1,5 @@
 #include "AnimationPreview.h"
+#include "AnimationTracks.h"
 #include "editor/timeline/model/Timeline.h"
 #include "editor/timeline/playback/TimelineKeyEvaluation.h"
 #include "modules/scene/animation/ISceneAnimationHost.h"
@@ -10,16 +11,6 @@
 
 namespace editor
 {
-
-namespace
-{
-
-const std::string TransformTrackType  = "transform";
-const std::string PositionProperty    = "position";
-const std::string OrientationProperty = "orientation";
-const std::string ScaleProperty       = "scale";
-
-} // namespace
 
 //
 // Constructor

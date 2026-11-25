@@ -1,8 +1,10 @@
 #pragma once
 
+#include "TimelineTrackTemplate.h"
 #include "editor/timeline/model/TimelineId.h"
 #include "editor/timeline/model/TimelineTicks.h"
 
+#include <string>
 #include <vector>
 
 namespace editor
@@ -34,6 +36,8 @@ public: // State
 
   virtual bool CanAddKey(TTimelineId _TrackId) const = 0;
 
+  virtual std::vector<TTimelineTrackTemplate> GetTrackTemplates() const = 0;
+
 public: // Actions
 
   virtual void Play() = 0;
@@ -59,6 +63,12 @@ public: // Actions
   virtual void DeleteSelection() = 0;
 
   virtual void AddKey(TTimelineId _TrackId, TTimelineTicks _Time) = 0;
+
+  virtual void AddTrack(const TTimelineTrack & _Track) = 0;
+
+  virtual void DeleteTrack(TTimelineId _TrackId) = 0;
+
+  virtual void RenameTrack(TTimelineId _TrackId, const std::string & _Name) = 0;
 };
 
 } // namespace editor

@@ -74,6 +74,9 @@ TTimelineTicks SnapDeltaToFrame(TTimelineTicks _Delta, int _FrameRate)
 CTimelineView::CTimelineView():
   m_Format(ETimelineTimeFormat::Seconds),
   m_CurrentTime(0),
+  m_RenamingTrack(InvalidTimelineId),
+  m_RenameBuffer{},
+  m_IsRenameFocusPending(false),
   m_IsSnapping(true),
   m_IsFitPending(true)
 {
@@ -144,6 +147,9 @@ void CTimelineView::DrawToolbar(const CTimeline & _Timeline, ITimelinePresenter 
   if (ImGui::Button("Fit"))
     m_IsFitPending = true;
 
+  ImGui::SameLine();
+  DrawAddTrackMenu(_Presenter);
+
   const auto FrameRate = _Timeline.GetFrameRate();
   const auto TimeText  = FormatTimelineTime(m_CurrentTime, m_Format, FrameRate) + " / " + FormatTimelineTime(_Timeline.GetDuration(), m_Format, FrameRate);
 
@@ -173,6 +179,39 @@ void CTimelineView::DrawPlaybackButtons(ITimelinePresenter & _Presenter) const
   ImGui::SameLine();
   if (ImGui::Checkbox("Loop", &IsLooping))
     _Presenter.SetLooping(IsLooping);
+}
+
+void CTimelineView::DrawAddTrackMenu(ITimelinePresenter & _Presenter) const
+{
+  if (ImGui::Button("Add Track"))
+    ImGui::OpenPopup("##AddTrackMenu");
+
+  if (!ImGui::BeginPopup("##AddTrackMenu"))
+    return;
+
+  const auto Templates = _Presenter.GetTrackTemplates();
+
+  for (const auto & Template : Templates)
+  {
+    if (ImGui::MenuItem(Template.Label.c_str()))
+      _Presenter.AddTrack(Template.Track);
+  }
+
+  if (Templates.empty())
+    ImGui::TextDisabled("Select a scene node to add its tracks");
+
+  ImGui::Separator();
+
+  if (ImGui::MenuItem("Group"))
+  {
+    TTimelineTrack Group;
+    Group.TypeId = TimelineGroupType;
+    Group.Name   = "Group";
+
+    _Presenter.AddTrack(Group);
+  }
+
+  ImGui::EndPopup();
 }
 
 void CTimelineView::DrawRulerRow(const CTimeline & _Timeline, ITimelinePresenter & _Presenter)
@@ -266,15 +305,46 @@ bool CTimelineView::DrawTrackHeader(ITimelinePresenter & _Presenter, const TTime
   if (_Presenter.GetSelection().GetTrack() == _Track.Id)
     Flags |= ImGuiTreeNodeFlags_Selected;
 
-  ImGui::AlignTextToFramePadding();
-  const bool IsOpen = ImGui::TreeNodeEx("##Track", Flags, "%s", GetTrackLabel(_Track).c_str());
+  const bool        IsRenaming = m_RenamingTrack == _Track.Id;
+  const std::string Label      = IsRenaming ? std::string() : GetTrackLabel(_Track);
 
-  if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+  ImGui::AlignTextToFramePadding();
+  const bool IsOpen = ImGui::TreeNodeEx("##Track", Flags, "%s", Label.c_str());
+
+  if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) || ImGui::IsItemClicked(ImGuiMouseButton_Right)) && !ImGui::IsItemToggledOpen())
     _Presenter.SelectTrack(_Track.Id);
 
-  if (HasChildren)
-    return IsOpen;
+  DrawTrackContextMenu(_Presenter, _Track);
 
+  if (IsRenaming)
+  {
+    ImGui::SameLine();
+    DrawRenameField(_Presenter);
+    return IsOpen;
+  }
+
+  if (!HasChildren && _Track.TypeId != TimelineGroupType)
+    DrawAddKeyButton(_Presenter, _Track);
+
+  return IsOpen;
+}
+
+void CTimelineView::DrawTrackContextMenu(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track)
+{
+  if (!ImGui::BeginPopupContextItem("##TrackMenu"))
+    return;
+
+  if (ImGui::MenuItem("Rename"))
+    BeginRename(_Track);
+
+  if (ImGui::MenuItem("Delete", "Del"))
+    _Presenter.DeleteTrack(_Track.Id);
+
+  ImGui::EndPopup();
+}
+
+void CTimelineView::DrawAddKeyButton(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track) const
+{
   const float ButtonWidth = ImGui::CalcTextSize("+").x + ImGui::GetStyle().FramePadding.x * 2.0f;
 
   ImGui::SameLine();
@@ -286,8 +356,44 @@ bool CTimelineView::DrawTrackHeader(ITimelinePresenter & _Presenter, const TTime
   ImGui::EndDisabled();
 
   ImGui::SetItemTooltip("Add key at playhead");
+}
 
-  return IsOpen;
+void CTimelineView::DrawRenameField(ITimelinePresenter & _Presenter)
+{
+  if (m_IsRenameFocusPending)
+    ImGui::SetKeyboardFocusHere();
+
+  ImGui::SetNextItemWidth(-1.0f);
+
+  const ImGuiInputTextFlags InputFlags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll;
+
+  if (ImGui::InputText("##Rename", m_RenameBuffer.data(), m_RenameBuffer.size(), InputFlags))
+  {
+    const std::string NewName = m_RenameBuffer.data();
+
+    if (!NewName.empty())
+      _Presenter.RenameTrack(m_RenamingTrack, NewName);
+
+    m_RenamingTrack = InvalidTimelineId;
+    return;
+  }
+
+  if (!m_IsRenameFocusPending && !ImGui::IsItemActive())
+    m_RenamingTrack = InvalidTimelineId;
+
+  m_IsRenameFocusPending = false;
+}
+
+void CTimelineView::BeginRename(const TTimelineTrack & _Track)
+{
+  const auto Label  = GetTrackLabel(_Track);
+  const auto Length = std::min(Label.size(), m_RenameBuffer.size() - 1);
+
+  m_RenameBuffer.fill('\0');
+  std::copy_n(Label.begin(), Length, m_RenameBuffer.begin());
+
+  m_RenamingTrack        = _Track.Id;
+  m_IsRenameFocusPending = true;
 }
 
 void CTimelineView::DrawLane(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track)

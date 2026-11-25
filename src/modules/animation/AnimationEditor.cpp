@@ -1,6 +1,7 @@
 #include "AnimationEditor.h"
 #include "AnimationDocument.h"
 #include "AnimationPreview.h"
+#include "AnimationTrackSource.h"
 #include "editor/timeline/presenter/TimelinePresenter.h"
 #include "editor/timeline/views/TimelineView.h"
 #include "views/AnimationTimelineWindow.h"
@@ -17,7 +18,7 @@ namespace editor
 CAnimationEditor::CAnimationEditor(std::shared_ptr<CAnimationDocument> _Document, std::weak_ptr<ISceneAnimationHost> _Host, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_Document(std::move(_Document)),
   m_TimelineView(std::make_unique<CTimelineView>()),
-  m_Presenter(std::make_unique<CTimelinePresenter>(m_Document, std::make_shared<CAnimationPreview>(std::move(_Host)), std::move(_ActionQueue)))
+  m_Presenter(std::make_unique<CTimelinePresenter>(m_Document, std::make_shared<CAnimationPreview>(_Host), std::make_shared<CAnimationTrackSource>(_Host), std::move(_ActionQueue)))
 {
   // Empty
 }

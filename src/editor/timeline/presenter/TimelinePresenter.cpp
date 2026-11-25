@@ -1,4 +1,5 @@
 #include "TimelinePresenter.h"
+#include "ITimelineTrackSource.h"
 #include "TimelineSelectMode.h"
 #include "TimelineSelection.h"
 #include "core/ActionQueue.h"
@@ -16,9 +17,10 @@ namespace editor
 // Constructor/Destructor
 //
 
-CTimelinePresenter::CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<ITimelineEvaluator> _Evaluator, std::shared_ptr<core::CActionQueue> _ActionQueue):
+CTimelinePresenter::CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Document, std::shared_ptr<ITimelineEvaluator> _Evaluator, std::shared_ptr<const ITimelineTrackSource> _TrackSource, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_Document(std::move(_Document)),
   m_Player(std::make_unique<CTimelinePlayer>(std::move(_Evaluator))),
+  m_TrackSource(std::move(_TrackSource)),
   m_Selection(std::make_shared<CTimelineSelection>()),
   m_ActionQueue(std::move(_ActionQueue)),
   m_ChangedConnection(0)
@@ -75,7 +77,15 @@ bool CTimelinePresenter::CanAddKey(TTimelineId _TrackId) const
     return false;
 
   const auto & Track = Timeline.GetTrack(_TrackId);
-  return Track.Children.empty() && !Track.Keys.empty();
+  if (Track.TypeId == TimelineGroupType || !Track.Children.empty())
+    return false;
+
+  return !std::holds_alternative<std::monostate>(FindKeyValue(Track, m_Player->GetTime()));
+}
+
+std::vector<TTimelineTrackTemplate> CTimelinePresenter::GetTrackTemplates() const
+{
+  return m_TrackSource->GetTrackTemplates(m_Document->GetTimeline());
 }
 
 void CTimelinePresenter::Play()
@@ -148,7 +158,12 @@ void CTimelinePresenter::CommitMove()
 void CTimelinePresenter::DeleteSelection()
 {
   if (m_Selection->GetItems().empty())
+  {
+    if (m_Selection->GetTrack() != InvalidTimelineId)
+      DeleteTrack(m_Selection->GetTrack());
+
     return;
+  }
 
   m_ActionQueue->Post([Document = m_Document, ItemIds = GetSelectedItems()]
   {
@@ -161,24 +176,58 @@ void CTimelinePresenter::AddKey(TTimelineId _TrackId, TTimelineTicks _Time)
   if (!CanAddKey(_TrackId))
     return;
 
-  const auto & Keys = m_Document->GetTimeline().GetTrack(_TrackId).Keys;
+  const auto & Track = m_Document->GetTimeline().GetTrack(_TrackId);
+  const auto & Keys  = Track.Keys;
 
   TTimelineKey Key;
   Key.Time  = std::max<TTimelineTicks>(_Time, 0);
-  Key.Value = EvaluateKeys(Keys, Key.Time);
+  Key.Value = FindKeyValue(Track, Key.Time);
 
   const auto Previous = std::find_if(Keys.rbegin(), Keys.rend(), [&Key](const TTimelineKey & _Existing)
   {
     return _Existing.Time <= Key.Time;
   });
 
-  Key.Interpolation = Previous != Keys.rend() ? Previous->Interpolation : Keys.front().Interpolation;
+  if (Previous != Keys.rend())
+    Key.Interpolation = Previous->Interpolation;
+  else
+  if (!Keys.empty())
+    Key.Interpolation = Keys.front().Interpolation;
 
   m_ActionQueue->Post([Document = m_Document, Selection = m_Selection, _TrackId, Key]
   {
     const auto KeyId = Document->AddKey(_TrackId, Key);
     if (KeyId != InvalidTimelineId)
       Selection->SelectItem(KeyId, false);
+  });
+}
+
+void CTimelinePresenter::AddTrack(const TTimelineTrack & _Track)
+{
+  m_ActionQueue->Post([Document = m_Document, Selection = m_Selection, Location = FindNewTrackLocation(), _Track]
+  {
+    const auto TrackId = Document->AddTrack(Location, _Track);
+    if (TrackId == InvalidTimelineId)
+      return;
+
+    Selection->ClearItems();
+    Selection->SelectTrack(TrackId);
+  });
+}
+
+void CTimelinePresenter::DeleteTrack(TTimelineId _TrackId)
+{
+  m_ActionQueue->Post([Document = m_Document, _TrackId]
+  {
+    Document->RemoveTrack(_TrackId);
+  });
+}
+
+void CTimelinePresenter::RenameTrack(TTimelineId _TrackId, const std::string & _Name)
+{
+  m_ActionQueue->Post([Document = m_Document, _TrackId, _Name]
+  {
+    Document->RenameTrack(_TrackId, _Name);
   });
 }
 
@@ -199,6 +248,30 @@ std::vector<TTimelineId> CTimelinePresenter::GetSelectedItems() const
 {
   const auto & Items = m_Selection->GetItems();
   return {Items.begin(), Items.end()};
+}
+
+TPropertyValue CTimelinePresenter::FindKeyValue(const TTimelineTrack & _Track, TTimelineTicks _Time) const
+{
+  if (!_Track.Keys.empty())
+    return EvaluateKeys(_Track.Keys, _Time);
+
+  return m_TrackSource->CaptureValue(_Track);
+}
+
+TTimelineTrackLocation CTimelinePresenter::FindNewTrackLocation() const
+{
+  const auto & Timeline = m_Document->GetTimeline();
+  const auto   TrackId  = m_Selection->GetTrack();
+  const auto   Location = Timeline.FindTrackLocation(TrackId);
+
+  if (!Location)
+    return {InvalidTimelineId, Timeline.GetTracks().size()};
+
+  const auto & Track = Timeline.GetTrack(TrackId);
+  if (Track.TypeId == TimelineGroupType)
+    return {TrackId, Track.Children.size()};
+
+  return {Location->ParentId, Location->Index + 1};
 }
 
 //

@@ -8,6 +8,7 @@ namespace editor
 {
 
 class CSceneDocument;
+class CSceneSelection;
 class CSceneSync;
 
 class CSceneAnimationHost final:
@@ -15,11 +16,13 @@ class CSceneAnimationHost final:
 {
 public: // Constructor
 
-  CSceneAnimationHost(std::shared_ptr<const CSceneDocument> _Document, CSceneSync & _Sync);
+  CSceneAnimationHost(std::shared_ptr<const CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection, CSceneSync & _Sync);
 
 public: // ISceneAnimationHost
 
   const CSceneGraph & GetGraph() const override;
+
+  std::string GetSelectedNode() const override;
 
   Ogre::SceneNode * FindSceneNode(const std::string & _Name) const override;
 
@@ -27,8 +30,9 @@ public: // ISceneAnimationHost
 
 private: // Attributes
 
-  std::shared_ptr<const CSceneDocument> m_Document;
-  CSceneSync &                          m_Sync;
+  std::shared_ptr<const CSceneDocument>  m_Document;
+  std::shared_ptr<const CSceneSelection> m_Selection;
+  CSceneSync &                           m_Sync;
 };
 
 } // namespace editor

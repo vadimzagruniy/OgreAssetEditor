@@ -3,8 +3,10 @@
 #include "TimelineDrag.h"
 #include "TimelineKeyHit.h"
 #include "TimelineViewRange.h"
+#include "editor/timeline/model/TimelineId.h"
 #include "editor/timeline/model/TimelineTicks.h"
 
+#include <array>
 #include <vector>
 
 struct ImDrawList;
@@ -35,6 +37,8 @@ private: // Implementation
 
   void DrawPlaybackButtons(ITimelinePresenter & _Presenter) const;
 
+  void DrawAddTrackMenu(ITimelinePresenter & _Presenter) const;
+
   void DrawRulerRow(const CTimeline & _Timeline, ITimelinePresenter & _Presenter);
 
   void DrawRulerTicks(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const CTimeline & _Timeline) const;
@@ -42,6 +46,14 @@ private: // Implementation
   void DrawTrackRow(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track);
 
   bool DrawTrackHeader(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track);
+
+  void DrawTrackContextMenu(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track);
+
+  void DrawAddKeyButton(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track) const;
+
+  void DrawRenameField(ITimelinePresenter & _Presenter);
+
+  void BeginRename(const TTimelineTrack & _Track);
 
   void DrawLane(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track);
 
@@ -82,6 +94,9 @@ private: // Attributes
   TTimelineTicks               m_CurrentTime;
   TTimelineDrag                m_Drag;
   std::vector<TTimelineKeyHit> m_KeyHits;
+  TTimelineId                  m_RenamingTrack;
+  std::array<char, 256>        m_RenameBuffer;
+  bool                         m_IsRenameFocusPending;
   bool                         m_IsSnapping;
   bool                         m_IsFitPending;
 };
