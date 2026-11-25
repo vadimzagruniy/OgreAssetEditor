@@ -14,7 +14,8 @@ namespace editor::ui
 CWindow::CWindow(std::string _Title, std::string _Label):
   m_Title(std::move(_Title)),
   m_Label(std::move(_Label)),
-  m_FocusFrame(-1)
+  m_FocusFrame(-1),
+  m_IsFocusRequested(false)
 {
   // Empty
 }
@@ -29,6 +30,12 @@ void CWindow::Draw()
 {
   if (!IsOpen())
     return;
+
+  if (m_IsFocusRequested)
+  {
+    ImGui::SetNextWindowFocus();
+    m_IsFocusRequested = false;
+  }
 
   const bool IsBegun = BeginWindow();
 
@@ -54,6 +61,11 @@ const std::string & CWindow::GetLabel() const noexcept
 int CWindow::GetFocusFrame() const noexcept
 {
   return m_FocusFrame;
+}
+
+void CWindow::RequestFocus() noexcept
+{
+  m_IsFocusRequested = true;
 }
 
 } // namespace editor::ui

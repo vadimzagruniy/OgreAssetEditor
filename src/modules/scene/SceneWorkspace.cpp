@@ -3,6 +3,8 @@
 #include "SceneDocument.h"
 #include "SceneSelection.h"
 #include "SceneTemplatePayload.h"
+#include "animation/SceneAnimationHost.h"
+#include "core/EditorService.h"
 #include "editor/assets/AssetPayload.h"
 #include "editor/render/RenderScene.h"
 #include "editor/viewport/gizmo/TransformGizmo.h"
@@ -58,6 +60,7 @@ CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std:
   m_Selection(std::make_shared<CSceneSelection>()),
   m_Controller(std::move(_Controller)),
   m_NodeProperties(std::make_shared<CSceneNodePropertySource>(m_Document, m_Selection)),
+  m_AnimationHost(std::make_shared<CSceneAnimationHost>(m_Document)),
   m_RenderScene(std::make_unique<CRenderScene>()),
   m_Sync(std::make_unique<CSceneSync>(*m_RenderScene, std::move(_ResourceGroup), std::move(_NodeBindings), std::move(_Log))),
   m_Viewport(std::make_unique<CViewport>(*m_RenderScene)),
@@ -68,6 +71,8 @@ CSceneWorkspace::CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std:
   m_SpaceCombo(m_Toolbar.Add(ui::CComboBox("Space"))),
   m_ChangedConnection(0)
 {
+  GetServices().Register<ISceneAnimationHost>(m_AnimationHost);
+
   m_Sync->Update(*m_Document);
   m_RenderScene->MarkContentReplaced();
   UpdateHeadlight();

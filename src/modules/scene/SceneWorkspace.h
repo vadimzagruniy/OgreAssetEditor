@@ -23,6 +23,7 @@ class CComboBox;
 } // namespace ui
 
 class CRenderScene;
+class CSceneAnimationHost;
 class CSceneDocument;
 class CSceneEditorController;
 class CSceneNodeBindings;
@@ -90,6 +91,7 @@ private: // Attributes
   std::shared_ptr<CSceneSelection>          m_Selection;
   std::shared_ptr<CSceneEditorController>   m_Controller;
   std::shared_ptr<CSceneNodePropertySource> m_NodeProperties;
+  std::shared_ptr<CSceneAnimationHost>      m_AnimationHost;
   std::unique_ptr<CRenderScene>             m_RenderScene;
   std::unique_ptr<CSceneSync>               m_Sync;
   std::unique_ptr<CViewport>                m_Viewport;

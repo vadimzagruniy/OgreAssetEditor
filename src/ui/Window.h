@@ -27,6 +27,8 @@ public: // Interface
 
   int GetFocusFrame() const noexcept;
 
+  void RequestFocus() noexcept;
+
 protected: // Derived interface
 
   virtual bool BeginWindow() = 0;
@@ -42,6 +44,7 @@ private: // Attributes
   std::string m_Title;
   std::string m_Label;
   int         m_FocusFrame;
+  bool        m_IsFocusRequested;
 };
 
 } // namespace editor::ui

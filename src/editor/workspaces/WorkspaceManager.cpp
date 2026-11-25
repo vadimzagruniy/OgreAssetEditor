@@ -81,9 +81,12 @@ bool CWorkspaceManager::OpenAsset(const TAssetRecord & _Asset)
   std::string Error;
   auto        Workspace = AssetType->OpenAsset(_Asset, CAssetManager::ResourceGroup, Error);
 
+  if (!Workspace && Error.empty())
+    return true;
+
   if (!Workspace)
   {
-    m_Log->Write(core::ELogLevel::Error, Error.empty() ? "Asset open failed" : Error);
+    m_Log->Write(core::ELogLevel::Error, Error);
     return false;
   }
 
