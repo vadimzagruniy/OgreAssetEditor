@@ -32,6 +32,8 @@ public: // IAttachedEditor
 
   std::vector<core::TTypeKey> GetToolBoxes() const override;
 
+  std::shared_ptr<IPropertySource> GetInspected() const override;
+
   void Tick(float _DeltaTime) override;
 
   void OnActivated() override;

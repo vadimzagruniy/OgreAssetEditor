@@ -15,6 +15,9 @@ namespace editor
 namespace
 {
 
+const std::string MoveKeysCommand = "Move Keys";
+const std::string EditKeyCommand  = "Edit Key";
+
 void ExpectSuccess(bool _IsDone)
 {
   assert(_IsDone && "Timeline command failed on a consistent undo stack");
@@ -289,17 +292,8 @@ void CTimelineDocument::SetKeyInterpolation(TTimelineId _KeyId, ETimelineInterpo
 
 void CTimelineDocument::PreviewMoveItems(const std::vector<TTimelineId> & _ItemIds, TTimelineTicks _Delta)
 {
-  if (m_Preview && m_Preview->ItemIds != _ItemIds)
-    CommitPreview();
-
-  if (!m_Preview)
-  {
-    const auto TrackIds = FindItemTracks(_ItemIds);
-    if (TrackIds.empty())
-      return;
-
-    m_Preview = TPreview{"Move Keys", _ItemIds, CaptureContents(TrackIds)};
-  }
+  if (!BeginPreview(MoveKeysCommand, _ItemIds))
+    return;
 
   const std::unordered_set<TTimelineId> ItemIds(_ItemIds.begin(), _ItemIds.end());
   const TTimelineTicks                  Delta = std::max(_Delta, -FindEarliestTime(m_Preview->Before, ItemIds));
@@ -313,6 +307,23 @@ void CTimelineDocument::PreviewMoveItems(const std::vector<TTimelineId> & _ItemI
       ShiftItems(_Track, ItemIds, Delta);
     });
   }
+}
+
+void CTimelineDocument::PreviewKey(TTimelineId _KeyId, const std::function<void(TTimelineKey &)> & _Edit)
+{
+  if (!BeginPreview(EditKeyCommand, {_KeyId}))
+    return;
+
+  ApplyContents(m_Preview->Before);
+
+  m_Timeline.EditTrack(m_Preview->Before.front().Id, [_KeyId, &_Edit](TTimelineTrack & _Track)
+  {
+    for (auto & Key : _Track.Keys)
+    {
+      if (Key.Id == _KeyId)
+        _Edit(Key);
+    }
+  });
 }
 
 void CTimelineDocument::CommitPreview()
@@ -399,6 +410,22 @@ void CTimelineDocument::ExecuteCommand(std::string _CommandName, TEdit _Execute,
   GetHistory().Execute(std::make_unique<core::CFunctionCommand>(std::move(_CommandName),
     [Apply, Execute = std::move(_Execute)] { Apply(Execute); },
     [Apply, Undo = std::move(_Undo)] { Apply(Undo); }));
+}
+
+bool CTimelineDocument::BeginPreview(const std::string & _CommandName, const std::vector<TTimelineId> & _ItemIds)
+{
+  if (m_Preview && (m_Preview->CommandName != _CommandName || m_Preview->ItemIds != _ItemIds))
+    CommitPreview();
+
+  if (m_Preview)
+    return true;
+
+  const auto TrackIds = FindItemTracks(_ItemIds);
+  if (TrackIds.empty())
+    return false;
+
+  m_Preview = TPreview{_CommandName, _ItemIds, CaptureContents(TrackIds)};
+  return true;
 }
 
 void CTimelineDocument::EditTracks(std::string _CommandName, const std::vector<TTimelineId> & _TrackIds, const TTrackEdit & _Edit)

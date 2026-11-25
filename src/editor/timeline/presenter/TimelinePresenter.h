@@ -16,6 +16,8 @@ class CActionQueue;
 } // namespace core
 
 class CTimelineDocument;
+class CTimelineKeyPropertySource;
+class IPropertySource;
 class CTimelinePlayer;
 class ITimelineEvaluator;
 class ITimelineTrackSource;
@@ -86,6 +88,8 @@ public: // Interface
 
   void Tick(float _DeltaTime);
 
+  std::shared_ptr<IPropertySource> GetInspected() const;
+
 private: // Implementation
 
   std::vector<TTimelineId> GetSelectedItems() const;
@@ -104,6 +108,7 @@ private: // Attributes
   std::unique_ptr<CTimelinePlayer>            m_Player;
   std::shared_ptr<const ITimelineTrackSource> m_TrackSource;
   std::shared_ptr<CTimelineSelection>         m_Selection;
+  std::shared_ptr<CTimelineKeyPropertySource> m_KeyProperties;
   std::shared_ptr<core::CActionQueue>         m_ActionQueue;
   std::size_t                                 m_ChangedConnection;
 };

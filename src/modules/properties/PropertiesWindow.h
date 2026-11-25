@@ -15,6 +15,7 @@ struct TToolBoxDesc;
 
 class CAssetDocument;
 class CPropertyPanel;
+class CWorkspaceController;
 class CWorkspaceManager;
 class IPropertySource;
 
@@ -23,7 +24,7 @@ class CPropertiesWindow final:
 {
 public: // Constructor/Destructor
 
-  CPropertiesWindow(const ui::TToolBoxDesc & _Desc, TPropertyControlContext _Context);
+  CPropertiesWindow(const ui::TToolBoxDesc & _Desc, TPropertyControlContext _Context, std::shared_ptr<CWorkspaceController> _WorkspaceController);
 
   ~CPropertiesWindow() override;
 
@@ -39,8 +40,9 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<CWorkspaceManager> m_WorkspaceManager;
-  std::unique_ptr<CPropertyPanel>    m_Panel;
+  std::shared_ptr<CWorkspaceManager>    m_WorkspaceManager;
+  std::shared_ptr<CWorkspaceController> m_WorkspaceController;
+  std::unique_ptr<CPropertyPanel>       m_Panel;
 };
 
 } // namespace editor

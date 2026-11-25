@@ -23,6 +23,8 @@ class CWindowManager;
 
 class CAssetDocument;
 class CEditorWorkspace;
+class IAttachedEditor;
+class IPropertySource;
 class CWorkspaceManager;
 
 class CWorkspaceController
@@ -57,9 +59,13 @@ public: // Interface
 
   void ConfirmUnsavedChanges(std::function<void()> _OnConfirmed);
 
+  CAssetDocument & GetFocusedDocument(const CEditorWorkspace & _Workspace) const;
+
+  std::shared_ptr<IPropertySource> GetInspected() const;
+
 private: // Implementation
 
-  CAssetDocument & GetFocusedDocument(const CEditorWorkspace & _Workspace) const;
+  std::shared_ptr<IAttachedEditor> FindFocusedEditor(const CEditorWorkspace & _Workspace) const;
 
   int GetFocusFrame(const std::vector<core::TTypeKey> & _ToolBoxes) const;
 

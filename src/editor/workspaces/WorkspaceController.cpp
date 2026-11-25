@@ -5,6 +5,7 @@
 #include "core/Log.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetDocument.h"
+#include "editor/inspector/IPropertySource.h"
 #include "ui/ChoiceModal.h"
 #include "ui/ChoiceModalDesc.h"
 #include "ui/DockedWindow.h"
@@ -181,11 +182,28 @@ void CWorkspaceController::ConfirmUnsavedChanges(std::function<void()> _OnConfir
   m_WindowManager->OpenModal(std::make_unique<ui::CChoiceModal>(std::move(Desc)));
 }
 
+CAssetDocument & CWorkspaceController::GetFocusedDocument(const CEditorWorkspace & _Workspace) const
+{
+  const auto FocusedEditor = FindFocusedEditor(_Workspace);
+  return FocusedEditor ? FocusedEditor->GetDocument() : _Workspace.GetDocument();
+}
+
+std::shared_ptr<IPropertySource> CWorkspaceController::GetInspected() const
+{
+  if (!m_WorkspaceManager->HasActive())
+    return nullptr;
+
+  const auto & Workspace     = *m_WorkspaceManager->GetActive();
+  const auto   FocusedEditor = FindFocusedEditor(Workspace);
+
+  return FocusedEditor ? FocusedEditor->GetInspected() : Workspace.GetInspected();
+}
+
 //
 // Implementation
 //
 
-CAssetDocument & CWorkspaceController::GetFocusedDocument(const CEditorWorkspace & _Workspace) const
+std::shared_ptr<IAttachedEditor> CWorkspaceController::FindFocusedEditor(const CEditorWorkspace & _Workspace) const
 {
   std::shared_ptr<IAttachedEditor> FocusedEditor;
   int                              FocusFrame = std::max(_Workspace.GetFocusFrame(), GetFocusFrame(_Workspace.GetToolBoxes()));
@@ -200,7 +218,7 @@ CAssetDocument & CWorkspaceController::GetFocusedDocument(const CEditorWorkspace
     FocusFrame    = EditorFocusFrame;
   }
 
-  return FocusedEditor ? FocusedEditor->GetDocument() : _Workspace.GetDocument();
+  return FocusedEditor;
 }
 
 int CWorkspaceController::GetFocusFrame(const std::vector<core::TTypeKey> & _ToolBoxes) const

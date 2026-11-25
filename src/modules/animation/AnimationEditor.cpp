@@ -39,6 +39,11 @@ std::vector<core::TTypeKey> CAnimationEditor::GetToolBoxes() const
   return {core::TypeOf<CAnimationTimelineWindow>()};
 }
 
+std::shared_ptr<IPropertySource> CAnimationEditor::GetInspected() const
+{
+  return m_Presenter->GetInspected();
+}
+
 void CAnimationEditor::Tick(float _DeltaTime)
 {
   m_Presenter->Tick(_DeltaTime);

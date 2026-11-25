@@ -33,7 +33,7 @@ CEditor::CEditor(std::filesystem::path _ProjectRoot):
   m_AssetManager(std::make_shared<CAssetManager>(m_AssetTypes, m_AssetFactories)),
   m_WorkspaceManager(std::make_shared<CWorkspaceManager>(m_AssetTypes, m_Log)),
   m_WindowManager(std::make_shared<ui::CWindowManager>()),
-  m_WorkspaceController(std::make_unique<CWorkspaceController>(m_WorkspaceManager, m_WindowManager, m_Log)),
+  m_WorkspaceController(std::make_shared<CWorkspaceController>(m_WorkspaceManager, m_WindowManager, m_Log)),
   m_WorkspaceWindow(std::make_unique<CWorkspaceWindow>(*m_WorkspaceManager, *m_WorkspaceController)),
   m_Services(std::make_unique<core::CEditorService>()),
   m_Modules(std::make_unique<CModulesManager>()),
@@ -56,6 +56,7 @@ CEditor::CEditor(std::filesystem::path _ProjectRoot):
   m_Services->Register(m_AssetTypes);
   m_Services->Register(m_AssetFactories);
   m_Services->Register(m_WorkspaceManager);
+  m_Services->Register(m_WorkspaceController);
   m_Services->Register(m_WindowManager);
   m_Services->Register(m_Log);
   m_Services->Register(m_ActionQueue);

@@ -5,6 +5,7 @@
 #include "editor/inspector/controls/PropertyPanel.h"
 #include "editor/inspector/IPropertySource.h"
 #include "editor/workspaces/EditorWorkspace.h"
+#include "editor/workspaces/WorkspaceController.h"
 #include "editor/workspaces/WorkspaceManager.h"
 #include "ui/ToolBoxDesc.h"
 
@@ -19,9 +20,10 @@ namespace editor
 // Constructor/Destructor
 //
 
-CPropertiesWindow::CPropertiesWindow(const ui::TToolBoxDesc & _Desc, TPropertyControlContext _Context):
+CPropertiesWindow::CPropertiesWindow(const ui::TToolBoxDesc & _Desc, TPropertyControlContext _Context, std::shared_ptr<CWorkspaceController> _WorkspaceController):
   CDockedWindow(_Desc.Title, "Properties", _Desc.Visible),
   m_WorkspaceManager(_Context.WorkspaceManager),
+  m_WorkspaceController(std::move(_WorkspaceController)),
   m_Panel(std::make_unique<CPropertyPanel>(std::move(_Context)))
 {
   // Empty
@@ -42,13 +44,13 @@ void CPropertiesWindow::OnGui()
     return;
   }
 
-  if (const auto Source = Workspace->GetInspected())
+  if (const auto Source = m_WorkspaceController->GetInspected())
   {
     DrawSource(*Source);
     return;
   }
 
-  DrawAssetInfo(Workspace->GetDocument());
+  DrawAssetInfo(m_WorkspaceController->GetFocusedDocument(*Workspace));
 }
 
 //

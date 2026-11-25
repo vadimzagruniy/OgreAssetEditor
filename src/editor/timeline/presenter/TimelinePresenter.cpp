@@ -4,6 +4,7 @@
 #include "TimelineSelection.h"
 #include "core/ActionQueue.h"
 #include "editor/timeline/TimelineDocument.h"
+#include "editor/timeline/inspector/TimelineKeyPropertySource.h"
 #include "editor/timeline/playback/TimelineKeyEvaluation.h"
 #include "editor/timeline/playback/TimelinePlayer.h"
 
@@ -22,6 +23,7 @@ CTimelinePresenter::CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Docum
   m_Player(std::make_unique<CTimelinePlayer>(std::move(_Evaluator))),
   m_TrackSource(std::move(_TrackSource)),
   m_Selection(std::make_shared<CTimelineSelection>()),
+  m_KeyProperties(std::make_shared<CTimelineKeyPropertySource>(m_Document, m_Selection)),
   m_ActionQueue(std::move(_ActionQueue)),
   m_ChangedConnection(0)
 {
@@ -238,6 +240,11 @@ void CTimelinePresenter::RenameTrack(TTimelineId _TrackId, const std::string & _
 void CTimelinePresenter::Tick(float _DeltaTime)
 {
   m_Player->Update(m_Document->GetTimeline(), _DeltaTime);
+}
+
+std::shared_ptr<IPropertySource> CTimelinePresenter::GetInspected() const
+{
+  return m_KeyProperties->HasKey() ? m_KeyProperties : nullptr;
 }
 
 //

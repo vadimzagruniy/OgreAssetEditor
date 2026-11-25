@@ -7,6 +7,7 @@
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/modules/ModuleInfo.h"
 #include "editor/modules/ModuleRegistry.h"
+#include "editor/workspaces/WorkspaceController.h"
 #include "editor/workspaces/WorkspaceManager.h"
 #include "ui/ToolBoxDesc.h"
 #include "ui/WindowManager.h"
@@ -26,7 +27,8 @@ const TModuleInfo & CPropertiesModule::GetInfo() const noexcept
 
 bool CPropertiesModule::Startup(core::CEditorService & _Services, std::string & _Error)
 {
-  auto WindowManager = _Services.GetService<ui::CWindowManager>();
+  auto WindowManager       = _Services.GetService<ui::CWindowManager>();
+  auto WorkspaceController = _Services.GetService<CWorkspaceController>();
 
   TPropertyControlContext Context;
   Context.AssetManager     = _Services.GetService<CAssetManager>();
@@ -35,16 +37,16 @@ bool CPropertiesModule::Startup(core::CEditorService & _Services, std::string & 
   Context.ActionQueue      = _Services.GetService<core::CActionQueue>();
   Context.Log              = _Services.GetService<core::CLog>();
 
-  if (!WindowManager || !Context.AssetManager || !Context.AssetTypes || !Context.WorkspaceManager || !Context.ActionQueue || !Context.Log)
+  if (!WindowManager || !WorkspaceController || !Context.AssetManager || !Context.AssetTypes || !Context.WorkspaceManager || !Context.ActionQueue || !Context.Log)
   {
-    _Error = "Properties module requires the window manager, asset manager, asset type registry, workspace manager, action queue and log services.";
+    _Error = "Properties module requires the window manager, workspace controller, asset manager, asset type registry, workspace manager, action queue and log services.";
     return false;
   }
 
   m_WindowManager = std::move(WindowManager);
 
   const ui::TToolBoxDesc Desc{GetInfo().Name, "Properties", true, ui::EDockSlot::Right, 0};
-  m_WindowManager->RegisterToolBox(Desc, std::make_shared<CPropertiesWindow>(Desc, std::move(Context)));
+  m_WindowManager->RegisterToolBox(Desc, std::make_shared<CPropertiesWindow>(Desc, std::move(Context), std::move(WorkspaceController)));
 
   return true;
 }

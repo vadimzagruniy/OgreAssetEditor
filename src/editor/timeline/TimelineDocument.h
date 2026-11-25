@@ -61,6 +61,8 @@ public: // Interface
 
   void PreviewMoveItems(const std::vector<TTimelineId> & _ItemIds, TTimelineTicks _Delta);
 
+  void PreviewKey(TTimelineId _KeyId, const std::function<void(TTimelineKey &)> & _Edit);
+
   void CommitPreview();
 
   void CancelPreview();
@@ -88,6 +90,8 @@ private: // Types
 private: // Implementation
 
   void ExecuteCommand(std::string _CommandName, TEdit _Execute, TEdit _Undo);
+
+  bool BeginPreview(const std::string & _CommandName, const std::vector<TTimelineId> & _ItemIds);
 
   void EditTracks(std::string _CommandName, const std::vector<TTimelineId> & _TrackIds, const TTrackEdit & _Edit);
 
