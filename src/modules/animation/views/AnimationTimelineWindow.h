@@ -43,9 +43,11 @@ private: // CWindow
 
 private: // Implementation
 
-  void DrawSceneAnimations(const CEditorWorkspace & _Workspace) const;
+  std::shared_ptr<CAnimationEditor> SelectEditor(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors);
 
-  void DrawSceneMembership(const CAnimationEditor & _Editor) const;
+  void DrawAnimationBar(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors, const std::shared_ptr<CAnimationEditor> & _Selected, float _Width);
+
+  void DrawSceneAnimations(const CEditorWorkspace & _Workspace) const;
 
   void OpenAnimation(const std::string & _Path) const;
 

@@ -104,6 +104,11 @@ bool CTimelinePresenter::CanBindToSelection(const TTimelineTrack & _Track) const
   return m_TrackSource->CanBindToSelection(_Track);
 }
 
+std::uint32_t CTimelinePresenter::GetTrackColor(const TTimelineTrack & _Track) const
+{
+  return m_TrackSource->GetTrackColor(_Track);
+}
+
 std::vector<TTimelineTrackTemplate> CTimelinePresenter::GetTrackTemplates() const
 {
   return m_TrackSource->GetTrackTemplates(m_Document->GetTimeline());
@@ -132,6 +137,14 @@ void CTimelinePresenter::SetLooping(bool _IsLooping)
 void CTimelinePresenter::Scrub(TTimelineTicks _Time)
 {
   m_Player->Scrub(_Time);
+}
+
+void CTimelinePresenter::SetDuration(TTimelineTicks _Duration)
+{
+  m_ActionQueue->Post([Document = m_Document, _Duration]
+  {
+    Document->SetDuration(_Duration);
+  });
 }
 
 void CTimelinePresenter::SelectItem(TTimelineId _ItemId, ETimelineSelectMode _Mode)
@@ -225,11 +238,13 @@ void CTimelinePresenter::AddKey(TTimelineId _TrackId, TTimelineTicks _Time)
 
 void CTimelinePresenter::AddTrack(const TTimelineTrack & _Track)
 {
-  m_ActionQueue->Post([Document = m_Document, Selection = m_Selection, Location = FindNewTrackLocation(), _Track]
+  m_ActionQueue->Post([Document = m_Document, Selection = m_Selection, TrackSource = m_TrackSource, Location = FindNewTrackLocation(), _Track]
   {
     const auto TrackId = Document->AddTrack(Location, _Track);
     if (TrackId == InvalidTimelineId)
       return;
+
+    TrackSource->OnTrackAdded(_Track);
 
     Selection->ClearItems();
     Selection->SelectTrack(TrackId);

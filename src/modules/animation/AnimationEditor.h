@@ -49,12 +49,6 @@ public: // Interface
 
   CTimelinePresenter & GetPresenter() const noexcept;
 
-  bool IsInScene() const;
-
-  void AddToScene() const;
-
-  void RemoveFromScene() const;
-
 private: // Attributes
 
   std::shared_ptr<CAnimationDocument>    m_Document;

@@ -28,6 +28,16 @@ public: // ITimelineTrackSource
 
   void BindToSelection(const TTimelineTrack & _Track) const override;
 
+  std::uint32_t GetTrackColor(const TTimelineTrack & _Track) const override;
+
+public: // Events
+
+  void OnTrackAdded(const TTimelineTrack & _Track) const override;
+
+private: // Implementation
+
+  void AddAnimationToScene() const;
+
 private: // Attributes
 
   std::shared_ptr<const CAnimationSlots> m_Slots;

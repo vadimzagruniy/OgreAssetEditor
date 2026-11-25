@@ -25,6 +25,10 @@ public: // Interface
 
   void Fit(TTimelineTicks _Duration, float _Width) noexcept;
 
+  float GetZoomLevel() const noexcept;
+
+  void SetZoomLevel(float _Level, float _AnchorOffset) noexcept;
+
   TTimelineTicks FindGridStep(ETimelineTimeFormat _Format, int _FrameRate, float _MinSpacing) const;
 
 private: // Attributes

@@ -58,6 +58,8 @@ public: // ITimelinePresenter
 
   bool CanBindToSelection(const TTimelineTrack & _Track) const override;
 
+  std::uint32_t GetTrackColor(const TTimelineTrack & _Track) const override;
+
   std::vector<TTimelineTrackTemplate> GetTrackTemplates() const override;
 
   void Play() override;
@@ -69,6 +71,8 @@ public: // ITimelinePresenter
   void SetLooping(bool _IsLooping) override;
 
   void Scrub(TTimelineTicks _Time) override;
+
+  void SetDuration(TTimelineTicks _Duration) override;
 
   void SelectItem(TTimelineId _ItemId, ETimelineSelectMode _Mode) override;
 

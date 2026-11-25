@@ -18,7 +18,9 @@
 #include "ui/WindowManager.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,12 +31,18 @@ namespace editor
 namespace
 {
 
-std::string MakeTabLabel(const CAnimationEditor & _Editor)
+constexpr float AnimationComboMinScale = 8.0f;
+
+std::string MakeAnimationName(const CAnimationEditor & _Editor)
 {
-  const auto &      Record    = _Editor.GetDocument().GetRecord();
   const std::string DirtyMark = _Editor.GetDocument().IsDirty() ? " *" : "";
 
-  return Record.RelativePath.stem().string() + DirtyMark + "###" + Record.RelativePath.generic_string();
+  return _Editor.GetDocument().GetRecord().RelativePath.stem().string() + DirtyMark;
+}
+
+std::string MakeAnimationLabel(const CAnimationEditor & _Editor)
+{
+  return MakeAnimationName(_Editor) + "###" + _Editor.GetDocument().GetRecord().RelativePath.generic_string();
 }
 
 } // namespace
@@ -82,42 +90,66 @@ void CAnimationTimelineWindow::OnGui()
     return;
   }
 
-  if (!ImGui::BeginTabBar("##Animations"))
-    return;
+  const auto Selected = SelectEditor(Editors);
 
-  std::shared_ptr<CAnimationEditor> ClosedEditor;
-
-  for (const auto & Editor : Editors)
-  {
-    const bool              IsRequested = Editor->GetDocument().GetRecord().AbsolutePath == m_RequestedPath;
-    const ImGuiTabItemFlags TabFlags    = IsRequested ? ImGuiTabItemFlags_SetSelected : 0;
-    bool                    IsOpen      = true;
-
-    if (ImGui::BeginTabItem(MakeTabLabel(*Editor).c_str(), &IsOpen, TabFlags))
-    {
-      m_SelectedPath = Editor->GetDocument().GetRecord().AbsolutePath;
-      DrawSceneMembership(*Editor);
-      Editor->GetTimelineView().Draw(Editor->GetPresenter());
-      ImGui::EndTabItem();
-    }
-
-    if (!IsOpen)
-      ClosedEditor = Editor;
-  }
-
-  ImGui::EndTabBar();
-
-  m_RequestedPath.clear();
+  Selected->GetTimelineView().Draw(Selected->GetPresenter(), [this, &Editors, &Selected](float _Width) { DrawAnimationBar(Editors, Selected, _Width); });
 
   StopHiddenPreviews(Editors);
-
-  if (ClosedEditor)
-    RequestClose(ClosedEditor);
 }
 
 //
 // Implementation
 //
+
+std::shared_ptr<CAnimationEditor> CAnimationTimelineWindow::SelectEditor(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors)
+{
+  if (!m_RequestedPath.empty())
+  {
+    m_SelectedPath = m_RequestedPath;
+    m_RequestedPath.clear();
+  }
+
+  for (const auto & Editor : _Editors)
+  {
+    if (Editor->GetDocument().GetRecord().AbsolutePath == m_SelectedPath)
+      return Editor;
+  }
+
+  m_SelectedPath = _Editors.front()->GetDocument().GetRecord().AbsolutePath;
+
+  return _Editors.front();
+}
+
+void CAnimationTimelineWindow::DrawAnimationBar(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors, const std::shared_ptr<CAnimationEditor> & _Selected, float _Width)
+{
+  const float StartX = ImGui::GetCursorPosX();
+
+  if (ImGui::Button("Close"))
+    RequestClose(_Selected);
+
+  ImGui::SetItemTooltip("Close this animation");
+
+  ImGui::SameLine();
+  ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+  ImGui::SameLine();
+
+  const float UsedWidth = ImGui::GetCursorPosX() - StartX;
+  ImGui::SetNextItemWidth(std::max(_Width - UsedWidth, ImGui::GetFontSize() * AnimationComboMinScale));
+
+  const bool IsComboOpen = ImGui::BeginCombo("##Animation", MakeAnimationName(*_Selected).c_str());
+  ImGui::SetItemTooltip("%s", _Selected->GetDocument().GetRecord().RelativePath.generic_string().c_str());
+
+  if (!IsComboOpen)
+    return;
+
+  for (const auto & Editor : _Editors)
+  {
+    if (ImGui::Selectable(MakeAnimationLabel(*Editor).c_str(), Editor == _Selected))
+      m_SelectedPath = Editor->GetDocument().GetRecord().AbsolutePath;
+  }
+
+  ImGui::EndCombo();
+}
 
 void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Workspace) const
 {
@@ -150,33 +182,22 @@ void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Wor
 
     ImGui::SameLine();
 
-    if (IsMissing)
-      ImGui::TextDisabled("%s (missing)", Path.c_str());
-    else
-      ImGui::TextUnformatted(Path.c_str());
+    const std::string Label = IsMissing ? Path + " (missing)" : Path;
+
+    ImGui::BeginDisabled(IsMissing);
+    ImGui::Selectable(Label.c_str());
+    ImGui::EndDisabled();
+
+    if (ImGui::BeginPopupContextItem("##SceneAnimationMenu"))
+    {
+      if (ImGui::MenuItem("Remove from Scene"))
+        Host->RemoveAnimation(Path);
+
+      ImGui::EndPopup();
+    }
 
     ImGui::PopID();
   }
-}
-
-void CAnimationTimelineWindow::DrawSceneMembership(const CAnimationEditor & _Editor) const
-{
-  if (_Editor.IsInScene())
-  {
-    ImGui::TextDisabled("In scene");
-    ImGui::SameLine();
-
-    if (ImGui::SmallButton("Remove from Scene"))
-      _Editor.RemoveFromScene();
-
-    return;
-  }
-
-  if (ImGui::SmallButton("Add to Scene"))
-    _Editor.AddToScene();
-
-  ImGui::SameLine();
-  ImGui::TextDisabled("Node renames update only animations added to the scene");
 }
 
 void CAnimationTimelineWindow::OpenAnimation(const std::string & _Path) const

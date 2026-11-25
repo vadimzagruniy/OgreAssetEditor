@@ -3,6 +3,7 @@
 #include "TimelineTrackTemplate.h"
 #include "editor/inspector/PropertyValue.h"
 
+#include <cstdint>
 #include <vector>
 
 namespace editor
@@ -27,6 +28,12 @@ public: // Interface
   virtual bool CanBindToSelection(const TTimelineTrack & _Track) const = 0;
 
   virtual void BindToSelection(const TTimelineTrack & _Track) const = 0;
+
+  virtual std::uint32_t GetTrackColor(const TTimelineTrack & _Track) const = 0;
+
+public: // Events
+
+  virtual void OnTrackAdded(const TTimelineTrack & _Track) const = 0;
 };
 
 } // namespace editor

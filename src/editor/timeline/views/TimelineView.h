@@ -7,6 +7,7 @@
 #include "editor/timeline/model/TimelineTicks.h"
 
 #include <array>
+#include <functional>
 #include <vector>
 
 struct ImDrawList;
@@ -29,13 +30,23 @@ public: // Constructor
 
 public: // Interface
 
-  void Draw(ITimelinePresenter & _Presenter);
+  void Draw(ITimelinePresenter & _Presenter, const std::function<void(float)> & _DrawDocumentBar);
 
 private: // Implementation
 
-  void DrawToolbar(const CTimeline & _Timeline, ITimelinePresenter & _Presenter);
+  void DrawTracks(const CTimeline & _Timeline, ITimelinePresenter & _Presenter);
+
+  void DrawToolbar(const CTimeline & _Timeline, ITimelinePresenter & _Presenter, const std::function<void(float)> & _DrawDocumentBar);
 
   void DrawPlaybackButtons(ITimelinePresenter & _Presenter) const;
+
+  void DrawTimeText(const CTimeline & _Timeline) const;
+
+  void DrawDurationField(const CTimeline & _Timeline, ITimelinePresenter & _Presenter) const;
+
+  float CalcViewOptionsWidth() const;
+
+  void DrawViewOptions(ITimelinePresenter & _Presenter);
 
   void DrawAddTrackMenu(ITimelinePresenter & _Presenter) const;
 
@@ -49,7 +60,7 @@ private: // Implementation
 
   void DrawTrackContextMenu(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track);
 
-  void DrawAddKeyButton(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track) const;
+  void DrawAddKeyButton(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track, float _CellRight) const;
 
   void DrawRenameField(ITimelinePresenter & _Presenter);
 
@@ -59,19 +70,29 @@ private: // Implementation
 
   void DrawGrid(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const CTimeline & _Timeline) const;
 
-  void DrawKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, const CTimelineSelection & _Selection, bool _IsSummary) const;
+  void DrawKeySpan(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, unsigned int _Color) const;
 
-  void DrawChildKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, const CTimelineSelection & _Selection) const;
+  void DrawKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, const CTimelineSelection & _Selection, unsigned int _Color) const;
+
+  void DrawSummaryKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track) const;
 
   void DrawClips(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track) const;
 
-  void DrawPlayhead(ImDrawList & _DrawList, const ImVec2 & _Min, const ImVec2 & _Max) const;
+  void DrawDurationMarker(const CTimeline & _Timeline) const;
+
+  void DrawPlayhead(const CTimeline & _Timeline) const;
 
   void DrawSelectionBox(ITimelinePresenter & _Presenter);
+
+  void DrawKeyContextMenu(ITimelinePresenter & _Presenter);
+
+  void DrawZoomBar();
 
   void CollectKeyHits(const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track);
 
   TTimelineId FindKeyAt(const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track, const ImVec2 & _Point) const;
+
+  void HandleRulerMouse(const CTimeline & _Timeline, ITimelinePresenter & _Presenter, const ImVec2 & _Min);
 
   void HandleNavigation(const ImVec2 & _Min);
 
@@ -83,9 +104,13 @@ private: // Implementation
 
   void HandleLaneRelease(ITimelinePresenter & _Presenter);
 
+  void HandleLaneContextClick(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track, const ImVec2 & _Min, const ImVec2 & _Max);
+
   TTimelineTicks GetMouseTime(const ImVec2 & _Min, int _FrameRate) const;
 
   void ScrubTo(ITimelinePresenter & _Presenter, float _Offset, int _FrameRate);
+
+  TTimelineTicks GetShownDuration(const CTimeline & _Timeline) const;
 
 private: // Attributes
 
@@ -95,10 +120,17 @@ private: // Attributes
   TTimelineDrag                m_Drag;
   std::vector<TTimelineKeyHit> m_KeyHits;
   TTimelineId                  m_RenamingTrack;
+  TTimelineTicks               m_ContextKeyTime;
+  TTimelineTicks               m_DraggedDuration;
   std::array<char, 256>        m_RenameBuffer;
+  float                        m_LanesLeft;
+  float                        m_LanesRight;
+  float                        m_LanesTop;
   bool                         m_IsRenameFocusPending;
   bool                         m_IsSnapping;
   bool                         m_IsFitPending;
+  bool                         m_IsDurationHovered;
+  bool                         m_IsDraggingDuration;
 };
 
 } // namespace editor

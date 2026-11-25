@@ -59,6 +59,19 @@ void CTimelineViewRange::Zoom(float _Factor, float _AnchorOffset) noexcept
   m_Start           = std::max(0.0, AnchorTime - static_cast<double>(_AnchorOffset) * static_cast<double>(TimelineTicksPerSecond) / m_PixelsPerSecond);
 }
 
+float CTimelineViewRange::GetZoomLevel() const noexcept
+{
+  return static_cast<float>(std::log(m_PixelsPerSecond / MinPixelsPerSecond) / std::log(MaxPixelsPerSecond / MinPixelsPerSecond));
+}
+
+void CTimelineViewRange::SetZoomLevel(float _Level, float _AnchorOffset) noexcept
+{
+  const double Level  = std::clamp(static_cast<double>(_Level), 0.0, 1.0);
+  const double Target = MinPixelsPerSecond * std::pow(MaxPixelsPerSecond / MinPixelsPerSecond, Level);
+
+  Zoom(static_cast<float>(Target / m_PixelsPerSecond), _AnchorOffset);
+}
+
 void CTimelineViewRange::Fit(TTimelineTicks _Duration, float _Width) noexcept
 {
   if (_Duration <= 0 || _Width <= 0.0f)

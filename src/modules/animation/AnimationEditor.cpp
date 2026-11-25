@@ -97,22 +97,4 @@ CTimelinePresenter & CAnimationEditor::GetPresenter() const noexcept
   return *m_Presenter;
 }
 
-bool CAnimationEditor::IsInScene() const
-{
-  const auto Host = m_Slots->LockHost();
-  return Host && Host->HasAnimation(m_Slots->GetAnimationPath());
-}
-
-void CAnimationEditor::AddToScene() const
-{
-  if (const auto Host = m_Slots->LockHost())
-    Host->AddAnimation(m_Slots->GetAnimationPath());
-}
-
-void CAnimationEditor::RemoveFromScene() const
-{
-  if (const auto Host = m_Slots->LockHost())
-    Host->RemoveAnimation(m_Slots->GetAnimationPath());
-}
-
 } // namespace editor

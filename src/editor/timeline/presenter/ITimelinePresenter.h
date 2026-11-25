@@ -4,6 +4,7 @@
 #include "editor/timeline/model/TimelineId.h"
 #include "editor/timeline/model/TimelineTicks.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -43,6 +44,8 @@ public: // State
 
   virtual bool CanBindToSelection(const TTimelineTrack & _Track) const = 0;
 
+  virtual std::uint32_t GetTrackColor(const TTimelineTrack & _Track) const = 0;
+
   virtual std::vector<TTimelineTrackTemplate> GetTrackTemplates() const = 0;
 
 public: // Actions
@@ -56,6 +59,8 @@ public: // Actions
   virtual void SetLooping(bool _IsLooping) = 0;
 
   virtual void Scrub(TTimelineTicks _Time) = 0;
+
+  virtual void SetDuration(TTimelineTicks _Duration) = 0;
 
   virtual void SelectItem(TTimelineId _ItemId, ETimelineSelectMode _Mode) = 0;
 
