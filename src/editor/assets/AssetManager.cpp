@@ -5,13 +5,13 @@
 #include "AssetType.h"
 #include "AssetTypeInfo.h"
 #include "AssetTypeRegistry.h"
+#include "core/WriteFileAtomic.h"
 
 #include <OgreResourceGroupManager.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <fstream>
 #include <system_error>
 #include <utility>
 
@@ -59,20 +59,6 @@ std::filesystem::path MakeUniquePath(const std::filesystem::path & _Folder, cons
     Candidate = _Folder / (_Stem + " " + std::to_string(Index) + _Extension);
 
   return Candidate;
-}
-
-bool WriteContent(const std::filesystem::path & _Path, const std::string & _Content, std::string & _Error)
-{
-  std::ofstream File(_Path, std::ios::binary);
-  File.write(_Content.data(), static_cast<std::streamsize>(_Content.size()));
-
-  if (!File)
-  {
-    _Error = "Cannot write asset: " + _Path.string();
-    return false;
-  }
-
-  return true;
 }
 
 } // namespace
@@ -200,7 +186,7 @@ bool CAssetManager::CreateAsset(const std::string & _FactoryIdentifier, const st
 
   const std::filesystem::path RelativePath = _Folder / (_Name + Extension);
 
-  if (!WriteContent(ToAbsolute(RelativePath), Content, _Error))
+  if (!core::WriteFileAtomic(ToAbsolute(RelativePath), Content, _Error))
     return false;
 
   _CreatedPath = RelativePath;

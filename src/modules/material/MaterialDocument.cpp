@@ -1,5 +1,6 @@
 #include "MaterialDocument.h"
 #include "core/FunctionCommand.h"
+#include "core/WriteFileAtomic.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetProperty.h"
 
@@ -11,7 +12,6 @@
 #include <OgreTechnique.h>
 #include <OgreTextureUnitState.h>
 
-#include <fstream>
 #include <type_traits>
 #include <utility>
 
@@ -153,15 +153,8 @@ bool CMaterialDocument::OnSave(std::string & _Error)
   for (const auto & Material : m_Materials)
     Serializer.queueForExport(Material.WorkingCopy, false, false, Material.Original->getName());
 
-  std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
-  File << Serializer.getQueuedAsString();
-  File.close();
-
-  if (!File)
-  {
-    _Error = "Could not write " + GetRecord().RelativePath.generic_string();
+  if (!core::WriteFileAtomic(GetRecord().AbsolutePath, Serializer.getQueuedAsString(), _Error))
     return false;
-  }
 
   for (auto & Material : m_Materials)
     ApplyWorkingCopy(Material);

@@ -121,6 +121,14 @@ void CEditor::RequestQuit()
   m_WorkspaceController->ConfirmUnsavedChanges(m_QuitCallback);
 }
 
+void CEditor::HandleWindowClose()
+{
+  if (ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel))
+    return;
+
+  RequestQuit();
+}
+
 //
 // Services
 //

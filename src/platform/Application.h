@@ -50,6 +50,7 @@ private: // Attributes
 
   std::unique_ptr<CEditor> m_Editor;
   Ogre::SceneManager *     m_SceneManager = nullptr;
+  bool                     m_IsQuitConfirmed = false;
 };
 
 } // namespace editor::platform

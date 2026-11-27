@@ -1,11 +1,11 @@
 #include "TextDocument.h"
 #include "TextChange.h"
 #include "TextEditCommand.h"
+#include "core/WriteFileAtomic.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetProperty.h"
 
 #include <algorithm>
-#include <fstream>
 #include <memory>
 #include <utility>
 
@@ -43,15 +43,7 @@ std::vector<TAssetProperty> CTextDocument::GetProperties() const
 
 bool CTextDocument::OnSave(std::string & _Error)
 {
-  std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
-  File.write(m_Content.data(), static_cast<std::streamsize>(m_Content.size()));
-
-  if (File)
-    return true;
-
-  _Error = "Could not write " + GetRecord().RelativePath.filename().string();
-
-  return false;
+  return core::WriteFileAtomic(GetRecord().AbsolutePath, m_Content, _Error);
 }
 
 //

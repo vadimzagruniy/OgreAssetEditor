@@ -43,7 +43,11 @@ CApplication::CApplication(std::filesystem::path _ProjectRoot):
   OgreBites::ApplicationContext("Ogre Resource Editor"),
   m_Editor(std::make_unique<CEditor>(std::move(_ProjectRoot)))
 {
-  m_Editor->SetQuitCallback([this] { getRoot()->queueEndRendering(); });
+  m_Editor->SetQuitCallback([this]
+  {
+    m_IsQuitConfirmed = true;
+    getRoot()->queueEndRendering();
+  });
 }
 
 CApplication::~CApplication() = default;
@@ -134,6 +138,12 @@ bool CApplication::frameStarted(const Ogre::FrameEvent & _Event)
 {
   if (!OgreBites::ApplicationContext::frameStarted(_Event))
     return false;
+
+  if (getRoot()->endRenderingQueued() && !m_IsQuitConfirmed)
+  {
+    getRoot()->queueEndRendering(false);
+    m_Editor->HandleWindowClose();
+  }
 
   m_Editor->Tick(_Event.timeSinceLastFrame);
 

@@ -3,12 +3,12 @@
 #include "SceneSerializer.h"
 #include "model/SceneNode.h"
 #include "core/FunctionCommand.h"
+#include "core/WriteFileAtomic.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetProperty.h"
 
 #include <algorithm>
 #include <cassert>
-#include <fstream>
 #include <unordered_map>
 #include <utility>
 
@@ -83,17 +83,7 @@ bool CSceneDocument::OnSave(std::string & _Error)
 {
   CommitPreview();
 
-  std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
-  File << WriteScene(m_Graph, m_Animations);
-  File.close();
-
-  if (!File)
-  {
-    _Error = "Could not write " + GetRecord().RelativePath.generic_string();
-    return false;
-  }
-
-  return true;
+  return core::WriteFileAtomic(GetRecord().AbsolutePath, WriteScene(m_Graph, m_Animations), _Error);
 }
 
 //

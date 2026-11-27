@@ -50,6 +50,8 @@ public: // Interface
 
   void RequestQuit();
 
+  void HandleWindowClose();
+
 public: // Services
 
   std::shared_ptr<CAssetManager> GetAssetManager() const noexcept;

@@ -1,10 +1,10 @@
 #include "AnimationDocument.h"
 #include "AnimationSerializer.h"
+#include "core/WriteFileAtomic.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/documents/AssetProperty.h"
 
 #include <format>
-#include <fstream>
 #include <utility>
 
 namespace editor
@@ -57,17 +57,7 @@ bool CAnimationDocument::OnSave(std::string & _Error)
 {
   CommitPreview();
 
-  std::ofstream File(GetRecord().AbsolutePath, std::ios::binary | std::ios::trunc);
-  File << WriteAnimation(GetTimeline());
-  File.close();
-
-  if (!File)
-  {
-    _Error = "Could not write " + GetRecord().RelativePath.generic_string();
-    return false;
-  }
-
-  return true;
+  return core::WriteFileAtomic(GetRecord().AbsolutePath, WriteAnimation(GetTimeline()), _Error);
 }
 
 //
