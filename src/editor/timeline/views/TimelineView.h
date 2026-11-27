@@ -115,6 +115,10 @@ private: // Implementation
 
   void ScrubTo(ITimelinePresenter & _Presenter, float _Offset, int _FrameRate);
 
+  TTimelineTicks SnapTime(TTimelineTicks _Time, int _FrameRate) const;
+
+  TTimelineTicks GetPlayheadKeyTime(const ITimelinePresenter & _Presenter) const;
+
   TTimelineTicks GetShownDuration(const CTimeline & _Timeline) const;
 
 private: // Attributes

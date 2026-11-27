@@ -243,7 +243,7 @@ void CTimelineView::DrawTracks(const CTimeline & _Timeline, ITimelinePresenter &
     _Presenter.CopySelection();
 
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V) && _Presenter.CanPasteKeys())
-    _Presenter.PasteKeys(m_CurrentTime);
+    _Presenter.PasteKeys(GetPlayheadKeyTime(_Presenter));
 
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D))
     _Presenter.DuplicateSelection();
@@ -611,7 +611,7 @@ void CTimelineView::DrawTrackContextMenu(ITimelinePresenter & _Presenter, const 
   const bool HasKeys = _Presenter.GetItemKind(_Track) == ETimelineItemKind::Keys;
 
   if (ImGui::MenuItem("Insert Key at Playhead", nullptr, false, HasKeys && _Presenter.CanAddKey(_Track.Id)))
-    _Presenter.AddKey(_Track.Id, m_CurrentTime);
+    _Presenter.AddKey(_Track.Id, GetPlayheadKeyTime(_Presenter));
 
   if (ImGui::MenuItem("Select All Keys", nullptr, false, !_Track.Keys.empty()))
   {
@@ -638,7 +638,7 @@ void CTimelineView::DrawAddKeyButton(ITimelinePresenter & _Presenter, const TTim
 
   ImGui::BeginDisabled(!_Presenter.CanAddKey(_Track.Id));
   if (ImGui::SmallButton("+"))
-    _Presenter.AddKey(_Track.Id, m_CurrentTime);
+    _Presenter.AddKey(_Track.Id, GetPlayheadKeyTime(_Presenter));
   ImGui::EndDisabled();
 
   ImGui::SetItemTooltip("Add a key at the playhead");
@@ -919,7 +919,7 @@ void CTimelineView::DrawKeyContextMenu(ITimelinePresenter & _Presenter)
     _Presenter.CopySelection();
 
   if (ImGui::MenuItem("Paste at Playhead", "Ctrl+V", false, _Presenter.CanPasteKeys()))
-    _Presenter.PasteKeys(m_CurrentTime);
+    _Presenter.PasteKeys(GetPlayheadKeyTime(_Presenter));
 
   if (ImGui::MenuItem("Duplicate", "Ctrl+D"))
     _Presenter.DuplicateSelection();
@@ -1141,7 +1141,7 @@ void CTimelineView::HandleLaneDrag(ITimelinePresenter & _Presenter, int _FrameRa
   auto         Delta = m_Range.ToTime(Io.MousePos.x - m_Drag.LaneLeft) - m_Range.ToTime(m_Drag.StartX - m_Drag.LaneLeft);
 
   if (m_IsSnapping && !Io.KeyAlt)
-    Delta = SnapToFrame(m_Drag.Anchor + Delta, _FrameRate) - m_Drag.Anchor;
+    Delta = SnapTime(m_Drag.Anchor + Delta, _FrameRate) - m_Drag.Anchor;
 
   if (Delta == m_Drag.Delta)
     return;
@@ -1200,15 +1200,29 @@ void CTimelineView::HandleLaneContextClick(ITimelinePresenter & _Presenter, cons
 TTimelineTicks CTimelineView::GetMouseTime(const ImVec2 & _Min, int _FrameRate) const
 {
   const auto Time = m_Range.ToTime(ImGui::GetIO().MousePos.x - _Min.x);
-  return std::max<TTimelineTicks>(m_IsSnapping ? SnapToFrame(Time, _FrameRate) : Time, 0);
+  return std::max<TTimelineTicks>(m_IsSnapping ? SnapTime(Time, _FrameRate) : Time, 0);
 }
 
 void CTimelineView::ScrubTo(ITimelinePresenter & _Presenter, float _Offset, int _FrameRate)
 {
   const auto Time = m_Range.ToTime(_Offset);
 
-  m_CurrentTime = std::max<TTimelineTicks>(m_IsSnapping ? SnapToFrame(Time, _FrameRate) : Time, 0);
+  m_CurrentTime = std::max<TTimelineTicks>(m_IsSnapping ? SnapTime(Time, _FrameRate) : Time, 0);
   _Presenter.Scrub(m_CurrentTime);
+}
+
+TTimelineTicks CTimelineView::SnapTime(TTimelineTicks _Time, int _FrameRate) const
+{
+  const auto GridStep = m_Range.FindGridStep(m_Format, _FrameRate, MinGridSpacing);
+  const auto SnapStep = std::max(GridStep / MinorTickCount, GetFrameTicks(_FrameRate));
+  const auto GridTime = std::llround(static_cast<double>(_Time) / static_cast<double>(SnapStep)) * SnapStep;
+
+  return SnapToFrame(GridTime, _FrameRate);
+}
+
+TTimelineTicks CTimelineView::GetPlayheadKeyTime(const ITimelinePresenter & _Presenter) const
+{
+  return m_IsSnapping ? SnapToFrame(m_CurrentTime, _Presenter.GetTimeline().GetFrameRate()) : m_CurrentTime;
 }
 
 TTimelineTicks CTimelineView::GetShownDuration(const CTimeline & _Timeline) const
