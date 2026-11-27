@@ -63,6 +63,8 @@ private: // Implementation
 
   void DrawTrackContextMenu(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track);
 
+  void DrawTargetMenu(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track) const;
+
   void DrawAddKeyButton(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track, float _CellRight) const;
 
   void DrawRenameField(ITimelinePresenter & _Presenter);

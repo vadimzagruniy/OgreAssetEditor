@@ -21,6 +21,20 @@ namespace editor
 namespace
 {
 
+TTimelineId FindGroupBySlot(const std::vector<TTimelineTrack> & _Tracks, const std::string & _Slot)
+{
+  for (const auto & Track : _Tracks)
+  {
+    if (Track.TypeId == TimelineGroupType && Track.Target.Slot == _Slot)
+      return Track.Id;
+
+    if (const auto ChildId = FindGroupBySlot(Track.Children, _Slot); ChildId != InvalidTimelineId)
+      return ChildId;
+  }
+
+  return InvalidTimelineId;
+}
+
 void AppendSelectedKeys(const std::vector<TTimelineTrack> & _Tracks, const CTimelineSelection & _Selection, std::vector<TTimelineClipboardKey> & _Keys)
 {
   for (const auto & Track : _Tracks)
@@ -140,6 +154,16 @@ std::uint32_t CTimelinePresenter::GetTrackColor(const TTimelineTrack & _Track) c
 std::vector<TTimelineTrackTemplate> CTimelinePresenter::GetTrackTemplates() const
 {
   return m_TrackSource->GetTrackTemplates(m_Document->GetTimeline());
+}
+
+std::vector<TTimelineTrackTemplate> CTimelinePresenter::GetTargetTemplates(const TTimelineTrack & _Target) const
+{
+  return m_TrackSource->GetTargetTemplates(m_Document->GetTimeline(), _Target.Target.Slot);
+}
+
+std::string CTimelinePresenter::GetTrackLabel(const TTimelineTrack & _Track) const
+{
+  return m_TrackSource->GetTrackLabel(_Track);
 }
 
 bool CTimelinePresenter::HasTrackTarget() const
@@ -360,16 +384,38 @@ void CTimelinePresenter::AddKey(TTimelineId _TrackId, TTimelineTicks _Time)
 
 void CTimelinePresenter::AddTrack(const TTimelineTrack & _Track)
 {
-  m_ActionQueue->Post([Document = m_Document, Selection = m_Selection, TrackSource = m_TrackSource, Location = FindNewTrackLocation(), _Track]
+  const auto &   Timeline   = m_Document->GetTimeline();
+  const bool     IsTargeted = _Track.TypeId != TimelineGroupType && !_Track.Target.Slot.empty();
+  const auto     GroupId    = IsTargeted ? FindTargetGroup(_Track.Target.Slot) : InvalidTimelineId;
+  const bool     IsWrapped  = IsTargeted && GroupId == InvalidTimelineId;
+  TTimelineTrack Track      = _Track;
+  auto           Location   = FindNewTrackLocation();
+
+  if (GroupId != InvalidTimelineId)
+    Location = {GroupId, Timeline.GetTrack(GroupId).Children.size()};
+
+  if (IsWrapped)
   {
-    const auto TrackId = Document->AddTrack(Location, _Track);
+    TTimelineTrack Group;
+    Group.TypeId = TimelineGroupType;
+    Group.Target = {_Track.Target.Slot, {}};
+    Group.Name   = m_TrackSource->GetTrackLabel(Group);
+    Group.Children.push_back(std::move(Track));
+
+    Track    = std::move(Group);
+    Location = {InvalidTimelineId, Timeline.GetTracks().size()};
+  }
+
+  m_ActionQueue->Post([Document = m_Document, Selection = m_Selection, TrackSource = m_TrackSource, Location, Track = std::move(Track), Added = _Track, IsWrapped]
+  {
+    const auto TrackId = Document->AddTrack(Location, Track);
     if (TrackId == InvalidTimelineId)
       return;
 
-    TrackSource->OnTrackAdded(_Track);
+    TrackSource->OnTrackAdded(Added);
 
     Selection->ClearItems();
-    Selection->SelectTrack(TrackId);
+    Selection->SelectTrack(IsWrapped ? Document->GetTimeline().GetTrack(TrackId).Children.front().Id : TrackId);
   });
 }
 
@@ -392,6 +438,15 @@ void CTimelinePresenter::RenameTrack(TTimelineId _TrackId, const std::string & _
 void CTimelinePresenter::BindToSelection(const TTimelineTrack & _Track)
 {
   m_TrackSource->BindToSelection(_Track);
+}
+
+void CTimelinePresenter::ShowTrackInScene(TTimelineId _TrackId)
+{
+  m_ActionQueue->Post([Document = m_Document, TrackSource = m_TrackSource, _TrackId]
+  {
+    if (Document->GetTimeline().HasTrack(_TrackId))
+      TrackSource->ShowTrackInScene(Document->GetTimeline().GetTrack(_TrackId));
+  });
 }
 
 void CTimelinePresenter::RequestTrackTarget()
@@ -466,6 +521,11 @@ TTimelineTrackLocation CTimelinePresenter::FindNewTrackLocation() const
     return {TrackId, Track.Children.size()};
 
   return {Location->ParentId, Location->Index + 1};
+}
+
+TTimelineId CTimelinePresenter::FindTargetGroup(const std::string & _Slot) const
+{
+  return FindGroupBySlot(m_Document->GetTimeline().GetTracks(), _Slot);
 }
 
 std::vector<TTimelineClipboardKey> CTimelinePresenter::CollectSelectedKeys(TTimelineTicks & _StartTime) const

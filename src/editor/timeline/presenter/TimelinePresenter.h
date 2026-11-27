@@ -66,6 +66,10 @@ public: // ITimelinePresenter
 
   std::vector<TTimelineTrackTemplate> GetTrackTemplates() const override;
 
+  std::vector<TTimelineTrackTemplate> GetTargetTemplates(const TTimelineTrack & _Target) const override;
+
+  std::string GetTrackLabel(const TTimelineTrack & _Track) const override;
+
   bool HasTrackTarget() const override;
 
   bool IsTrackTargetRequested() const override;
@@ -118,6 +122,8 @@ public: // ITimelinePresenter
 
   void BindToSelection(const TTimelineTrack & _Track) override;
 
+  void ShowTrackInScene(TTimelineId _TrackId) override;
+
   void RequestTrackTarget() override;
 
   void ConfirmTrackTarget(const std::string & _Target) override;
@@ -139,6 +145,8 @@ private: // Implementation
   TPropertyValue FindKeyValue(const TTimelineTrack & _Track, TTimelineTicks _Time) const;
 
   TTimelineTrackLocation FindNewTrackLocation() const;
+
+  TTimelineId FindTargetGroup(const std::string & _Slot) const;
 
   std::vector<TTimelineClipboardKey> CollectSelectedKeys(TTimelineTicks & _StartTime) const;
 

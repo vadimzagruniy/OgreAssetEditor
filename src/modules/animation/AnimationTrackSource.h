@@ -20,6 +20,10 @@ public: // ITimelineTrackSource
 
   std::vector<TTimelineTrackTemplate> GetTrackTemplates(const CTimeline & _Timeline) const override;
 
+  std::vector<TTimelineTrackTemplate> GetTargetTemplates(const CTimeline & _Timeline, const std::string & _Slot) const override;
+
+  std::string GetTrackLabel(const TTimelineTrack & _Track) const override;
+
   TPropertyValue CaptureValue(const TTimelineTrack & _Track) const override;
 
   bool IsTargetValid(const TTimelineTrack & _Track) const override;
@@ -33,6 +37,8 @@ public: // ITimelineTrackSource
   bool HasTrackTarget() const override;
 
   void SelectTrackTarget(const std::string & _Target) const override;
+
+  void ShowTrackInScene(const TTimelineTrack & _Track) const override;
 
 public: // Events
 

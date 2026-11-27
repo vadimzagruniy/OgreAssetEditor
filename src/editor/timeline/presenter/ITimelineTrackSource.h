@@ -22,6 +22,10 @@ public: // Interface
 
   virtual std::vector<TTimelineTrackTemplate> GetTrackTemplates(const CTimeline & _Timeline) const = 0;
 
+  virtual std::vector<TTimelineTrackTemplate> GetTargetTemplates(const CTimeline & _Timeline, const std::string & _Slot) const = 0;
+
+  virtual std::string GetTrackLabel(const TTimelineTrack & _Track) const = 0;
+
   virtual TPropertyValue CaptureValue(const TTimelineTrack & _Track) const = 0;
 
   virtual bool IsTargetValid(const TTimelineTrack & _Track) const = 0;
@@ -35,6 +39,8 @@ public: // Interface
   virtual bool HasTrackTarget() const = 0;
 
   virtual void SelectTrackTarget(const std::string & _Target) const = 0;
+
+  virtual void ShowTrackInScene(const TTimelineTrack & _Track) const = 0;
 
 public: // Events
 

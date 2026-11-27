@@ -68,13 +68,13 @@ bool HasTrack(const std::vector<TTimelineTrack> & _Tracks, const TTimelineTarget
   return false;
 }
 
-void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std::string & _GroupLabel, const std::string & _Slot, const std::string & _NodeName, const CTimeline & _Timeline, std::vector<TTimelineTrackTemplate> & _Templates)
+void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std::string & _GroupLabel, const std::string & _Slot, const CTimeline & _Timeline, std::vector<TTimelineTrackTemplate> & _Templates)
 {
   for (const auto & Property : _Properties)
   {
     if (Property.Type == EPropertyType::Group)
     {
-      CollectTemplates(Property.Children, Property.Label, _Slot, _NodeName, _Timeline, _Templates);
+      CollectTemplates(Property.Children, Property.Label, _Slot, _Timeline, _Templates);
       continue;
     }
 
@@ -83,7 +83,7 @@ void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std:
 
     TTimelineTrack Track;
     Track.TypeId = NodePropertyTrackType;
-    Track.Name   = _NodeName + " " + Property.Label;
+    Track.Name   = Property.Label;
     Track.Target = {_Slot, Property.Identifier};
 
     if (HasTrack(_Timeline.GetTracks(), Track.Target))
@@ -92,6 +92,19 @@ void CollectTemplates(const std::vector<TPropertyDesc> & _Properties, const std:
     const auto Label = _GroupLabel.empty() ? Property.Label : _GroupLabel + " / " + Property.Label;
     _Templates.push_back({Label, std::move(Track)});
   }
+}
+
+std::vector<TTimelineTrackTemplate> MakeNodeTemplates(const CSceneGraph & _Graph, const std::string & _NodeName, const std::string & _Slot, const CTimeline & _Timeline)
+{
+  if (_NodeName.empty() || !_Graph.HasNode(_NodeName))
+    return {};
+
+  const auto & Schema = _Graph.GetNodeTypes().GetSchema(std::string(_Graph.GetNode(_NodeName).GetTypeId()));
+
+  std::vector<TTimelineTrackTemplate> Templates;
+  CollectTemplates(Schema.Properties, {}, _Slot, _Timeline, Templates);
+
+  return Templates;
 }
 
 } // namespace
@@ -116,19 +129,27 @@ std::vector<TTimelineTrackTemplate> CAnimationTrackSource::GetTrackTemplates(con
   if (!Host)
     return {};
 
-  const auto   NodeName = Host->GetSelectedNode();
-  const auto & Graph    = Host->GetGraph();
+  const auto NodeName = Host->GetSelectedNode();
+  const auto Slot     = Host->FindSlot(m_Slots->GetAnimationPath(), NodeName);
 
-  if (NodeName.empty() || !Graph.HasNode(NodeName))
+  return MakeNodeTemplates(Host->GetGraph(), NodeName, Slot, _Timeline);
+}
+
+std::vector<TTimelineTrackTemplate> CAnimationTrackSource::GetTargetTemplates(const CTimeline & _Timeline, const std::string & _Slot) const
+{
+  const auto Host = m_Slots->LockHost();
+  if (!Host || _Slot.empty())
     return {};
 
-  const auto & Schema = Graph.GetNodeTypes().GetSchema(std::string(Graph.GetNode(NodeName).GetTypeId()));
-  const auto   Slot   = Host->FindSlot(m_Slots->GetAnimationPath(), NodeName);
+  return MakeNodeTemplates(Host->GetGraph(), m_Slots->ResolveSlot(_Slot), _Slot, _Timeline);
+}
 
-  std::vector<TTimelineTrackTemplate> Templates;
-  CollectTemplates(Schema.Properties, {}, Slot, NodeName, _Timeline, Templates);
+std::string CAnimationTrackSource::GetTrackLabel(const TTimelineTrack & _Track) const
+{
+  if (_Track.TypeId != TimelineGroupType || _Track.Target.Slot.empty())
+    return _Track.Name;
 
-  return Templates;
+  return m_Slots->ResolveSlot(_Track.Target.Slot);
 }
 
 TPropertyValue CAnimationTrackSource::CaptureValue(const TTimelineTrack & _Track) const
@@ -149,7 +170,7 @@ TPropertyValue CAnimationTrackSource::CaptureValue(const TTimelineTrack & _Track
 bool CAnimationTrackSource::IsTargetValid(const TTimelineTrack & _Track) const
 {
   const auto Host = m_Slots->LockHost();
-  if (!Host || _Track.TypeId != NodePropertyTrackType)
+  if (!Host || _Track.Target.Slot.empty())
     return true;
 
   return Host->GetGraph().HasNode(m_Slots->ResolveSlot(_Track.Target.Slot));
@@ -158,7 +179,7 @@ bool CAnimationTrackSource::IsTargetValid(const TTimelineTrack & _Track) const
 bool CAnimationTrackSource::CanBindToSelection(const TTimelineTrack & _Track) const
 {
   const auto Host = m_Slots->LockHost();
-  if (!Host || _Track.TypeId != NodePropertyTrackType || _Track.Target.Slot.empty())
+  if (!Host || _Track.Target.Slot.empty())
     return false;
 
   const auto NodeName = Host->GetSelectedNode();
@@ -211,6 +232,18 @@ void CAnimationTrackSource::SelectTrackTarget(const std::string & _Target) const
 {
   if (const auto Host = m_Slots->LockHost())
     Host->SelectNode(_Target);
+}
+
+void CAnimationTrackSource::ShowTrackInScene(const TTimelineTrack & _Track) const
+{
+  const auto Host = m_Slots->LockHost();
+  if (!Host || _Track.Target.Slot.empty())
+    return;
+
+  const auto NodeName = m_Slots->ResolveSlot(_Track.Target.Slot);
+
+  if (Host->GetGraph().HasNode(NodeName) && Host->GetSelectedNode() != NodeName)
+    Host->SelectNode(NodeName);
 }
 
 //

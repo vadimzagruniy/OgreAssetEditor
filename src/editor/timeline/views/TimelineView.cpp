@@ -46,7 +46,7 @@ constexpr ImU32 PlayheadText     = IM_COL32(255, 255, 255, 255);
 constexpr ImU32 KeyBorderColor   = IM_COL32(0, 0, 0, 170);
 constexpr ImU32 SelectedKeyRing  = IM_COL32(150, 235, 70, 255);
 constexpr float SelectedRingGap  = 1.5f;
-constexpr float SelectedRingSize = 2.0f;
+constexpr float SelectedRingSize = 3.0f;
 constexpr float ZoomSliderScale  = 10.0f;
 constexpr float DurationWidth    = 4.5f;
 constexpr float DurationGrab     = 5.0f;
@@ -69,9 +69,15 @@ float GetCenterY(const ImVec2 & _Min, const ImVec2 & _Max)
   return (_Min.y + _Max.y) * 0.5f;
 }
 
-std::string GetTrackLabel(const TTimelineTrack & _Track)
+std::string GetTrackLabel(const ITimelinePresenter & _Presenter, const TTimelineTrack & _Track)
 {
-  return _Track.Name.empty() ? _Track.TypeId : _Track.Name;
+  const auto Label = _Presenter.GetTrackLabel(_Track);
+  return Label.empty() ? _Track.TypeId : Label;
+}
+
+bool IsTargetRow(const TTimelineTrack & _Track)
+{
+  return _Track.TypeId == TimelineGroupType && !_Track.Target.Slot.empty();
 }
 
 std::string GetClipLabel(const TTimelineClip & _Clip)
@@ -558,7 +564,7 @@ bool CTimelineView::DrawTrackHeader(ITimelinePresenter & _Presenter, const TTime
   const float CellRight    = CellLeft + ImGui::GetContentRegionAvail().x;
   const float ButtonSpace  = HasAddKey ? CalcSmallButtonWidth("+") + ImGui::GetStyle().ItemSpacing.x : 0.0f;
   const float LabelWidth   = CellRight - CellLeft - ImGui::GetTreeNodeToLabelSpacing() - ButtonSpace;
-  const auto  FullLabel    = GetTrackLabel(_Track);
+  const auto  FullLabel    = GetTrackLabel(_Presenter, _Track);
   const auto  ShownLabel   = IsRenaming ? std::string() : TrimToWidth(FullLabel, LabelWidth);
   const bool  IsMissing    = !_Presenter.IsTargetValid(_Track);
 
@@ -580,6 +586,9 @@ bool CTimelineView::DrawTrackHeader(ITimelinePresenter & _Presenter, const TTime
   if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) || ImGui::IsItemClicked(ImGuiMouseButton_Right)) && !ImGui::IsItemToggledOpen())
     _Presenter.SelectTrack(_Track.Id);
 
+  if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen() && !_Track.Target.Slot.empty())
+    _Presenter.ShowTrackInScene(_Track.Id);
+
   DrawTrackContextMenu(_Presenter, _Track);
 
   if (IsRenaming)
@@ -600,7 +609,10 @@ void CTimelineView::DrawTrackContextMenu(ITimelinePresenter & _Presenter, const 
   if (!ImGui::BeginPopupContextItem("##TrackMenu"))
     return;
 
-  if (ImGui::MenuItem("Rename"))
+  if (IsTargetRow(_Track))
+    DrawTargetMenu(_Presenter, _Track);
+
+  if (ImGui::MenuItem("Rename", nullptr, false, !IsTargetRow(_Track)))
     BeginRename(_Track);
 
   if (ImGui::MenuItem("Bind to Selected Node", nullptr, false, _Presenter.CanBindToSelection(_Track)))
@@ -629,6 +641,30 @@ void CTimelineView::DrawTrackContextMenu(ITimelinePresenter & _Presenter, const 
     _Presenter.DeleteTrack(_Track.Id);
 
   ImGui::EndPopup();
+}
+
+void CTimelineView::DrawTargetMenu(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track) const
+{
+  if (ImGui::BeginMenu("Add Track"))
+  {
+    const auto Templates = _Presenter.GetTargetTemplates(_Track);
+
+    for (const auto & Template : Templates)
+    {
+      if (ImGui::MenuItem(Template.Label.c_str()))
+        _Presenter.AddTrack(Template.Track);
+    }
+
+    if (Templates.empty())
+      ImGui::TextDisabled("The node already has all its tracks");
+
+    ImGui::EndMenu();
+  }
+
+  if (ImGui::MenuItem("Select in Scene", nullptr, false, _Presenter.IsTargetValid(_Track)))
+    _Presenter.ShowTrackInScene(_Track.Id);
+
+  ImGui::Separator();
 }
 
 void CTimelineView::DrawAddKeyButton(ITimelinePresenter & _Presenter, const TTimelineTrack & _Track, float _CellRight) const
@@ -672,7 +708,7 @@ void CTimelineView::DrawRenameField(ITimelinePresenter & _Presenter)
 
 void CTimelineView::BeginRename(const TTimelineTrack & _Track)
 {
-  const auto Label  = GetTrackLabel(_Track);
+  const auto Label  = _Track.Name.empty() ? _Track.TypeId : _Track.Name;
   const auto Length = std::min(Label.size(), m_RenameBuffer.size() - 1);
 
   m_RenameBuffer.fill('\0');
@@ -769,11 +805,10 @@ void CTimelineView::DrawKeys(ImDrawList & _DrawList, const ImVec2 & _Min, const 
     const bool   IsHovered  = IsHoverable && std::abs(Mouse.x - PositionX) <= KeyHitRadius && std::abs(Mouse.y - CenterY) <= KeyHitRadius;
     const float  Radius     = IsSelected || IsHovered ? KeyRadius + 1.0f : KeyRadius;
 
-    _DrawList.AddCircleFilled(Center, Radius, _Color);
-    _DrawList.AddCircle(Center, Radius, KeyBorderColor);
-
     if (IsSelected)
-      _DrawList.AddCircle(Center, Radius + SelectedRingGap, SelectedKeyRing, 0, SelectedRingSize);
+      _DrawList.AddCircleFilled(Center, Radius + SelectedRingGap, SelectedKeyRing);
+
+    _DrawList.AddCircleFilled(Center, Radius, _Color);
   }
 }
 

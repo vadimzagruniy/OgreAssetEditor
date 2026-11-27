@@ -51,6 +51,10 @@ public: // State
 
   virtual std::vector<TTimelineTrackTemplate> GetTrackTemplates() const = 0;
 
+  virtual std::vector<TTimelineTrackTemplate> GetTargetTemplates(const TTimelineTrack & _Target) const = 0;
+
+  virtual std::string GetTrackLabel(const TTimelineTrack & _Track) const = 0;
+
   virtual bool HasTrackTarget() const = 0;
 
   virtual bool IsTrackTargetRequested() const = 0;
@@ -104,6 +108,8 @@ public: // Actions
   virtual void RenameTrack(TTimelineId _TrackId, const std::string & _Name) = 0;
 
   virtual void BindToSelection(const TTimelineTrack & _Track) = 0;
+
+  virtual void ShowTrackInScene(TTimelineId _TrackId) = 0;
 
   virtual void RequestTrackTarget() = 0;
 
