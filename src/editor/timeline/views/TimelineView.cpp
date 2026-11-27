@@ -394,10 +394,19 @@ void CTimelineView::DrawSpeedCombo(ITimelinePresenter & _Presenter) const
 
 void CTimelineView::DrawAddTrackMenu(ITimelinePresenter & _Presenter) const
 {
-  if (ImGui::Button("+ Add Track", ImVec2(-1.0f, 0.0f)))
-    ImGui::OpenPopup("##AddTrackMenu");
-
+  const bool IsClicked = ImGui::Button("+ Add Track", ImVec2(-1.0f, 0.0f));
   ImGui::SetItemTooltip("Add a track for the selected scene node");
+
+  if (IsClicked && !_Presenter.HasTrackTarget())
+  {
+    _Presenter.RequestTrackTarget();
+  }
+  else
+  if (IsClicked || _Presenter.IsAddTrackMenuRequested())
+  {
+    ImGui::OpenPopup("##AddTrackMenu");
+    _Presenter.ClearAddTrackMenuRequest();
+  }
 
   ImGui::SetNextWindowPos(ImVec2(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y), ImGuiCond_Appearing);
 
@@ -413,9 +422,12 @@ void CTimelineView::DrawAddTrackMenu(ITimelinePresenter & _Presenter) const
   }
 
   if (Templates.empty())
-    ImGui::TextDisabled("Select a scene node to add its tracks");
+    ImGui::TextDisabled(_Presenter.HasTrackTarget() ? "The node already has all its tracks" : "No scene node selected");
 
   ImGui::Separator();
+
+  if (ImGui::MenuItem("Choose Scene Node..."))
+    _Presenter.RequestTrackTarget();
 
   if (ImGui::MenuItem("Group"))
   {

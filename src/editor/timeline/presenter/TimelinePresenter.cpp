@@ -29,7 +29,9 @@ CTimelinePresenter::CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Docum
   m_Selection(std::make_shared<CTimelineSelection>()),
   m_KeyProperties(std::make_shared<CTimelineKeyPropertySource>(m_Document, m_Selection)),
   m_ActionQueue(std::move(_ActionQueue)),
-  m_ChangedConnection(0)
+  m_ChangedConnection(0),
+  m_IsTrackTargetRequested(false),
+  m_IsAddTrackMenuRequested(false)
 {
   m_ChangedConnection = m_Document->GetChangedSignal().Connect([this](const TTimelineChange & _Change)
   {
@@ -117,6 +119,21 @@ std::uint32_t CTimelinePresenter::GetTrackColor(const TTimelineTrack & _Track) c
 std::vector<TTimelineTrackTemplate> CTimelinePresenter::GetTrackTemplates() const
 {
   return m_TrackSource->GetTrackTemplates(m_Document->GetTimeline());
+}
+
+bool CTimelinePresenter::HasTrackTarget() const
+{
+  return m_TrackSource->HasTrackTarget();
+}
+
+bool CTimelinePresenter::IsTrackTargetRequested() const
+{
+  return m_IsTrackTargetRequested;
+}
+
+bool CTimelinePresenter::IsAddTrackMenuRequested() const
+{
+  return m_IsAddTrackMenuRequested;
 }
 
 void CTimelinePresenter::Play()
@@ -280,6 +297,32 @@ void CTimelinePresenter::RenameTrack(TTimelineId _TrackId, const std::string & _
 void CTimelinePresenter::BindToSelection(const TTimelineTrack & _Track)
 {
   m_TrackSource->BindToSelection(_Track);
+}
+
+void CTimelinePresenter::RequestTrackTarget()
+{
+  m_IsTrackTargetRequested = true;
+}
+
+void CTimelinePresenter::ConfirmTrackTarget(const std::string & _Target)
+{
+  m_IsTrackTargetRequested  = false;
+  m_IsAddTrackMenuRequested = true;
+
+  m_ActionQueue->Post([TrackSource = m_TrackSource, _Target]
+  {
+    TrackSource->SelectTrackTarget(_Target);
+  });
+}
+
+void CTimelinePresenter::CancelTrackTarget()
+{
+  m_IsTrackTargetRequested = false;
+}
+
+void CTimelinePresenter::ClearAddTrackMenuRequest()
+{
+  m_IsAddTrackMenuRequested = false;
 }
 
 //

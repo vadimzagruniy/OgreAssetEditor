@@ -97,4 +97,9 @@ CTimelinePresenter & CAnimationEditor::GetPresenter() const noexcept
   return *m_Presenter;
 }
 
+std::shared_ptr<ISceneAnimationHost> CAnimationEditor::GetSceneHost() const
+{
+  return m_Slots->LockHost();
+}
+
 } // namespace editor

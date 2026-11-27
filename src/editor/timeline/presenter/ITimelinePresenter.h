@@ -50,6 +50,12 @@ public: // State
 
   virtual std::vector<TTimelineTrackTemplate> GetTrackTemplates() const = 0;
 
+  virtual bool HasTrackTarget() const = 0;
+
+  virtual bool IsTrackTargetRequested() const = 0;
+
+  virtual bool IsAddTrackMenuRequested() const = 0;
+
 public: // Actions
 
   virtual void Play() = 0;
@@ -87,6 +93,14 @@ public: // Actions
   virtual void RenameTrack(TTimelineId _TrackId, const std::string & _Name) = 0;
 
   virtual void BindToSelection(const TTimelineTrack & _Track) = 0;
+
+  virtual void RequestTrackTarget() = 0;
+
+  virtual void ConfirmTrackTarget(const std::string & _Target) = 0;
+
+  virtual void CancelTrackTarget() = 0;
+
+  virtual void ClearAddTrackMenuRequest() = 0;
 };
 
 } // namespace editor

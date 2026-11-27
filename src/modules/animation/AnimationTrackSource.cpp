@@ -197,6 +197,22 @@ std::uint32_t CAnimationTrackSource::GetTrackColor(const TTimelineTrack & _Track
   return TrackPalette[PropertyIndex % TrackPalette.size()];
 }
 
+bool CAnimationTrackSource::HasTrackTarget() const
+{
+  const auto Host = m_Slots->LockHost();
+  if (!Host)
+    return false;
+
+  const auto NodeName = Host->GetSelectedNode();
+  return !NodeName.empty() && Host->GetGraph().HasNode(NodeName);
+}
+
+void CAnimationTrackSource::SelectTrackTarget(const std::string & _Target) const
+{
+  if (const auto Host = m_Slots->LockHost())
+    Host->SelectNode(_Target);
+}
+
 //
 // Events
 //

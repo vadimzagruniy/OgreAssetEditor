@@ -16,7 +16,7 @@ namespace editor
 // Constructor
 //
 
-CSceneAnimationHost::CSceneAnimationHost(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<const CSceneSelection> _Selection, CSceneSync & _Sync):
+CSceneAnimationHost::CSceneAnimationHost(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneSelection> _Selection, CSceneSync & _Sync):
   m_Document(std::move(_Document)),
   m_Selection(std::move(_Selection)),
   m_Sync(_Sync)
@@ -36,6 +36,11 @@ const CSceneGraph & CSceneAnimationHost::GetGraph() const
 std::string CSceneAnimationHost::GetSelectedNode() const
 {
   return m_Selection->GetNode();
+}
+
+void CSceneAnimationHost::SelectNode(const std::string & _Name)
+{
+  m_Selection->Select(_Name);
 }
 
 void CSceneAnimationHost::PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value)

@@ -30,6 +30,10 @@ public: // ITimelineTrackSource
 
   std::uint32_t GetTrackColor(const TTimelineTrack & _Track) const override;
 
+  bool HasTrackTarget() const override;
+
+  void SelectTrackTarget(const std::string & _Target) const override;
+
 public: // Events
 
   void OnTrackAdded(const TTimelineTrack & _Track) const override;

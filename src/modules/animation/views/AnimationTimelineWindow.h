@@ -47,6 +47,8 @@ private: // Implementation
 
   void DrawAnimationBar(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors, const std::shared_ptr<CAnimationEditor> & _Selected, float _Width);
 
+  void OpenTargetPicker(const std::shared_ptr<CAnimationEditor> & _Editor);
+
   void DrawSceneAnimations(const CEditorWorkspace & _Workspace) const;
 
   void OpenAnimation(const std::string & _Path) const;
@@ -63,6 +65,7 @@ private: // Attributes
   std::shared_ptr<core::CActionQueue>  m_ActionQueue;
   std::filesystem::path                m_RequestedPath;
   std::filesystem::path                m_SelectedPath;
+  bool                                 m_IsTargetPickerOpened;
 };
 
 } // namespace editor

@@ -49,6 +49,8 @@ public: // Interface
 
   CTimelinePresenter & GetPresenter() const noexcept;
 
+  std::shared_ptr<ISceneAnimationHost> GetSceneHost() const;
+
 private: // Attributes
 
   std::shared_ptr<CAnimationDocument>    m_Document;

@@ -13,6 +13,7 @@
 #include "editor/timeline/presenter/TimelinePresenter.h"
 #include "editor/timeline/views/TimelineView.h"
 #include "ui/ChoiceModal.h"
+#include "SceneNodePickerModal.h"
 #include "ui/ChoiceModalDesc.h"
 #include "ui/ToolBoxDesc.h"
 #include "ui/WindowManager.h"
@@ -56,7 +57,8 @@ CAnimationTimelineWindow::CAnimationTimelineWindow(const ui::TToolBoxDesc & _Des
   m_WorkspaceManager(std::move(_WorkspaceManager)),
   m_WindowManager(std::move(_WindowManager)),
   m_AssetManager(std::move(_AssetManager)),
-  m_ActionQueue(std::move(_ActionQueue))
+  m_ActionQueue(std::move(_ActionQueue)),
+  m_IsTargetPickerOpened(false)
 {
   // Empty
 }
@@ -93,6 +95,8 @@ void CAnimationTimelineWindow::OnGui()
   const auto Selected = SelectEditor(Editors);
 
   Selected->GetTimelineView().Draw(Selected->GetPresenter(), [this, &Editors, &Selected](float _Width) { DrawAnimationBar(Editors, Selected, _Width); });
+
+  OpenTargetPicker(Selected);
 
   StopHiddenPreviews(Editors);
 }
@@ -149,6 +153,21 @@ void CAnimationTimelineWindow::DrawAnimationBar(const std::vector<std::shared_pt
   }
 
   ImGui::EndCombo();
+}
+
+void CAnimationTimelineWindow::OpenTargetPicker(const std::shared_ptr<CAnimationEditor> & _Editor)
+{
+  if (!_Editor->GetPresenter().IsTrackTargetRequested())
+  {
+    m_IsTargetPickerOpened = false;
+    return;
+  }
+
+  if (m_IsTargetPickerOpened)
+    return;
+
+  m_IsTargetPickerOpened = true;
+  m_WindowManager->OpenModal(std::make_unique<CSceneNodePickerModal>(_Editor));
 }
 
 void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Workspace) const

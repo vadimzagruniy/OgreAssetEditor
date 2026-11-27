@@ -4,6 +4,7 @@
 #include "editor/inspector/PropertyValue.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace editor
@@ -30,6 +31,10 @@ public: // Interface
   virtual void BindToSelection(const TTimelineTrack & _Track) const = 0;
 
   virtual std::uint32_t GetTrackColor(const TTimelineTrack & _Track) const = 0;
+
+  virtual bool HasTrackTarget() const = 0;
+
+  virtual void SelectTrackTarget(const std::string & _Target) const = 0;
 
 public: // Events
 

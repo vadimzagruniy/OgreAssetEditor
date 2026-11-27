@@ -64,6 +64,12 @@ public: // ITimelinePresenter
 
   std::vector<TTimelineTrackTemplate> GetTrackTemplates() const override;
 
+  bool HasTrackTarget() const override;
+
+  bool IsTrackTargetRequested() const override;
+
+  bool IsAddTrackMenuRequested() const override;
+
   void Play() override;
 
   void Pause() override;
@@ -100,6 +106,14 @@ public: // ITimelinePresenter
 
   void BindToSelection(const TTimelineTrack & _Track) override;
 
+  void RequestTrackTarget() override;
+
+  void ConfirmTrackTarget(const std::string & _Target) override;
+
+  void CancelTrackTarget() override;
+
+  void ClearAddTrackMenuRequest() override;
+
 public: // Interface
 
   void Tick(float _DeltaTime);
@@ -128,6 +142,8 @@ private: // Attributes
   std::shared_ptr<CTimelineKeyPropertySource> m_KeyProperties;
   std::shared_ptr<core::CActionQueue>         m_ActionQueue;
   std::size_t                                 m_ChangedConnection;
+  bool                                        m_IsTrackTargetRequested;
+  bool                                        m_IsAddTrackMenuRequested;
 };
 
 } // namespace editor
