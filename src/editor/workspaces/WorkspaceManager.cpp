@@ -3,6 +3,7 @@
 #include "IAttachedEditor.h"
 #include "core/Log.h"
 #include "editor/assets/AssetManager.h"
+#include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetPath.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetType.h"
@@ -78,19 +79,24 @@ bool CWorkspaceManager::OpenAsset(const TAssetRecord & _Asset)
     return false;
   }
 
-  std::string Error;
-  auto        Workspace = AssetType->OpenAsset(_Asset, CAssetManager::ResourceGroup, Error);
+  std::unique_ptr<CEditorWorkspace> Workspace;
+  std::string                       Error;
 
-  if (!Workspace && Error.empty())
-    return true;
-
-  if (!Workspace)
+  switch (AssetType->OpenAsset(_Asset, CAssetManager::ResourceGroup, Workspace, Error))
   {
-    m_Log->Write(core::ELogLevel::Error, Error);
-    return false;
+    case EAssetOpenResult::OpenedInWorkspace:
+      return AddWorkspace(std::move(Workspace));
+
+    case EAssetOpenResult::AttachedToWorkspace:
+      return true;
+
+    case EAssetOpenResult::Failed:
+      break;
   }
 
-  return AddWorkspace(std::move(Workspace));
+  m_Log->Write(core::ELogLevel::Error, Error);
+
+  return false;
 }
 
 bool CWorkspaceManager::AddWorkspace(std::unique_ptr<CEditorWorkspace> _Workspace)

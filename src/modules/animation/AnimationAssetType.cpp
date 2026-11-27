@@ -1,14 +1,15 @@
 #include "AnimationAssetType.h"
 #include "AnimationDocument.h"
 #include "AnimationEditor.h"
+#include "views/AnimationTimelineWindow.h"
 #include "core/EditorService.h"
+#include "core/PathUtf8.h"
+#include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
 #include "editor/workspaces/EditorWorkspace.h"
 #include "editor/workspaces/WorkspaceManager.h"
 #include "modules/scene/animation/ISceneAnimationHost.h"
-#include "views/AnimationTimelineWindow.h"
-#include "core/PathUtf8.h"
 
 #include <fstream>
 #include <iterator>
@@ -39,23 +40,23 @@ const TAssetTypeInfo & CAnimationAssetType::GetInfo() const noexcept
   return Info;
 }
 
-std::unique_ptr<CEditorWorkspace> CAnimationAssetType::OpenAsset(const TAssetRecord & _Asset, const std::string & /*_ResourceGroup*/, std::string & _Error) const
+EAssetOpenResult CAnimationAssetType::OpenAsset(const TAssetRecord & _Asset, const std::string & /*_ResourceGroup*/, std::unique_ptr<CEditorWorkspace> & /*_Workspace*/, std::string & _Error) const
 {
   const auto HostIndex = m_WorkspaceManager->FindHost<ISceneAnimationHost>();
   if (!HostIndex)
   {
     _Error = "Open a scene to edit " + _Asset.RelativePath.filename().string() + ".";
-    return {};
+    return EAssetOpenResult::Failed;
   }
 
   m_WorkspaceManager->SetActive(*HostIndex);
 
   if (!m_WorkspaceManager->FindAttachedEditor(*HostIndex, _Asset.AbsolutePath) && !AttachNewEditor(*HostIndex, _Asset, _Error))
-    return {};
+    return EAssetOpenResult::Failed;
 
   m_TimelineWindow->ShowAnimation(_Asset.AbsolutePath);
 
-  return {};
+  return EAssetOpenResult::AttachedToWorkspace;
 }
 
 //

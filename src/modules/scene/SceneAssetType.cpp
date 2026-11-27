@@ -1,9 +1,10 @@
 #include "SceneAssetType.h"
 #include "SceneDocument.h"
 #include "SceneWorkspace.h"
+#include "core/PathUtf8.h"
+#include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
-#include "core/PathUtf8.h"
 
 #include <fstream>
 #include <iterator>
@@ -35,13 +36,13 @@ const TAssetTypeInfo & CSceneAssetType::GetInfo() const noexcept
   return Info;
 }
 
-std::unique_ptr<CEditorWorkspace> CSceneAssetType::OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::string & _Error) const
+EAssetOpenResult CSceneAssetType::OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::unique_ptr<CEditorWorkspace> & _Workspace, std::string & _Error) const
 {
   std::ifstream File(_Asset.AbsolutePath, std::ios::binary);
   if (!File)
   {
     _Error = "Could not open scene file: " + core::PathToUtf8(_Asset.AbsolutePath);
-    return {};
+    return EAssetOpenResult::Failed;
   }
 
   const std::string Text((std::istreambuf_iterator<char>(File)), {});
@@ -50,10 +51,12 @@ std::unique_ptr<CEditorWorkspace> CSceneAssetType::OpenAsset(const TAssetRecord 
   if (!Document->Load(Text, _Error))
   {
     _Error = _Asset.RelativePath.generic_string() + ": " + _Error;
-    return {};
+    return EAssetOpenResult::Failed;
   }
 
-  return std::make_unique<CSceneWorkspace>(std::move(Document), m_Controller, _ResourceGroup, m_NodeBindings, m_Log);
+  _Workspace = std::make_unique<CSceneWorkspace>(std::move(Document), m_Controller, _ResourceGroup, m_NodeBindings, m_Log);
+
+  return EAssetOpenResult::OpenedInWorkspace;
 }
 
 } // namespace editor

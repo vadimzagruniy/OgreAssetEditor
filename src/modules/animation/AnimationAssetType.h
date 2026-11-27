@@ -26,7 +26,7 @@ public: // IAssetType
 
   const TAssetTypeInfo & GetInfo() const noexcept override;
 
-  std::unique_ptr<CEditorWorkspace> OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::string & _Error) const override;
+  EAssetOpenResult OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::unique_ptr<CEditorWorkspace> & _Workspace, std::string & _Error) const override;
 
 private: // Implementation
 

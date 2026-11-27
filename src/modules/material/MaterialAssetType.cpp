@@ -1,9 +1,10 @@
 #include "MaterialAssetType.h"
 #include "MaterialDocument.h"
 #include "MaterialWorkspace.h"
+#include "core/PathUtf8.h"
+#include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
-#include "core/PathUtf8.h"
 
 #include <OgreMaterial.h>
 #include <OgreMaterialManager.h>
@@ -110,13 +111,13 @@ const TAssetTypeInfo & CMaterialAssetType::GetInfo() const noexcept
   return Info;
 }
 
-std::unique_ptr<CEditorWorkspace> CMaterialAssetType::OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::string & _Error) const
+EAssetOpenResult CMaterialAssetType::OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::unique_ptr<CEditorWorkspace> & _Workspace, std::string & _Error) const
 {
   std::ifstream File(_Asset.AbsolutePath, std::ios::binary);
   if (!File)
   {
     _Error = "Could not open material script: " + core::PathToUtf8(_Asset.AbsolutePath);
-    return {};
+    return EAssetOpenResult::Failed;
   }
 
   const std::string Script((std::istreambuf_iterator<char>(File)), {});
@@ -125,7 +126,7 @@ std::unique_ptr<CEditorWorkspace> CMaterialAssetType::OpenAsset(const TAssetReco
   if (Materials.empty())
   {
     if (!ParseScript(_Asset.RelativePath, _ResourceGroup, _Error))
-      return {};
+      return EAssetOpenResult::Failed;
 
     Materials = FindScriptMaterials(_Asset.RelativePath, _ResourceGroup);
   }
@@ -133,11 +134,13 @@ std::unique_ptr<CEditorWorkspace> CMaterialAssetType::OpenAsset(const TAssetReco
   if (Materials.empty())
   {
     _Error = "OGRE has no materials from this script. It may be empty or contain errors, see the OGRE log.";
-    return {};
+    return EAssetOpenResult::Failed;
   }
 
   auto Document = std::make_shared<CMaterialDocument>(_Asset, Materials, HasExpandedFeatures(Script));
-  return std::make_unique<CMaterialWorkspace>(std::move(Document), m_Controller);
+  _Workspace = std::make_unique<CMaterialWorkspace>(std::move(Document), m_Controller);
+
+  return EAssetOpenResult::OpenedInWorkspace;
 }
 
 } // namespace editor
