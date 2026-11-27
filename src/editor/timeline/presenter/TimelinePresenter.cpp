@@ -76,6 +76,11 @@ bool CTimelinePresenter::IsLooping() const
   return m_Player->IsLooping();
 }
 
+float CTimelinePresenter::GetPlaybackSpeed() const
+{
+  return m_Player->GetSpeed();
+}
+
 ETimelineItemKind CTimelinePresenter::GetItemKind(const TTimelineTrack & _Track) const
 {
   return m_TrackTypes->GetItemKind(_Track.TypeId);
@@ -132,6 +137,11 @@ void CTimelinePresenter::Stop()
 void CTimelinePresenter::SetLooping(bool _IsLooping)
 {
   m_Player->SetLooping(_IsLooping);
+}
+
+void CTimelinePresenter::SetPlaybackSpeed(float _Speed)
+{
+  m_Player->SetSpeed(_Speed);
 }
 
 void CTimelinePresenter::Scrub(TTimelineTicks _Time)

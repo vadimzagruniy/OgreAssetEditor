@@ -17,6 +17,7 @@ namespace editor
 CTimelinePlayer::CTimelinePlayer(std::shared_ptr<ITimelineEvaluator> _Evaluator):
   m_Evaluator(std::move(_Evaluator)),
   m_Time(0),
+  m_Speed(1.0f),
   m_IsPlaying(false),
   m_IsPreviewing(false),
   m_IsLooping(true)
@@ -35,7 +36,7 @@ void CTimelinePlayer::Update(const CTimeline & _Timeline, float _DeltaSeconds)
 
   if (m_IsPlaying)
   {
-    Advance(_Timeline, _DeltaSeconds);
+    Advance(_Timeline, _DeltaSeconds * m_Speed);
     return;
   }
 
@@ -87,6 +88,16 @@ bool CTimelinePlayer::IsLooping() const noexcept
 void CTimelinePlayer::SetLooping(bool _IsLooping) noexcept
 {
   m_IsLooping = _IsLooping;
+}
+
+float CTimelinePlayer::GetSpeed() const noexcept
+{
+  return m_Speed;
+}
+
+void CTimelinePlayer::SetSpeed(float _Speed) noexcept
+{
+  m_Speed = _Speed;
 }
 
 TTimelineTicks CTimelinePlayer::GetTime() const noexcept

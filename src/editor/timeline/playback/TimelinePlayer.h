@@ -36,6 +36,10 @@ public: // Interface
 
   void SetLooping(bool _IsLooping) noexcept;
 
+  float GetSpeed() const noexcept;
+
+  void SetSpeed(float _Speed) noexcept;
+
   TTimelineTicks GetTime() const noexcept;
 
 private: // Implementation
@@ -48,6 +52,7 @@ private: // Attributes
 
   std::shared_ptr<ITimelineEvaluator> m_Evaluator;
   TTimelineTicks                      m_Time;
+  float                               m_Speed;
   bool                                m_IsPlaying;
   bool                                m_IsPreviewing;
   bool                                m_IsLooping;

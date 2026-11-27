@@ -35,6 +35,7 @@ constexpr float WheelScrollStep  = 40.0f;
 constexpr float PlayheadWidth    = 2.0f;
 constexpr float PlayheadPadding  = 4.0f;
 constexpr float FormatComboScale = 7.0f;
+constexpr float SpeedComboScale  = 4.5f;
 constexpr float SelectedLaneTint = 0.4f;
 constexpr float FrameRounding    = 4.0f;
 constexpr float MinBoxSize       = 3.0f;
@@ -52,6 +53,8 @@ constexpr float DurationGrab     = 5.0f;
 constexpr float DurationHandle   = 3.0f;
 
 constexpr std::array<const char *, 2> TimeFormatNames{"Seconds", "Frames"};
+constexpr std::array<const char *, 4> SpeedNames{"x1", "x1/2", "x1/4", "x1/8"};
+constexpr std::array<float, 4>        SpeedValues{1.0f, 0.5f, 0.25f, 0.125f};
 
 float GetRowHeight()
 {
@@ -331,7 +334,7 @@ float CTimelineView::CalcViewOptionsWidth() const
 {
   const float Spacing = ImGui::GetStyle().ItemSpacing.x;
 
-  return ImGui::GetFontSize() * FormatComboScale + CalcCheckboxWidth("Loop") + CalcCheckboxWidth("Snap") + Spacing * 2.0f;
+  return ImGui::GetFontSize() * (SpeedComboScale + FormatComboScale) + CalcCheckboxWidth("Loop") + CalcCheckboxWidth("Snap") + Spacing * 3.0f;
 }
 
 void CTimelineView::DrawViewOptions(ITimelinePresenter & _Presenter)
@@ -341,6 +344,9 @@ void CTimelineView::DrawViewOptions(ITimelinePresenter & _Presenter)
   ImGui::SameLine();
   ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(ImGui::GetContentRegionAvail().x - RightWidth, 0.0f));
   ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+  ImGui::SameLine();
+  DrawSpeedCombo(_Presenter);
 
   int FormatIndex = static_cast<int>(m_Format);
 
@@ -364,12 +370,36 @@ void CTimelineView::DrawViewOptions(ITimelinePresenter & _Presenter)
   ImGui::SetItemTooltip("Snap keys to frames, hold Alt to move freely");
 }
 
+void CTimelineView::DrawSpeedCombo(ITimelinePresenter & _Presenter) const
+{
+  const float Speed        = _Presenter.GetPlaybackSpeed();
+  const auto  CurrentSpeed = std::find(SpeedValues.begin(), SpeedValues.end(), Speed);
+  const auto  CurrentIndex = CurrentSpeed == SpeedValues.end() ? 0 : std::distance(SpeedValues.begin(), CurrentSpeed);
+
+  ImGui::SetNextItemWidth(ImGui::GetFontSize() * SpeedComboScale);
+
+  if (ImGui::BeginCombo("##Speed", SpeedNames[CurrentIndex]))
+  {
+    for (std::size_t SpeedIndex = 0; SpeedIndex < SpeedValues.size(); ++SpeedIndex)
+    {
+      if (ImGui::Selectable(SpeedNames[SpeedIndex], static_cast<std::ptrdiff_t>(SpeedIndex) == CurrentIndex))
+        _Presenter.SetPlaybackSpeed(SpeedValues[SpeedIndex]);
+    }
+
+    ImGui::EndCombo();
+  }
+
+  ImGui::SetItemTooltip("Playback speed of the preview");
+}
+
 void CTimelineView::DrawAddTrackMenu(ITimelinePresenter & _Presenter) const
 {
   if (ImGui::Button("+ Add Track", ImVec2(-1.0f, 0.0f)))
     ImGui::OpenPopup("##AddTrackMenu");
 
   ImGui::SetItemTooltip("Add a track for the selected scene node");
+
+  ImGui::SetNextWindowPos(ImVec2(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y), ImGuiCond_Appearing);
 
   if (!ImGui::BeginPopup("##AddTrackMenu"))
     return;
@@ -549,6 +579,25 @@ void CTimelineView::DrawTrackContextMenu(ITimelinePresenter & _Presenter, const 
 
   if (ImGui::MenuItem("Bind to Selected Node", nullptr, false, _Presenter.CanBindToSelection(_Track)))
     _Presenter.BindToSelection(_Track);
+
+  ImGui::Separator();
+
+  const bool HasKeys = _Presenter.GetItemKind(_Track) == ETimelineItemKind::Keys;
+
+  if (ImGui::MenuItem("Insert Key at Playhead", nullptr, false, HasKeys && _Presenter.CanAddKey(_Track.Id)))
+    _Presenter.AddKey(_Track.Id, m_CurrentTime);
+
+  if (ImGui::MenuItem("Select All Keys", nullptr, false, !_Track.Keys.empty()))
+  {
+    std::vector<TTimelineId> KeyIds;
+
+    for (const auto & Key : _Track.Keys)
+      KeyIds.push_back(Key.Id);
+
+    _Presenter.SelectItems(KeyIds, false);
+  }
+
+  ImGui::Separator();
 
   if (ImGui::MenuItem("Delete", "Del"))
     _Presenter.DeleteTrack(_Track.Id);

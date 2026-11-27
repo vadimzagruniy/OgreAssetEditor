@@ -48,6 +48,8 @@ private: // Implementation
 
   void DrawViewOptions(ITimelinePresenter & _Presenter);
 
+  void DrawSpeedCombo(ITimelinePresenter & _Presenter) const;
+
   void DrawAddTrackMenu(ITimelinePresenter & _Presenter) const;
 
   void DrawRulerRow(const CTimeline & _Timeline, ITimelinePresenter & _Presenter);

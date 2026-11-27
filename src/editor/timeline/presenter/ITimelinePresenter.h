@@ -36,6 +36,8 @@ public: // State
 
   virtual bool IsLooping() const = 0;
 
+  virtual float GetPlaybackSpeed() const = 0;
+
   virtual ETimelineItemKind GetItemKind(const TTimelineTrack & _Track) const = 0;
 
   virtual bool CanAddKey(TTimelineId _TrackId) const = 0;
@@ -57,6 +59,8 @@ public: // Actions
   virtual void Stop() = 0;
 
   virtual void SetLooping(bool _IsLooping) = 0;
+
+  virtual void SetPlaybackSpeed(float _Speed) = 0;
 
   virtual void Scrub(TTimelineTicks _Time) = 0;
 

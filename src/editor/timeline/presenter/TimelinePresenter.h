@@ -50,6 +50,8 @@ public: // ITimelinePresenter
 
   bool IsLooping() const override;
 
+  float GetPlaybackSpeed() const override;
+
   ETimelineItemKind GetItemKind(const TTimelineTrack & _Track) const override;
 
   bool CanAddKey(TTimelineId _TrackId) const override;
@@ -69,6 +71,8 @@ public: // ITimelinePresenter
   void Stop() override;
 
   void SetLooping(bool _IsLooping) override;
+
+  void SetPlaybackSpeed(float _Speed) override;
 
   void Scrub(TTimelineTicks _Time) override;
 
