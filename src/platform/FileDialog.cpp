@@ -2,6 +2,7 @@
 #include "FileDialogDesc.h"
 #include "FileDialogEvents.h"
 #include "ShellItem.h"
+#include "core/PathUtf8.h"
 
 #include <windows.h>
 #include <shobjidl.h>
@@ -58,7 +59,7 @@ bool SetupDialog(IFileOpenDialog & _Dialog, const TFileDialogDesc & _Desc, std::
   ComPtr<IShellItem> Folder;
   if (FAILED(SHCreateItemFromParsingName(NormalizePath(InitialFolder).c_str(), nullptr, IID_PPV_ARGS(&Folder))))
   {
-    _Error = "Folder '" + InitialFolder.string() + "' cannot be opened.";
+    _Error = "Folder '" + core::PathToUtf8(InitialFolder) + "' cannot be opened.";
     return false;
   }
 

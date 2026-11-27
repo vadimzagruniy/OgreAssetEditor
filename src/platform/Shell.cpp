@@ -1,4 +1,5 @@
 #include "Shell.h"
+#include "core/PathUtf8.h"
 
 #include <imgui.h>
 
@@ -28,7 +29,7 @@ bool RevealInExplorer(const std::filesystem::path & _Path, std::string & _Error)
   if (RunShell(L"explorer.exe", Parameters.c_str()))
     return true;
 
-  _Error = "Could not open Explorer for " + _Path.string();
+  _Error = "Could not open Explorer for " + core::PathToUtf8(_Path);
 
   return false;
 }
@@ -38,7 +39,7 @@ bool OpenWithDefaultApp(const std::filesystem::path & _Path, std::string & _Erro
   if (RunShell(_Path.c_str(), nullptr))
     return true;
 
-  _Error = "No application is associated with " + _Path.string();
+  _Error = "No application is associated with " + core::PathToUtf8(_Path);
 
   return false;
 }

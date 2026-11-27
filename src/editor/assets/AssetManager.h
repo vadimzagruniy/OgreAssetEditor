@@ -7,7 +7,13 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
+
+namespace editor::core
+{
+class CLog;
+} // namespace editor::core
 
 namespace editor
 {
@@ -30,7 +36,7 @@ public: // Types
 
 public: // Constructor/Destructor
 
-  CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories);
+  CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<core::CLog> _Log);
 
   ~CAssetManager();
 
@@ -86,6 +92,8 @@ private: // Implementation
 
   void ScanFolder(TAssetNode & _Folder);
 
+  void ReportInvalidEntry(const std::filesystem::path & _Path, const std::string & _Reason);
+
   void RemountResources();
 
   std::filesystem::path ToAbsolute(const std::filesystem::path & _RelativePath) const;
@@ -96,9 +104,11 @@ private: // Attributes
 
   std::shared_ptr<CAssetTypeRegistry>    m_AssetTypes;
   std::shared_ptr<CAssetFactoryRegistry> m_AssetFactories;
+  std::shared_ptr<core::CLog>            m_Log;
   std::filesystem::path                  m_ProjectRoot;
   std::filesystem::path                  m_AssetsRoot;
   TAssetNode                             m_RootNode;
+  std::set<std::filesystem::path>        m_ReportedInvalidPaths;
   std::string                            m_LastError;
   bool                                   m_IsResourcesMounted;
   TChangedSignal                         m_ChangedSignal;

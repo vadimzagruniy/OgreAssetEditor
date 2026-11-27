@@ -8,6 +8,7 @@
 #include "editor/workspaces/WorkspaceManager.h"
 #include "modules/scene/animation/ISceneAnimationHost.h"
 #include "views/AnimationTimelineWindow.h"
+#include "core/PathUtf8.h"
 
 #include <fstream>
 #include <iterator>
@@ -66,7 +67,7 @@ bool CAnimationAssetType::AttachNewEditor(std::size_t _HostIndex, const TAssetRe
   std::ifstream File(_Asset.AbsolutePath, std::ios::binary);
   if (!File)
   {
-    _Error = "Could not open animation file: " + _Asset.AbsolutePath.string();
+    _Error = "Could not open animation file: " + core::PathToUtf8(_Asset.AbsolutePath);
     return false;
   }
 

@@ -2,9 +2,12 @@
 #include "AssetFactory.h"
 #include "AssetFactoryInfo.h"
 #include "AssetFactoryRegistry.h"
+#include "AssetNameRules.h"
 #include "AssetType.h"
 #include "AssetTypeInfo.h"
 #include "AssetTypeRegistry.h"
+#include "core/Log.h"
+#include "core/PathUtf8.h"
 #include "core/WriteFileAtomic.h"
 
 #include <OgreResourceGroupManager.h>
@@ -42,14 +45,6 @@ bool IsNodeOrderedBefore(const TAssetNode & _Left, const TAssetNode & _Right)
   return ToLower(_Left.Name) < ToLower(_Right.Name);
 }
 
-bool IsValidName(const std::string & _Name)
-{
-  if (_Name.empty() || _Name == "." || _Name == "..")
-    return false;
-
-  return _Name.find_first_of("\\/:*?\"<>|") == std::string::npos;
-}
-
 std::filesystem::path MakeUniquePath(const std::filesystem::path & _Folder, const std::string & _Stem, const std::string & _Extension)
 {
   std::error_code       ErrorCode;
@@ -67,9 +62,10 @@ std::filesystem::path MakeUniquePath(const std::filesystem::path & _Folder, cons
 // Constructor/Destructor
 //
 
-CAssetManager::CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories):
+CAssetManager::CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<core::CLog> _Log):
   m_AssetTypes(std::move(_AssetTypes)),
   m_AssetFactories(std::move(_AssetFactories)),
+  m_Log(std::move(_Log)),
   m_IsResourcesMounted(false)
 {
   // Empty
@@ -137,7 +133,7 @@ bool CAssetManager::MountResources()
   if (!ResourceGroups.resourceGroupExists(ResourceGroup))
     ResourceGroups.createResourceGroup(ResourceGroup);
 
-  ResourceGroups.addResourceLocation(m_AssetsRoot.string(), "FileSystem", ResourceGroup, true, true);
+  ResourceGroups.addResourceLocation(core::PathToUtf8(m_AssetsRoot), "FileSystem", ResourceGroup, true, true);
 
   m_IsResourcesMounted = true;
 
@@ -161,7 +157,7 @@ bool CAssetManager::CreateFolder(const std::filesystem::path & _ParentFolder, st
   std::error_code ErrorCode;
   if (!std::filesystem::create_directory(AbsolutePath, ErrorCode))
   {
-    _Error = "Cannot create folder: " + (ErrorCode ? ErrorCode.message() : AbsolutePath.string());
+    _Error = "Cannot create folder: " + (ErrorCode ? ErrorCode.message() : core::PathToUtf8(AbsolutePath));
     return false;
   }
 
@@ -204,11 +200,8 @@ bool CAssetManager::Rename(const std::filesystem::path & _Path, const std::strin
     return false;
   }
 
-  if (!IsValidName(_NewName))
-  {
-    _Error = "Invalid name: " + _NewName;
+  if (!IsValidAssetName(_NewName, _Error))
     return false;
-  }
 
   const std::filesystem::path NewPath = _Path.parent_path() / _NewName;
   if (NewPath == _Path)
@@ -348,11 +341,8 @@ bool CAssetManager::CheckAssetName(const std::string & _FactoryIdentifier, const
     return false;
   }
 
-  if (!IsValidName(_Name))
-  {
-    _Error = _Name.empty() ? "Enter a name." : "The name contains characters that are not allowed: \\ / : * ? \" < > |";
+  if (!IsValidAssetName(_Name, _Error))
     return false;
-  }
 
   std::shared_ptr<IAssetFactory> Factory;
   std::string                    Extension;
@@ -427,10 +417,19 @@ void CAssetManager::ScanFolder(TAssetNode & _Folder)
       break;
     }
 
+    std::string       Reason;
+    const std::string Name = core::PathToUtf8(Entry->path().filename());
+
+    if (!IsValidAssetName(Name, Reason))
+    {
+      ReportInvalidEntry(Entry->path(), Reason);
+      continue;
+    }
+
     std::error_code EntryError;
 
     TAssetNode Node;
-    Node.Name                = Entry->path().filename().string();
+    Node.Name                = Name;
     Node.IsDirectory         = Entry->is_directory(EntryError);
     Node.Record.AbsolutePath = Entry->path().lexically_normal();
     Node.Record.RelativePath = _Folder.Record.RelativePath / Node.Name;
@@ -449,12 +448,24 @@ void CAssetManager::ScanFolder(TAssetNode & _Folder)
   std::sort(_Folder.Children.begin(), _Folder.Children.end(), IsNodeOrderedBefore);
 }
 
+void CAssetManager::ReportInvalidEntry(const std::filesystem::path & _Path, const std::string & _Reason)
+{
+  if (!m_ReportedInvalidPaths.insert(_Path).second)
+    return;
+
+  const std::string RelativePath = core::PathToUtf8(_Path.lexically_relative(m_AssetsRoot));
+
+  m_Log->Write(core::ELogLevel::Warning, "Skipped '" + RelativePath + "': " + _Reason);
+}
+
 void CAssetManager::RemountResources()
 {
   auto & ResourceGroups = Ogre::ResourceGroupManager::getSingleton();
 
-  ResourceGroups.removeResourceLocation(m_AssetsRoot.string(), ResourceGroup);
-  ResourceGroups.addResourceLocation(m_AssetsRoot.string(), "FileSystem", ResourceGroup, true, true);
+  const std::string Location = core::PathToUtf8(m_AssetsRoot);
+
+  ResourceGroups.removeResourceLocation(Location, ResourceGroup);
+  ResourceGroups.addResourceLocation(Location, "FileSystem", ResourceGroup, true, true);
 }
 
 std::filesystem::path CAssetManager::ToAbsolute(const std::filesystem::path & _RelativePath) const

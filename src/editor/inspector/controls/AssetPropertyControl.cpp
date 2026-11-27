@@ -13,6 +13,7 @@
 #include "platform/FileDialogDesc.h"
 #include "ui/DragPayload.h"
 #include "ui/DropPayload.h"
+#include "core/PathUtf8.h"
 
 #include <imgui.h>
 
@@ -196,7 +197,7 @@ void CAssetPropertyControl::Browse()
   const auto AssetPath = ResolveAssetPath(SelectedPath);
   if (!AssetPath)
   {
-    Warn("'" + SelectedPath.string() + "' is not a " + m_AssetType + " asset of the project.");
+    Warn("'" + core::PathToUtf8(SelectedPath) + "' is not a " + m_AssetType + " asset of the project.");
     return;
   }
 

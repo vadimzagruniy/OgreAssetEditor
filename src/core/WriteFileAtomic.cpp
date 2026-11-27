@@ -1,4 +1,5 @@
 #include "WriteFileAtomic.h"
+#include "PathUtf8.h"
 
 #include <fstream>
 #include <system_error>
@@ -8,12 +9,6 @@ namespace editor::core
 
 namespace
 {
-
-std::string ToUtf8(const std::filesystem::path & _Path)
-{
-  const auto Utf8 = _Path.u8string();
-  return std::string(Utf8.begin(), Utf8.end());
-}
 
 bool WriteWholeFile(const std::filesystem::path & _Path, std::string_view _Content)
 {
@@ -36,7 +31,7 @@ bool WriteFileAtomic(const std::filesystem::path & _Path, std::string_view _Cont
   if (!WriteWholeFile(TempPath, _Content))
   {
     std::filesystem::remove(TempPath, ErrorCode);
-    _Error = "Could not write " + ToUtf8(_Path.filename());
+    _Error = "Could not write " + PathToUtf8(_Path.filename());
     return false;
   }
 
@@ -44,7 +39,7 @@ bool WriteFileAtomic(const std::filesystem::path & _Path, std::string_view _Cont
   if (!ErrorCode)
     return true;
 
-  _Error = "Could not replace " + ToUtf8(_Path.filename()) + ": " + ErrorCode.message();
+  _Error = "Could not replace " + PathToUtf8(_Path.filename()) + ": " + ErrorCode.message();
 
   std::filesystem::remove(TempPath, ErrorCode);
 

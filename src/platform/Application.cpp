@@ -3,6 +3,7 @@
 #include "editor/Editor.h"
 #include "editor/assets/AssetManager.h"
 #include "ui/EditorStyle.h"
+#include "core/PathUtf8.h"
 
 #include <OgreCamera.h>
 #include <OgreImGuiOverlay.h>
@@ -69,7 +70,7 @@ void CApplication::locateResources()
   std::error_code             ErrorCode;
 
   if (std::filesystem::is_directory(EditorMedia, ErrorCode))
-    Ogre::ResourceGroupManager::getSingleton().addResourceLocation(EditorMedia.string(), "FileSystem", Ogre::RGN_INTERNAL);
+    Ogre::ResourceGroupManager::getSingleton().addResourceLocation(core::PathToUtf8(EditorMedia), "FileSystem", Ogre::RGN_INTERNAL);
   else
     m_Editor->GetLog()->Write(core::ELogLevel::Warning, "Editor media folder not found, the viewport grid is disabled.");
 

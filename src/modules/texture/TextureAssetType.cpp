@@ -3,6 +3,7 @@
 #include "TextureWorkspace.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
+#include "core/PathUtf8.h"
 
 #include <OgreTextureManager.h>
 
@@ -27,14 +28,14 @@ std::unique_ptr<CEditorWorkspace> CTextureAssetType::OpenAsset(const TAssetRecor
   std::error_code FileError;
   if (!std::filesystem::is_regular_file(_Asset.AbsolutePath, FileError) || FileError)
   {
-    _Error = "Texture file is missing or inaccessible: " + _Asset.AbsolutePath.string();
+    _Error = "Texture file is missing or inaccessible: " + core::PathToUtf8(_Asset.AbsolutePath);
     return {};
   }
 
   std::ifstream File(_Asset.AbsolutePath, std::ios::binary);
   if (!File || _Asset.SizeBytes == 0)
   {
-    _Error = "Texture file is empty or unreadable: " + _Asset.AbsolutePath.string();
+    _Error = "Texture file is empty or unreadable: " + core::PathToUtf8(_Asset.AbsolutePath);
     return {};
   }
 

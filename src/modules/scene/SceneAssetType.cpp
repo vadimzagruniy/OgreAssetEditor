@@ -3,6 +3,7 @@
 #include "SceneWorkspace.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
+#include "core/PathUtf8.h"
 
 #include <fstream>
 #include <iterator>
@@ -39,7 +40,7 @@ std::unique_ptr<CEditorWorkspace> CSceneAssetType::OpenAsset(const TAssetRecord 
   std::ifstream File(_Asset.AbsolutePath, std::ios::binary);
   if (!File)
   {
-    _Error = "Could not open scene file: " + _Asset.AbsolutePath.string();
+    _Error = "Could not open scene file: " + core::PathToUtf8(_Asset.AbsolutePath);
     return {};
   }
 

@@ -3,6 +3,7 @@
 #include "MaterialWorkspace.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
+#include "core/PathUtf8.h"
 
 #include <OgreMaterial.h>
 #include <OgreMaterialManager.h>
@@ -114,7 +115,7 @@ std::unique_ptr<CEditorWorkspace> CMaterialAssetType::OpenAsset(const TAssetReco
   std::ifstream File(_Asset.AbsolutePath, std::ios::binary);
   if (!File)
   {
-    _Error = "Could not open material script: " + _Asset.AbsolutePath.string();
+    _Error = "Could not open material script: " + core::PathToUtf8(_Asset.AbsolutePath);
     return {};
   }
 
