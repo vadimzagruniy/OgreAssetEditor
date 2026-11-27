@@ -4,6 +4,7 @@
 #include "editor/documents/AssetDocument.h"
 #include "editor/inspector/PropertyValue.h"
 #include "editor/timeline/model/Timeline.h"
+#include "editor/timeline/model/TimelineTrackKey.h"
 
 #include <functional>
 #include <memory>
@@ -51,6 +52,8 @@ public: // Interface
 
   TTimelineId AddKey(TTimelineId _TrackId, TTimelineKey _Key);
 
+  std::vector<TTimelineId> AddKeys(std::string _CommandName, std::vector<TTimelineTrackKey> _Keys);
+
   TTimelineId AddClip(TTimelineId _TrackId, TTimelineClip _Clip);
 
   void RemoveItems(const std::vector<TTimelineId> & _ItemIds);
@@ -58,6 +61,8 @@ public: // Interface
   void SetKeyValue(TTimelineId _KeyId, const TPropertyValue & _Value);
 
   void SetKeyInterpolation(TTimelineId _KeyId, ETimelineInterpolation _Interpolation);
+
+  void SetKeysInterpolation(const std::vector<TTimelineId> & _KeyIds, ETimelineInterpolation _Interpolation);
 
   void PreviewMoveItems(const std::vector<TTimelineId> & _ItemIds, TTimelineTicks _Delta);
 

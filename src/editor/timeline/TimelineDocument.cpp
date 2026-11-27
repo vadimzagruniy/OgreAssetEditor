@@ -231,6 +231,49 @@ TTimelineId CTimelineDocument::AddKey(TTimelineId _TrackId, TTimelineKey _Key)
   return _Key.Id;
 }
 
+std::vector<TTimelineId> CTimelineDocument::AddKeys(std::string _CommandName, std::vector<TTimelineTrackKey> _Keys)
+{
+  std::erase_if(_Keys, [this](const TTimelineTrackKey & _Entry)
+  {
+    return !m_Timeline.HasTrack(_Entry.TrackId);
+  });
+
+  std::vector<TTimelineId> TrackIds;
+  std::vector<TTimelineId> KeyIds;
+
+  for (auto & Entry : _Keys)
+  {
+    Entry.Key.Id   = m_Timeline.MakeId();
+    Entry.Key.Time = std::max<TTimelineTicks>(Entry.Key.Time, 0);
+
+    KeyIds.push_back(Entry.Key.Id);
+
+    if (std::find(TrackIds.begin(), TrackIds.end(), Entry.TrackId) == TrackIds.end())
+      TrackIds.push_back(Entry.TrackId);
+  }
+
+  if (_Keys.empty())
+    return {};
+
+  EditTracks(std::move(_CommandName), TrackIds, [&_Keys](TTimelineTrack & _Track)
+  {
+    for (const auto & Entry : _Keys)
+    {
+      if (Entry.TrackId != _Track.Id)
+        continue;
+
+      std::erase_if(_Track.Keys, [&Entry](const TTimelineKey & _Existing)
+      {
+        return _Existing.Time == Entry.Key.Time;
+      });
+
+      _Track.Keys.push_back(Entry.Key);
+    }
+  });
+
+  return KeyIds;
+}
+
 TTimelineId CTimelineDocument::AddClip(TTimelineId _TrackId, TTimelineClip _Clip)
 {
   if (!m_Timeline.HasTrack(_TrackId))
@@ -285,6 +328,20 @@ void CTimelineDocument::SetKeyInterpolation(TTimelineId _KeyId, ETimelineInterpo
     for (auto & Key : _Track.Keys)
     {
       if (Key.Id == _KeyId)
+        Key.Interpolation = _Interpolation;
+    }
+  });
+}
+
+void CTimelineDocument::SetKeysInterpolation(const std::vector<TTimelineId> & _KeyIds, ETimelineInterpolation _Interpolation)
+{
+  const std::unordered_set<TTimelineId> KeyIds(_KeyIds.begin(), _KeyIds.end());
+
+  EditTracks("Set Key Interpolation", FindItemTracks(_KeyIds), [&KeyIds, _Interpolation](TTimelineTrack & _Track)
+  {
+    for (auto & Key : _Track.Keys)
+    {
+      if (KeyIds.contains(Key.Id))
         Key.Interpolation = _Interpolation;
     }
   });

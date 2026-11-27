@@ -53,6 +53,9 @@ constexpr float DurationGrab     = 5.0f;
 constexpr float DurationHandle   = 3.0f;
 
 constexpr std::array<const char *, 2> TimeFormatNames{"Seconds", "Frames"};
+
+constexpr std::array<const char *, 3>           InterpolationNames{"Step", "Linear", "Spline"};
+constexpr std::array<ETimelineInterpolation, 3> InterpolationValues{ETimelineInterpolation::Step, ETimelineInterpolation::Linear, ETimelineInterpolation::Spline};
 constexpr std::array<const char *, 4> SpeedNames{"x1", "x1/2", "x1/4", "x1/8"};
 constexpr std::array<float, 4>        SpeedValues{1.0f, 0.5f, 0.25f, 0.125f};
 
@@ -156,7 +159,9 @@ CTimelineView::CTimelineView():
   m_Format(ETimelineTimeFormat::Seconds),
   m_CurrentTime(0),
   m_RenamingTrack(InvalidTimelineId),
-  m_ContextKeyTime(0),
+  m_ContextTime(0),
+  m_ContextTrack(InvalidTimelineId),
+  m_ContextInterpolation(ETimelineInterpolation::Linear),
   m_DraggedDuration(0),
   m_RenameBuffer{},
   m_LanesLeft(0.0f),
@@ -233,6 +238,15 @@ void CTimelineView::DrawTracks(const CTimeline & _Timeline, ITimelinePresenter &
 
   if (ImGui::Shortcut(ImGuiKey_Delete))
     _Presenter.DeleteSelection();
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C))
+    _Presenter.CopySelection();
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V) && _Presenter.CanPasteKeys())
+    _Presenter.PasteKeys(m_CurrentTime);
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D))
+    _Presenter.DuplicateSelection();
 }
 
 void CTimelineView::DrawToolbar(const CTimeline & _Timeline, ITimelinePresenter & _Presenter, const std::function<void(float)> & _DrawDocumentBar)
@@ -683,6 +697,7 @@ void CTimelineView::DrawLane(ITimelinePresenter & _Presenter, const TTimelineTra
   HandleLaneContextClick(_Presenter, _Track, Min, Max);
   CollectKeyHits(Min, Max, _Track);
   DrawKeyContextMenu(_Presenter);
+  DrawLaneContextMenu(_Presenter);
 
   auto & DrawList = *ImGui::GetWindowDrawList();
 
@@ -896,12 +911,52 @@ void CTimelineView::DrawKeyContextMenu(ITimelinePresenter & _Presenter)
     return;
 
   if (ImGui::MenuItem("Go to Key"))
-    _Presenter.Scrub(m_ContextKeyTime);
+    _Presenter.Scrub(m_ContextTime);
+
+  ImGui::Separator();
+
+  if (ImGui::MenuItem("Copy", "Ctrl+C"))
+    _Presenter.CopySelection();
+
+  if (ImGui::MenuItem("Paste at Playhead", "Ctrl+V", false, _Presenter.CanPasteKeys()))
+    _Presenter.PasteKeys(m_CurrentTime);
+
+  if (ImGui::MenuItem("Duplicate", "Ctrl+D"))
+    _Presenter.DuplicateSelection();
+
+  ImGui::Separator();
+
+  if (ImGui::BeginMenu("Interpolation"))
+  {
+    for (std::size_t InterpolationIndex = 0; InterpolationIndex < InterpolationValues.size(); ++InterpolationIndex)
+    {
+      const auto Interpolation = InterpolationValues[InterpolationIndex];
+
+      if (ImGui::MenuItem(InterpolationNames[InterpolationIndex], nullptr, Interpolation == m_ContextInterpolation))
+        _Presenter.SetSelectionInterpolation(Interpolation);
+    }
+
+    ImGui::EndMenu();
+  }
 
   ImGui::Separator();
 
   if (ImGui::MenuItem("Delete", "Del"))
     _Presenter.DeleteSelection();
+
+  ImGui::EndPopup();
+}
+
+void CTimelineView::DrawLaneContextMenu(ITimelinePresenter & _Presenter)
+{
+  if (!ImGui::BeginPopup("##LaneMenu"))
+    return;
+
+  if (ImGui::MenuItem("Add Key Here", nullptr, false, _Presenter.CanAddKey(m_ContextTrack)))
+    _Presenter.AddKey(m_ContextTrack, m_ContextTime);
+
+  if (ImGui::MenuItem("Paste Here", nullptr, false, _Presenter.CanPasteKeys()))
+    _Presenter.PasteKeys(m_ContextTime);
 
   ImGui::EndPopup();
 }
@@ -1117,16 +1172,26 @@ void CTimelineView::HandleLaneContextClick(ITimelinePresenter & _Presenter, cons
     return;
 
   const TTimelineId KeyId = FindKeyAt(_Min, _Max, _Track, ImGui::GetIO().MousePos);
+
+  m_ContextTrack = _Track.Id;
+
   if (KeyId == InvalidTimelineId)
+  {
+    m_ContextTime = GetMouseTime(_Min, _Presenter.GetTimeline().GetFrameRate());
+    ImGui::OpenPopup("##LaneMenu");
     return;
+  }
 
   if (!_Presenter.GetSelection().IsSelected(KeyId))
     _Presenter.SelectItem(KeyId, ETimelineSelectMode::Replace);
 
   for (const auto & Key : _Track.Keys)
   {
-    if (Key.Id == KeyId)
-      m_ContextKeyTime = Key.Time;
+    if (Key.Id != KeyId)
+      continue;
+
+    m_ContextTime          = Key.Time;
+    m_ContextInterpolation = Key.Interpolation;
   }
 
   ImGui::OpenPopup("##KeyMenu");

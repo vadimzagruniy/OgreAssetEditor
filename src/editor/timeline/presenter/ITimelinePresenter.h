@@ -13,6 +13,7 @@ namespace editor
 
 class CTimeline;
 class CTimelineSelection;
+enum class ETimelineInterpolation;
 enum class ETimelineItemKind;
 enum class ETimelineSelectMode;
 
@@ -56,6 +57,8 @@ public: // State
 
   virtual bool IsAddTrackMenuRequested() const = 0;
 
+  virtual bool CanPasteKeys() const = 0;
+
 public: // Actions
 
   virtual void Play() = 0;
@@ -83,6 +86,14 @@ public: // Actions
   virtual void CommitMove() = 0;
 
   virtual void DeleteSelection() = 0;
+
+  virtual void CopySelection() = 0;
+
+  virtual void PasteKeys(TTimelineTicks _Time) = 0;
+
+  virtual void DuplicateSelection() = 0;
+
+  virtual void SetSelectionInterpolation(ETimelineInterpolation _Interpolation) = 0;
 
   virtual void AddKey(TTimelineId _TrackId, TTimelineTicks _Time) = 0;
 

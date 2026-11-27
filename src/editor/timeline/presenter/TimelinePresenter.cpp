@@ -10,12 +10,32 @@
 #include "editor/timeline/tracks/TimelineItemKind.h"
 #include "editor/timeline/tracks/TimelineTrackEvaluation.h"
 #include "editor/timeline/tracks/TimelineTrackTypes.h"
+#include "editor/timeline/views/TimelineTime.h"
 
 #include <algorithm>
 #include <utility>
 
 namespace editor
 {
+
+namespace
+{
+
+void AppendSelectedKeys(const std::vector<TTimelineTrack> & _Tracks, const CTimelineSelection & _Selection, std::vector<TTimelineClipboardKey> & _Keys)
+{
+  for (const auto & Track : _Tracks)
+  {
+    for (const auto & Key : Track.Keys)
+    {
+      if (_Selection.IsSelected(Key.Id))
+        _Keys.push_back({Track.Id, Track.TypeId, Track.Target.Property, Key});
+    }
+
+    AppendSelectedKeys(Track.Children, _Selection, _Keys);
+  }
+}
+
+} // namespace
 
 //
 // Constructor/Destructor
@@ -31,7 +51,8 @@ CTimelinePresenter::CTimelinePresenter(std::shared_ptr<CTimelineDocument> _Docum
   m_ActionQueue(std::move(_ActionQueue)),
   m_ChangedConnection(0),
   m_IsTrackTargetRequested(false),
-  m_IsAddTrackMenuRequested(false)
+  m_IsAddTrackMenuRequested(false),
+  m_Clipboard()
 {
   m_ChangedConnection = m_Document->GetChangedSignal().Connect([this](const TTimelineChange & _Change)
   {
@@ -136,6 +157,11 @@ bool CTimelinePresenter::IsAddTrackMenuRequested() const
   return m_IsAddTrackMenuRequested;
 }
 
+bool CTimelinePresenter::CanPasteKeys() const
+{
+  return !m_Clipboard.empty();
+}
+
 void CTimelinePresenter::Play()
 {
   m_Player->Play();
@@ -192,6 +218,75 @@ void CTimelinePresenter::SelectItems(const std::vector<TTimelineId> & _ItemIds, 
 
   for (const auto ItemId : _ItemIds)
     m_Selection->SelectItem(ItemId, true);
+}
+
+void CTimelinePresenter::CopySelection()
+{
+  TTimelineTicks StartTime = 0;
+  auto           Keys      = CollectSelectedKeys(StartTime);
+
+  if (!Keys.empty())
+    m_Clipboard = std::move(Keys);
+}
+
+void CTimelinePresenter::PasteKeys(TTimelineTicks _Time)
+{
+  const bool IsSingleTrack = std::all_of(m_Clipboard.begin(), m_Clipboard.end(), [this](const TTimelineClipboardKey & _Entry)
+  {
+    return _Entry.TrackId == m_Clipboard.front().TrackId;
+  });
+
+  std::vector<TTimelineTrackKey> Keys;
+
+  for (const auto & Entry : m_Clipboard)
+  {
+    const TTimelineId TrackId = FindPasteTrack(Entry, IsSingleTrack);
+    if (TrackId == InvalidTimelineId)
+      continue;
+
+    TTimelineKey Key = Entry.Key;
+    Key.Time += _Time;
+
+    Keys.push_back({TrackId, std::move(Key)});
+  }
+
+  InsertKeys("Paste Keys", std::move(Keys));
+}
+
+void CTimelinePresenter::DuplicateSelection()
+{
+  TTimelineTicks StartTime = 0;
+  const auto     Selected  = CollectSelectedKeys(StartTime);
+
+  if (Selected.empty())
+    return;
+
+  const auto LastKey = std::max_element(Selected.begin(), Selected.end(), [](const TTimelineClipboardKey & _Left, const TTimelineClipboardKey & _Right)
+  {
+    return _Left.Key.Time < _Right.Key.Time;
+  });
+
+  const TTimelineTicks Offset = StartTime + LastKey->Key.Time + GetFrameTicks(m_Document->GetTimeline().GetFrameRate());
+
+  std::vector<TTimelineTrackKey> Keys;
+
+  for (const auto & Entry : Selected)
+  {
+    TTimelineKey Key = Entry.Key;
+    Key.Time += Offset;
+
+    Keys.push_back({Entry.TrackId, std::move(Key)});
+  }
+
+  InsertKeys("Duplicate Keys", std::move(Keys));
+}
+
+void CTimelinePresenter::SetSelectionInterpolation(ETimelineInterpolation _Interpolation)
+{
+  m_ActionQueue->Post([Document = m_Document, ItemIds = GetSelectedItems(), _Interpolation]
+  {
+    Document->SetKeysInterpolation(ItemIds, _Interpolation);
+  });
 }
 
 void CTimelinePresenter::SelectTrack(TTimelineId _TrackId)
@@ -371,6 +466,61 @@ TTimelineTrackLocation CTimelinePresenter::FindNewTrackLocation() const
     return {TrackId, Track.Children.size()};
 
   return {Location->ParentId, Location->Index + 1};
+}
+
+std::vector<TTimelineClipboardKey> CTimelinePresenter::CollectSelectedKeys(TTimelineTicks & _StartTime) const
+{
+  std::vector<TTimelineClipboardKey> Keys;
+  AppendSelectedKeys(m_Document->GetTimeline().GetTracks(), *m_Selection, Keys);
+
+  if (Keys.empty())
+    return Keys;
+
+  const auto FirstKey = std::min_element(Keys.begin(), Keys.end(), [](const TTimelineClipboardKey & _Left, const TTimelineClipboardKey & _Right)
+  {
+    return _Left.Key.Time < _Right.Key.Time;
+  });
+
+  _StartTime = FirstKey->Key.Time;
+
+  for (auto & Entry : Keys)
+    Entry.Key.Time -= _StartTime;
+
+  return Keys;
+}
+
+TTimelineId CTimelinePresenter::FindPasteTrack(const TTimelineClipboardKey & _Entry, bool _IsSingleTrack) const
+{
+  const auto &      Timeline      = m_Document->GetTimeline();
+  const TTimelineId SelectedTrack = m_Selection->GetTrack();
+
+  if (_IsSingleTrack && Timeline.HasTrack(SelectedTrack))
+  {
+    const auto & Track = Timeline.GetTrack(SelectedTrack);
+
+    if (Track.TypeId == _Entry.TypeId && Track.Target.Property == _Entry.Property && GetItemKind(Track) == ETimelineItemKind::Keys)
+      return SelectedTrack;
+  }
+
+  return Timeline.HasTrack(_Entry.TrackId) ? _Entry.TrackId : InvalidTimelineId;
+}
+
+void CTimelinePresenter::InsertKeys(std::string _CommandName, std::vector<TTimelineTrackKey> _Keys)
+{
+  if (_Keys.empty())
+    return;
+
+  m_ActionQueue->Post([Document = m_Document, Selection = m_Selection, CommandName = std::move(_CommandName), Keys = std::move(_Keys)]
+  {
+    const auto KeyIds = Document->AddKeys(CommandName, Keys);
+    if (KeyIds.empty())
+      return;
+
+    Selection->ClearItems();
+
+    for (const auto KeyId : KeyIds)
+      Selection->SelectItem(KeyId, true);
+  });
 }
 
 //

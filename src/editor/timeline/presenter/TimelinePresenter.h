@@ -1,7 +1,9 @@
 #pragma once
 
 #include "ITimelinePresenter.h"
+#include "TimelineClipboardKey.h"
 #include "editor/inspector/PropertyValue.h"
+#include "editor/timeline/model/TimelineTrackKey.h"
 #include "editor/timeline/model/TimelineTrackLocation.h"
 
 #include <cstddef>
@@ -70,6 +72,8 @@ public: // ITimelinePresenter
 
   bool IsAddTrackMenuRequested() const override;
 
+  bool CanPasteKeys() const override;
+
   void Play() override;
 
   void Pause() override;
@@ -95,6 +99,14 @@ public: // ITimelinePresenter
   void CommitMove() override;
 
   void DeleteSelection() override;
+
+  void CopySelection() override;
+
+  void PasteKeys(TTimelineTicks _Time) override;
+
+  void DuplicateSelection() override;
+
+  void SetSelectionInterpolation(ETimelineInterpolation _Interpolation) override;
 
   void AddKey(TTimelineId _TrackId, TTimelineTicks _Time) override;
 
@@ -128,6 +140,12 @@ private: // Implementation
 
   TTimelineTrackLocation FindNewTrackLocation() const;
 
+  std::vector<TTimelineClipboardKey> CollectSelectedKeys(TTimelineTicks & _StartTime) const;
+
+  TTimelineId FindPasteTrack(const TTimelineClipboardKey & _Entry, bool _IsSingleTrack) const;
+
+  void InsertKeys(std::string _CommandName, std::vector<TTimelineTrackKey> _Keys);
+
 private: // Events
 
   void OnDocumentChanged(const TTimelineChange & _Change);
@@ -144,6 +162,7 @@ private: // Attributes
   std::size_t                                 m_ChangedConnection;
   bool                                        m_IsTrackTargetRequested;
   bool                                        m_IsAddTrackMenuRequested;
+  std::vector<TTimelineClipboardKey>          m_Clipboard;
 };
 
 } // namespace editor

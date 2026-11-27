@@ -19,6 +19,7 @@ namespace editor
 class CTimeline;
 class CTimelineSelection;
 class ITimelinePresenter;
+enum class ETimelineInterpolation;
 enum class ETimelineTimeFormat;
 struct TTimelineTrack;
 
@@ -88,6 +89,8 @@ private: // Implementation
 
   void DrawKeyContextMenu(ITimelinePresenter & _Presenter);
 
+  void DrawLaneContextMenu(ITimelinePresenter & _Presenter);
+
   void DrawZoomBar();
 
   void CollectKeyHits(const ImVec2 & _Min, const ImVec2 & _Max, const TTimelineTrack & _Track);
@@ -122,7 +125,9 @@ private: // Attributes
   TTimelineDrag                m_Drag;
   std::vector<TTimelineKeyHit> m_KeyHits;
   TTimelineId                  m_RenamingTrack;
-  TTimelineTicks               m_ContextKeyTime;
+  TTimelineTicks               m_ContextTime;
+  TTimelineId                  m_ContextTrack;
+  ETimelineInterpolation       m_ContextInterpolation;
   TTimelineTicks               m_DraggedDuration;
   std::array<char, 256>        m_RenameBuffer;
   float                        m_LanesLeft;
