@@ -55,12 +55,19 @@ bool CAssetDocument::IsDirty() const noexcept
 
 bool CAssetDocument::Save(std::string & _Error)
 {
+  CommitPreview();
+
   if (!OnSave(_Error))
     return false;
 
   m_History.MarkSaved();
 
   return true;
+}
+
+void CAssetDocument::CommitPreview()
+{
+  // Empty
 }
 
 //

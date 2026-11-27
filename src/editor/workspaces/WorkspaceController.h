@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace editor
@@ -71,12 +72,17 @@ private: // Implementation
 
   void UpdateToolBoxes();
 
+  std::vector<core::TTypeKey> CollectToolBoxes() const;
+
+  void RememberClosedToolBoxes();
+
 private: // Attributes
 
   std::shared_ptr<CWorkspaceManager>  m_WorkspaceManager;
   std::shared_ptr<ui::CWindowManager> m_WindowManager;
   std::shared_ptr<core::CLog>         m_Log;
   std::vector<core::TTypeKey>         m_ShownToolBoxes;
+  std::unordered_set<core::TTypeKey>  m_ClosedToolBoxes;
   std::size_t                         m_ActiveChangedConnection;
   std::size_t                         m_AttachedChangedConnection;
 };

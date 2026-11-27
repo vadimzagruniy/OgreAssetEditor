@@ -42,6 +42,8 @@ public: // Interface
 
   bool Save(std::string & _Error);
 
+  virtual void CommitPreview();
+
 protected: // Events
 
   virtual bool OnSave(std::string & _Error);

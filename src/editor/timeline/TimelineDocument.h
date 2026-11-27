@@ -68,7 +68,7 @@ public: // Interface
 
   void PreviewKey(TTimelineId _KeyId, const std::function<void(TTimelineKey &)> & _Edit);
 
-  void CommitPreview();
+  void CommitPreview() override;
 
   void CancelPreview();
 

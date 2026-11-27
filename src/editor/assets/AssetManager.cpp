@@ -211,7 +211,9 @@ bool CAssetManager::Rename(const std::filesystem::path & _Path, const std::strin
   }
 
   std::error_code ErrorCode;
-  if (std::filesystem::exists(ToAbsolute(NewPath), ErrorCode))
+  const bool      IsSameFile = std::filesystem::equivalent(ToAbsolute(_Path), ToAbsolute(NewPath), ErrorCode);
+
+  if (!IsSameFile && std::filesystem::exists(ToAbsolute(NewPath), ErrorCode))
   {
     _Error = "Already exists: " + NewPath.generic_string();
     return false;

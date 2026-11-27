@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <unordered_map>
 #include <utility>
 
@@ -45,7 +46,20 @@ std::vector<TSceneAnimation> RenameBindings(std::vector<TSceneAnimation> _Animat
   return _Animations;
 }
 
-TSceneTransform ToLocalTransform(const CSceneGraph & _Graph, const std::string & _ParentName, const Ogre::Affine3 & _World)
+bool IsFinite(const TSceneTransform & _Transform)
+{
+  const auto & Orientation = _Transform.Orientation;
+
+  for (int Index = 0; Index < 3; ++Index)
+  {
+    if (!std::isfinite(_Transform.Position[Index]) || !std::isfinite(_Transform.Scale[Index]))
+      return false;
+  }
+
+  return std::isfinite(Orientation.w) && std::isfinite(Orientation.x) && std::isfinite(Orientation.y) && std::isfinite(Orientation.z);
+}
+
+bool ToLocalTransform(const CSceneGraph & _Graph, const std::string & _ParentName, const Ogre::Affine3 & _World, TSceneTransform & _Transform)
 {
   Ogre::Affine3 Local = _World;
   if (!_ParentName.empty())
@@ -54,7 +68,12 @@ TSceneTransform ToLocalTransform(const CSceneGraph & _Graph, const std::string &
   TSceneTransform Transform;
   Local.decomposition(Transform.Position, Transform.Scale, Transform.Orientation);
 
-  return Transform;
+  if (!IsFinite(Transform))
+    return false;
+
+  _Transform = Transform;
+
+  return true;
 }
 
 } // namespace
@@ -225,8 +244,8 @@ void CSceneDocument::MoveNode(const std::string & _Name, const std::string & _Ne
   const std::size_t OldIndex      = m_Graph.GetSiblingIndex(_Name);
   const auto        OldSnapshot   = Node.CaptureSnapshot();
 
-  auto NewSnapshot      = OldSnapshot;
-  NewSnapshot.Transform = ToLocalTransform(m_Graph, _NewParentName, m_Graph.GetWorldTransform(_Name));
+  auto NewSnapshot = OldSnapshot;
+  ToLocalTransform(m_Graph, _NewParentName, m_Graph.GetWorldTransform(_Name), NewSnapshot.Transform);
 
   const std::size_t NewIndex = m_Graph.GetChildren(_NewParentName).size() - (OldParentName == _NewParentName ? 1 : 0);
   if (OldParentName == _NewParentName && OldIndex == NewIndex)
@@ -323,7 +342,9 @@ void CSceneDocument::PreviewWorldTransform(const std::string & _Name, const Ogre
   if (!BeginPreview(_Name, "Transform Node"))
     return;
 
-  const TSceneTransform Transform = ToLocalTransform(m_Graph, m_Graph.GetNode(_Name).GetParentName(), _World);
+  TSceneTransform Transform;
+  if (!ToLocalTransform(m_Graph, m_Graph.GetNode(_Name).GetParentName(), _World, Transform))
+    return;
 
   m_Graph.EditNode(_Name, [&Transform](CSceneNode & _Node)
   {

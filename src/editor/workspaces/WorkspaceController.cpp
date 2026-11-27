@@ -91,14 +91,22 @@ std::string CWorkspaceController::GetRedoName() const
 
 void CWorkspaceController::UndoActive()
 {
-  if (m_WorkspaceManager->HasActive())
-    GetFocusedDocument(*m_WorkspaceManager->GetActive()).GetHistory().Undo();
+  if (!m_WorkspaceManager->HasActive())
+    return;
+
+  auto & Document = GetFocusedDocument(*m_WorkspaceManager->GetActive());
+  Document.CommitPreview();
+  Document.GetHistory().Undo();
 }
 
 void CWorkspaceController::RedoActive()
 {
-  if (m_WorkspaceManager->HasActive())
-    GetFocusedDocument(*m_WorkspaceManager->GetActive()).GetHistory().Redo();
+  if (!m_WorkspaceManager->HasActive())
+    return;
+
+  auto & Document = GetFocusedDocument(*m_WorkspaceManager->GetActive());
+  Document.CommitPreview();
+  Document.GetHistory().Redo();
 }
 
 void CWorkspaceController::RequestClose(std::size_t _Index)
@@ -236,19 +244,9 @@ int CWorkspaceController::GetFocusFrame(const std::vector<core::TTypeKey> & _Too
 
 void CWorkspaceController::UpdateToolBoxes()
 {
-  std::vector<core::TTypeKey> ToolBoxes;
+  RememberClosedToolBoxes();
 
-  if (m_WorkspaceManager->HasActive())
-  {
-    const auto & Workspace = *m_WorkspaceManager->GetActive();
-    ToolBoxes = Workspace.GetToolBoxes();
-
-    for (const auto & Editor : Workspace.GetAttachedEditors())
-    {
-      const auto EditorToolBoxes = Editor->GetToolBoxes();
-      ToolBoxes.insert(ToolBoxes.end(), EditorToolBoxes.begin(), EditorToolBoxes.end());
-    }
-  }
+  auto ToolBoxes = CollectToolBoxes();
 
   for (const auto & ToolBox : m_ShownToolBoxes)
   {
@@ -257,9 +255,44 @@ void CWorkspaceController::UpdateToolBoxes()
   }
 
   for (const auto & ToolBox : ToolBoxes)
-    m_WindowManager->ShowToolBox(ToolBox);
+  {
+    if (!m_ClosedToolBoxes.contains(ToolBox))
+      m_WindowManager->ShowToolBox(ToolBox);
+  }
 
   m_ShownToolBoxes = std::move(ToolBoxes);
+}
+
+std::vector<core::TTypeKey> CWorkspaceController::CollectToolBoxes() const
+{
+  if (!m_WorkspaceManager->HasActive())
+    return {};
+
+  const auto & Workspace = *m_WorkspaceManager->GetActive();
+  auto         ToolBoxes = Workspace.GetToolBoxes();
+
+  for (const auto & Editor : Workspace.GetAttachedEditors())
+  {
+    const auto EditorToolBoxes = Editor->GetToolBoxes();
+    ToolBoxes.insert(ToolBoxes.end(), EditorToolBoxes.begin(), EditorToolBoxes.end());
+  }
+
+  return ToolBoxes;
+}
+
+void CWorkspaceController::RememberClosedToolBoxes()
+{
+  for (const auto & ToolBox : m_ShownToolBoxes)
+  {
+    const auto Window = m_WindowManager->GetToolBox(ToolBox);
+    if (!Window)
+      continue;
+
+    if (Window->IsVisible())
+      m_ClosedToolBoxes.erase(ToolBox);
+    else
+      m_ClosedToolBoxes.insert(ToolBox);
+  }
 }
 
 } // namespace editor

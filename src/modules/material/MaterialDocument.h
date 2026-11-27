@@ -60,7 +60,7 @@ public: // Interface
 
   void Preview(const TMaterialNode & _Node, const TTextureUnitState & _State);
 
-  void CommitPreview();
+  void CommitPreview() override;
 
 public: // Signals
 

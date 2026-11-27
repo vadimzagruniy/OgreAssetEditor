@@ -86,7 +86,7 @@ public: // Interface
 
   void PreviewWorldTransform(const std::string & _Name, const Ogre::Affine3 & _World);
 
-  void CommitPreview();
+  void CommitPreview() override;
 
   void CancelPreview();
 
