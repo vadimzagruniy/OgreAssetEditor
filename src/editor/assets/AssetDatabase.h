@@ -32,6 +32,8 @@ public: // Interface
 
   std::uint64_t GetRevision() const noexcept;
 
+  const std::map<TAssetId, TAssetRecord> & GetRecords() const noexcept;
+
   bool FindById(const TAssetId & _Id, TAssetRecord & _Record) const;
 
   bool FindByPath(const std::filesystem::path & _RelativePath, TAssetRecord & _Record) const;

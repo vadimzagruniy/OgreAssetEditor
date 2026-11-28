@@ -1,5 +1,6 @@
 #include "AssetManager.h"
 #include "AssetDatabase.h"
+#include "AssetDependencyIndex.h"
 #include "AssetFactory.h"
 #include "AssetFactoryInfo.h"
 #include "AssetFactoryRegistry.h"
@@ -65,10 +66,11 @@ std::filesystem::path MakeUniquePath(const std::filesystem::path & _Folder, cons
 // Constructor/Destructor
 //
 
-CAssetManager::CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<CAssetDatabase> _Database, std::shared_ptr<core::CLog> _Log):
+CAssetManager::CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<CAssetDatabase> _Database, std::shared_ptr<CAssetDependencyIndex> _Dependencies, std::shared_ptr<core::CLog> _Log):
   m_AssetTypes(std::move(_AssetTypes)),
   m_AssetFactories(std::move(_AssetFactories)),
   m_Database(std::move(_Database)),
+  m_Dependencies(std::move(_Dependencies)),
   m_Log(std::move(_Log)),
   m_MetaScanner(std::make_unique<CAssetMetaScanner>(m_Log)),
   m_IsResourcesMounted(false)
@@ -124,6 +126,7 @@ bool CAssetManager::Refresh()
 
   ScanFolder(m_RootNode, Ids);
   m_Database->Rebuild(m_RootNode);
+  m_Dependencies->Update();
 
   if (m_IsResourcesMounted)
     RemountResources();

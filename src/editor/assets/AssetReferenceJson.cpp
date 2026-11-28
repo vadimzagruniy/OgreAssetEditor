@@ -3,6 +3,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <utility>
+
 namespace editor
 {
 
@@ -41,6 +43,20 @@ bool ReadReferenceObject(const TJson & _Json, const std::string & _Key, TAssetRe
   return true;
 }
 
+bool IsAssetReferenceObject(const TJson & _Json)
+{
+  if (!_Json.is_object() || _Json.empty() || _Json.size() > 2)
+    return false;
+
+  for (const auto & Field : _Json.items())
+  {
+    if ((Field.key() != IdKey && Field.key() != PathKey) || !Field.value().is_string())
+      return false;
+  }
+
+  return true;
+}
+
 } // namespace
 
 bool ReadAssetReference(const TJson & _Object, const std::string & _Key, TAssetReference & _AssetRef, std::string & _Error)
@@ -75,6 +91,26 @@ TJson WriteAssetReference(const TAssetReference & _AssetRef)
     Json[PathKey] = _AssetRef.PathHint;
 
   return Json;
+}
+
+void CollectAssetReferences(const TJson & _Json, std::vector<TAssetReference> & _AssetRefs)
+{
+  if (IsAssetReferenceObject(_Json))
+  {
+    TAssetReference AssetRef;
+    std::string     Error;
+
+    if (ReadReferenceObject(_Json, "reference", AssetRef, Error) && !AssetRef.IsEmpty())
+      _AssetRefs.push_back(std::move(AssetRef));
+
+    return;
+  }
+
+  if (!_Json.is_structured())
+    return;
+
+  for (const auto & Element : _Json)
+    CollectAssetReferences(Element, _AssetRefs);
 }
 
 } // namespace editor

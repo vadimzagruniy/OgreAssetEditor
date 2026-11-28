@@ -1,6 +1,8 @@
 #include "ContentBrowserController.h"
 #include "core/ActionQueue.h"
 #include "core/Log.h"
+#include "editor/assets/AssetDatabase.h"
+#include "editor/assets/AssetDependencyIndex.h"
 #include "editor/assets/AssetFactory.h"
 #include "editor/assets/AssetFactoryInfo.h"
 #include "editor/assets/AssetFactoryRegistry.h"
@@ -47,10 +49,12 @@ std::string ToUtf8(const std::filesystem::path & _Path)
 // Constructor/Destructor
 //
 
-CContentBrowserController::CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue):
+CContentBrowserController::CContentBrowserController(std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<CAssetDependencyIndex> _Dependencies, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<core::CLog> _Log, std::shared_ptr<core::CActionQueue> _ActionQueue):
   m_AssetManager(std::move(_AssetManager)),
   m_AssetTypes(std::move(_AssetTypes)),
   m_AssetFactories(std::move(_AssetFactories)),
+  m_Assets(std::move(_Assets)),
+  m_Dependencies(std::move(_Dependencies)),
   m_WorkspaceManager(std::move(_WorkspaceManager)),
   m_Log(std::move(_Log)),
   m_ActionQueue(std::move(_ActionQueue)),
@@ -111,6 +115,16 @@ bool CContentBrowserController::IsSelected(const std::filesystem::path & _Path) 
 bool CContentBrowserController::IsDeleteRequested() const noexcept
 {
   return m_IsDeleteRequested;
+}
+
+const std::vector<std::string> & CContentBrowserController::GetDeleteReferrers() const noexcept
+{
+  return m_DeleteReferrers;
+}
+
+const std::optional<TAssetReferencesReport> & CContentBrowserController::GetReferencesReport() const noexcept
+{
+  return m_ReferencesReport;
 }
 
 const std::optional<TAssetCreationRequest> & CContentBrowserController::GetCreationRequest() const noexcept
@@ -262,6 +276,7 @@ void CContentBrowserController::RequestDeleteSelection()
   Post([this]
   {
     m_IsDeleteRequested = !m_Selection.empty();
+    m_DeleteReferrers   = m_IsDeleteRequested ? CollectExternalReferrers(m_Selection) : std::vector<std::string>();
   });
 }
 
@@ -278,6 +293,23 @@ void CContentBrowserController::CancelDelete()
   Post([this]
   {
     m_IsDeleteRequested = false;
+    m_DeleteReferrers.clear();
+  });
+}
+
+void CContentBrowserController::FindReferences(const std::filesystem::path & _Path)
+{
+  Post([this, _Path]
+  {
+    ApplyFindReferences(_Path);
+  });
+}
+
+void CContentBrowserController::CloseReferencesReport()
+{
+  Post([this]
+  {
+    m_ReferencesReport.reset();
   });
 }
 
@@ -473,6 +505,7 @@ void CContentBrowserController::ApplyDuplicateSelection()
 void CContentBrowserController::ApplyDeleteSelection()
 {
   m_IsDeleteRequested = false;
+  m_DeleteReferrers.clear();
 
   const auto PathsToDelete = m_Selection;
 
@@ -488,6 +521,14 @@ void CContentBrowserController::ApplyDeleteSelection()
 
   m_Selection.clear();
   m_SelectionAnchor.clear();
+}
+
+void CContentBrowserController::ApplyFindReferences(const std::filesystem::path & _Path)
+{
+  if (!m_AssetManager->HasNode(_Path))
+    return;
+
+  m_ReferencesReport = TAssetReferencesReport{_Path.generic_string(), CollectExternalReferrers({_Path})};
 }
 
 void CContentBrowserController::ApplyRevealInExplorer(const std::filesystem::path & _Path) const
@@ -552,6 +593,40 @@ void CContentBrowserController::AddAssetTypeActions(const std::filesystem::path 
 
     _Entries.push_back(std::move(Entry));
   }
+}
+
+std::vector<std::string> CContentBrowserController::CollectExternalReferrers(const std::set<std::filesystem::path> & _Paths) const
+{
+  m_Dependencies->Update();
+
+  std::set<TAssetId> AssetIds;
+  for (const auto & Path : _Paths)
+  {
+    if (m_AssetManager->HasNode(Path))
+      CollectAssetIds(m_AssetManager->GetNode(Path), AssetIds);
+  }
+
+  std::set<std::string> ReferrerPaths;
+  for (const auto & AssetId : AssetIds)
+  {
+    for (const auto & ReferrerId : m_Dependencies->GetReferrers(AssetId))
+    {
+      TAssetRecord Referrer;
+      if (!AssetIds.contains(ReferrerId) && m_Assets->FindById(ReferrerId, Referrer))
+        ReferrerPaths.insert(Referrer.RelativePath.generic_string());
+    }
+  }
+
+  return std::vector<std::string>(ReferrerPaths.begin(), ReferrerPaths.end());
+}
+
+void CContentBrowserController::CollectAssetIds(const TAssetNode & _Node, std::set<TAssetId> & _AssetIds) const
+{
+  if (!_Node.IsDirectory && _Node.Record.Id.IsValid())
+    _AssetIds.insert(_Node.Record.Id);
+
+  for (const auto & Child : _Node.Children)
+    CollectAssetIds(Child, _AssetIds);
 }
 
 void CContentBrowserController::HandleAssetsChanged()

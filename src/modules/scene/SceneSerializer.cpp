@@ -1,4 +1,5 @@
 #include "SceneSerializer.h"
+#include "editor/assets/AssetReference.h"
 #include "editor/assets/AssetReferenceJson.h"
 #include "editor/json/Json.h"
 #include "editor/json/JsonFields.h"
@@ -20,7 +21,8 @@ namespace editor
 namespace
 {
 
-constexpr std::int64_t SceneFormatVersion = 4;
+constexpr std::int64_t SceneFormatVersion    = 4;
+constexpr std::int64_t FirstReferenceVersion = 4;
 
 const std::string NameKey        = "name";
 const std::string TypeKey        = "type";
@@ -244,6 +246,69 @@ TJson WriteAnimation(const TSceneAnimation & _Animation)
   return Json;
 }
 
+bool ParseSceneRoot(const std::string & _Text, TJson & _Root, std::int64_t & _Version, std::string & _Error)
+{
+  auto Root = TJson::parse(_Text, nullptr, false);
+  if (Root.is_discarded() || !Root.is_object())
+  {
+    _Error = "Scene file is not a valid JSON object.";
+    return false;
+  }
+
+  const auto VersionField = Root.find("version");
+  if (VersionField == Root.end() || !VersionField->is_number_integer())
+  {
+    _Error = "Scene file has no integer 'version'.";
+    return false;
+  }
+
+  const auto Version = VersionField->get<std::int64_t>();
+  if (Version < 1 || Version > SceneFormatVersion)
+  {
+    _Error = "Scene format version " + std::to_string(Version) + " is not supported.";
+    return false;
+  }
+
+  _Root    = std::move(Root);
+  _Version = Version;
+
+  return true;
+}
+
+void CollectLegacyNodeReferences(const TJson & _Nodes, std::vector<TAssetReference> & _AssetRefs)
+{
+  if (!_Nodes.is_array())
+    return;
+
+  for (const auto & Node : _Nodes)
+  {
+    if (!Node.is_object())
+      continue;
+
+    if (const auto MeshField = Node.find(LegacyMeshKey); MeshField != Node.end() && MeshField->is_string())
+      _AssetRefs.push_back({{}, MeshField->get<std::string>()});
+
+    if (const auto ChildrenField = Node.find(ChildrenKey); ChildrenField != Node.end())
+      CollectLegacyNodeReferences(*ChildrenField, _AssetRefs);
+  }
+}
+
+void CollectLegacyAnimationReferences(const TJson & _Root, std::vector<TAssetReference> & _AssetRefs)
+{
+  const auto AnimationsField = _Root.find(AnimationsKey);
+  if (AnimationsField == _Root.end() || !AnimationsField->is_array())
+    return;
+
+  for (const auto & Animation : *AnimationsField)
+  {
+    if (!Animation.is_object())
+      continue;
+
+    if (const auto PathField = Animation.find(LegacyPathKey); PathField != Animation.end() && PathField->is_string())
+      _AssetRefs.push_back({{}, PathField->get<std::string>()});
+  }
+}
+
 TJson WriteNode(const CSceneGraph & _Scene, const std::string & _Name)
 {
   const auto & Node     = _Scene.GetNode(_Name);
@@ -275,28 +340,10 @@ bool ReadScene(const std::string & _Text, CSceneGraph & _Scene, std::vector<TSce
 {
   assert(_Scene.GetRootNodes().empty() && "Scene must be empty before reading");
 
-  const auto Root = TJson::parse(_Text, nullptr, false);
-  if (Root.is_discarded() || !Root.is_object())
-  {
-    _Error = "Scene file is not a valid JSON object.";
-    return false;
-  }
+  TJson        Root;
+  std::int64_t Version = 0;
 
-  const auto VersionField = Root.find("version");
-  if (VersionField == Root.end() || !VersionField->is_number_integer())
-  {
-    _Error = "Scene file has no integer 'version'.";
-    return false;
-  }
-
-  const auto Version = VersionField->get<std::int64_t>();
-  if (Version < 1 || Version > SceneFormatVersion)
-  {
-    _Error = "Scene format version " + std::to_string(Version) + " is not supported.";
-    return false;
-  }
-
-  return ReadNodes(Root, _Scene, _Error) && ReadAnimations(Root, _Animations, _Error);
+  return ParseSceneRoot(_Text, Root, Version, _Error) && ReadNodes(Root, _Scene, _Error) && ReadAnimations(Root, _Animations, _Error);
 }
 
 std::string WriteScene(const CSceneGraph & _Scene, const std::vector<TSceneAnimation> & _Animations)
@@ -316,6 +363,27 @@ std::string WriteScene(const CSceneGraph & _Scene, const std::vector<TSceneAnima
   }
 
   return Root.dump(2, ' ', false, TJson::error_handler_t::replace) + "\n";
+}
+
+bool CollectSceneAssetReferences(const std::string & _Text, std::vector<TAssetReference> & _AssetRefs, std::string & _Error)
+{
+  TJson        Root;
+  std::int64_t Version = 0;
+
+  if (!ParseSceneRoot(_Text, Root, Version, _Error))
+    return false;
+
+  CollectAssetReferences(Root, _AssetRefs);
+
+  if (Version < FirstReferenceVersion)
+  {
+    if (const auto NodesField = Root.find("nodes"); NodesField != Root.end())
+      CollectLegacyNodeReferences(*NodesField, _AssetRefs);
+
+    CollectLegacyAnimationReferences(Root, _AssetRefs);
+  }
+
+  return true;
 }
 
 } // namespace editor

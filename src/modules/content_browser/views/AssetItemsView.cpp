@@ -181,10 +181,11 @@ void CAssetItemsView::DrawItemContextMenu(const TContentItem & _Item)
 
   std::vector<TAssetMenuEntry> Entries
   {
-    {"Open",      "Enter",  EAssetMenuGroup::Open,   true, [this, Path] { m_Presenter.Open(Path);               }},
-    {"Rename",    "F2",     EAssetMenuGroup::Edit,   true, [this, Path] { BeginRename(Path);                    }},
-    {"Duplicate", "Ctrl+D", EAssetMenuGroup::Edit,   true, [this]       { m_Presenter.DuplicateSelection();     }},
-    {"Delete",    "Del",    EAssetMenuGroup::Delete, true, [this]       { m_Presenter.RequestDeleteSelection(); }}
+    {"Open",            "Enter",  EAssetMenuGroup::Open,   true, [this, Path] { m_Presenter.Open(Path);               }},
+    {"Rename",          "F2",     EAssetMenuGroup::Edit,   true, [this, Path] { BeginRename(Path);                    }},
+    {"Duplicate",       "Ctrl+D", EAssetMenuGroup::Edit,   true, [this]       { m_Presenter.DuplicateSelection();     }},
+    {"Find References", "",       EAssetMenuGroup::Asset,  true, [this, Path] { m_Presenter.FindReferences(Path);     }},
+    {"Delete",          "Del",    EAssetMenuGroup::Delete, true, [this]       { m_Presenter.RequestDeleteSelection(); }}
   };
 
   auto ContextActions = m_Presenter.GetContextActions(Path);

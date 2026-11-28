@@ -49,14 +49,21 @@ void CDeleteConfirmationView::Draw()
 void CDeleteConfirmationView::OpenModal(const IContentBrowserPresenter & _Presenter)
 {
   const auto & Selection = _Presenter.GetSelection();
+  const auto & Referrers = _Presenter.GetDeleteReferrers();
 
   ui::TChoiceModalDesc Desc;
   Desc.Title   = "Delete Assets";
   Desc.Size    = ImVec2(40.0f, 12.0f);
   Desc.Message = "Delete " + std::to_string(Selection.size()) + " item(s)? This cannot be undone.";
 
+  if (!Referrers.empty())
+    Desc.Message += "\n" + std::to_string(Referrers.size()) + " asset(s) use them and will have missing references.";
+
   for (const auto & Path : Selection)
     Desc.Details.push_back(Path.generic_string());
+
+  for (const auto & Referrer : Referrers)
+    Desc.Details.push_back("Used by " + Referrer);
 
   Desc.Choices =
   {

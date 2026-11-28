@@ -10,6 +10,7 @@ namespace editor
 enum class EAssetOpenResult;
 struct TAssetMenuEntry;
 struct TAssetRecord;
+struct TAssetReference;
 struct TAssetTypeInfo;
 class CEditorWorkspace;
 
@@ -26,6 +27,8 @@ public: // Interface
   virtual EAssetOpenResult OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::unique_ptr<CEditorWorkspace> & _Workspace, std::string & _Error) const = 0;
 
   virtual void GetContextActions(const TAssetRecord & _Asset, std::vector<TAssetMenuEntry> & _Entries) const;
+
+  virtual bool CollectDependencies(const TAssetRecord & _Asset, std::vector<TAssetReference> & _DependencyRefs, std::string & _Error) const;
 };
 
 } // namespace editor

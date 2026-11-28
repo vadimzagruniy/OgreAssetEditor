@@ -20,6 +20,7 @@ class CNavigationBarView;
 class CAssetListView;
 class CAssetGridView;
 class CDeleteConfirmationView;
+class CAssetReferencesView;
 class CCreateAssetView;
 
 class CContentBrowserWindow final:
@@ -44,6 +45,7 @@ private: // Attributes
   std::unique_ptr<CAssetListView>            m_AssetListView;
   std::unique_ptr<CAssetGridView>            m_AssetGridView;
   std::unique_ptr<CDeleteConfirmationView>   m_DeleteConfirmationView;
+  std::unique_ptr<CAssetReferencesView>      m_ReferencesView;
   std::unique_ptr<CCreateAssetView>          m_CreateAssetView;
   float                                      m_SplitRatio;
 };

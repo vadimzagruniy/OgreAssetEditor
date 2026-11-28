@@ -1,14 +1,12 @@
 #include "AssetMetaSerializer.h"
 #include "AssetMeta.h"
-#include "core/PathUtf8.h"
+#include "core/ReadFileText.h"
 #include "core/WriteFileAtomic.h"
 #include "editor/json/Json.h"
 
 #include <nlohmann/json.hpp>
 
 #include <cstdint>
-#include <fstream>
-#include <iterator>
 
 namespace editor
 {
@@ -77,16 +75,9 @@ std::string WriteAssetMeta(const TAssetMeta & _Meta)
 
 bool LoadAssetMeta(const std::filesystem::path & _MetaPath, TAssetMeta & _Meta, std::string & _Error)
 {
-  std::ifstream File(_MetaPath, std::ios::binary);
-  if (!File)
-  {
-    _Error = "Cannot open " + core::PathToUtf8(_MetaPath.filename());
-    return false;
-  }
+  std::string Text;
 
-  const std::string Text((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
-
-  return ReadAssetMeta(Text, _Meta, _Error);
+  return core::ReadFileText(_MetaPath, Text, _Error) && ReadAssetMeta(Text, _Meta, _Error);
 }
 
 bool SaveAssetMeta(const std::filesystem::path & _MetaPath, const TAssetMeta & _Meta, std::string & _Error)

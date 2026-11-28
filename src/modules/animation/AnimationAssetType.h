@@ -28,6 +28,8 @@ public: // IAssetType
 
   EAssetOpenResult OpenAsset(const TAssetRecord & _Asset, const std::string & _ResourceGroup, std::unique_ptr<CEditorWorkspace> & _Workspace, std::string & _Error) const override;
 
+  bool CollectDependencies(const TAssetRecord & _Asset, std::vector<TAssetReference> & _DependencyRefs, std::string & _Error) const override;
+
 private: // Implementation
 
   bool AttachNewEditor(std::size_t _HostIndex, const TAssetRecord & _Asset, std::string & _Error) const;

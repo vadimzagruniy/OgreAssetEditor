@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssetCreationRequest.h"
+#include "AssetReferencesReport.h"
 #include "ContentViewMode.h"
 #include "SelectionMode.h"
 
@@ -37,6 +38,10 @@ public: // State
   virtual bool IsSelected(const std::filesystem::path & _Path) const = 0;
 
   virtual bool IsDeleteRequested() const noexcept = 0;
+
+  virtual const std::vector<std::string> & GetDeleteReferrers() const noexcept = 0;
+
+  virtual const std::optional<TAssetReferencesReport> & GetReferencesReport() const noexcept = 0;
 
   virtual const std::optional<TAssetCreationRequest> & GetCreationRequest() const noexcept = 0;
 
@@ -77,6 +82,10 @@ public: // Actions
   virtual void ConfirmDelete() = 0;
 
   virtual void CancelDelete() = 0;
+
+  virtual void FindReferences(const std::filesystem::path & _Path) = 0;
+
+  virtual void CloseReferencesReport() = 0;
 
   virtual void SetFilter(const std::string & _Filter) = 0;
 

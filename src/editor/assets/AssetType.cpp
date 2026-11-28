@@ -19,4 +19,9 @@ void IAssetType::GetContextActions(const TAssetRecord & /*_Asset*/, std::vector<
   // Empty
 }
 
+bool IAssetType::CollectDependencies(const TAssetRecord & /*_Asset*/, std::vector<TAssetReference> & /*_DependencyRefs*/, std::string & /*_Error*/) const
+{
+  return true;
+}
+
 } // namespace editor

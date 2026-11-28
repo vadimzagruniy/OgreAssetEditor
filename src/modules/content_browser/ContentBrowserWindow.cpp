@@ -4,6 +4,7 @@
 #include "ui/widgets/Splitter.h"
 #include "views/AssetGridView.h"
 #include "views/AssetListView.h"
+#include "views/AssetReferencesView.h"
 #include "views/ContentToolbarView.h"
 #include "views/CreateAssetView.h"
 #include "views/DeleteConfirmationView.h"
@@ -30,6 +31,7 @@ CContentBrowserWindow::CContentBrowserWindow(const ui::TToolBoxDesc & _Desc, std
   m_AssetListView(std::make_unique<CAssetListView>(*m_Controller)),
   m_AssetGridView(std::make_unique<CAssetGridView>(*m_Controller)),
   m_DeleteConfirmationView(std::make_unique<CDeleteConfirmationView>(m_Controller, _WindowManager)),
+  m_ReferencesView(std::make_unique<CAssetReferencesView>(m_Controller, _WindowManager)),
   m_CreateAssetView(std::make_unique<CCreateAssetView>(m_Controller, _WindowManager)),
   m_SplitRatio(0.4f)
 {
@@ -67,6 +69,7 @@ void CContentBrowserWindow::OnGui()
     m_AssetListView->Draw();
 
   m_DeleteConfirmationView->Draw();
+  m_ReferencesView->Draw();
   m_CreateAssetView->Draw();
 }
 

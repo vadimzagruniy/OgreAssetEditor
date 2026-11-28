@@ -4,12 +4,16 @@
 #include "views/AnimationTimelineWindow.h"
 #include "core/EditorService.h"
 #include "core/PathUtf8.h"
+#include "core/ReadFileText.h"
 #include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetRecord.h"
+#include "editor/assets/AssetReferenceJson.h"
 #include "editor/assets/AssetTypeInfo.h"
 #include "editor/workspaces/EditorWorkspace.h"
 #include "editor/workspaces/WorkspaceManager.h"
 #include "modules/scene/animation/ISceneAnimationHost.h"
+
+#include <nlohmann/json.hpp>
 
 #include <fstream>
 #include <iterator>
@@ -57,6 +61,24 @@ EAssetOpenResult CAnimationAssetType::OpenAsset(const TAssetRecord & _Asset, con
   m_TimelineWindow->ShowAnimation(_Asset.AbsolutePath);
 
   return EAssetOpenResult::AttachedToWorkspace;
+}
+
+bool CAnimationAssetType::CollectDependencies(const TAssetRecord & _Asset, std::vector<TAssetReference> & _DependencyRefs, std::string & _Error) const
+{
+  std::string Text;
+  if (!core::ReadFileText(_Asset.AbsolutePath, Text, _Error))
+    return false;
+
+  const auto Root = TJson::parse(Text, nullptr, false);
+  if (Root.is_discarded())
+  {
+    _Error = "Animation file is not valid JSON.";
+    return false;
+  }
+
+  CollectAssetReferences(Root, _DependencyRefs);
+
+  return true;
 }
 
 //

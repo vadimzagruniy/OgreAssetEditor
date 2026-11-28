@@ -1,7 +1,9 @@
 #include "SceneAssetType.h"
 #include "SceneDocument.h"
+#include "SceneSerializer.h"
 #include "SceneWorkspace.h"
 #include "core/PathUtf8.h"
+#include "core/ReadFileText.h"
 #include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
@@ -58,6 +60,13 @@ EAssetOpenResult CSceneAssetType::OpenAsset(const TAssetRecord & _Asset, const s
   _Workspace = std::make_unique<CSceneWorkspace>(std::move(Document), m_Controller, _ResourceGroup, m_NodeBindings, m_Assets, m_Log);
 
   return EAssetOpenResult::OpenedInWorkspace;
+}
+
+bool CSceneAssetType::CollectDependencies(const TAssetRecord & _Asset, std::vector<TAssetReference> & _DependencyRefs, std::string & _Error) const
+{
+  std::string Text;
+
+  return core::ReadFileText(_Asset.AbsolutePath, Text, _Error) && CollectSceneAssetReferences(Text, _DependencyRefs, _Error);
 }
 
 } // namespace editor

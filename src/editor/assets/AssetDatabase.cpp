@@ -39,6 +39,11 @@ std::uint64_t CAssetDatabase::GetRevision() const noexcept
   return m_Revision;
 }
 
+const std::map<TAssetId, TAssetRecord> & CAssetDatabase::GetRecords() const noexcept
+{
+  return m_Records;
+}
+
 bool CAssetDatabase::FindById(const TAssetId & _Id, TAssetRecord & _Record) const
 {
   const auto Record = m_Records.find(_Id);
