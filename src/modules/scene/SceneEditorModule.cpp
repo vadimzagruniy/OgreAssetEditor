@@ -4,6 +4,7 @@
 #include "core/ActionQueue.h"
 #include "core/EditorService.h"
 #include "core/Log.h"
+#include "editor/assets/AssetDatabase.h"
 #include "editor/assets/AssetFactoryRegistry.h"
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/modules/ModuleInfo.h"
@@ -88,10 +89,11 @@ bool CSceneEditorModule::Startup(core::CEditorService & _Services, std::string &
   auto WindowManager  = _Services.GetService<ui::CWindowManager>();
   auto ActionQueue    = _Services.GetService<core::CActionQueue>();
   auto EditorLog      = _Services.GetService<core::CLog>();
+  auto AssetDatabase  = _Services.GetService<CAssetDatabase>();
 
-  if (!AssetTypes || !AssetFactories || !WindowManager || !ActionQueue || !EditorLog)
+  if (!AssetTypes || !AssetFactories || !WindowManager || !ActionQueue || !EditorLog || !AssetDatabase)
   {
-    _Error = "Scene Editor module requires the asset type registry, asset factory registry, window manager, action queue and log services.";
+    _Error = "Scene Editor module requires the asset type registry, asset factory registry, asset database, window manager, action queue and log services.";
     return false;
   }
 
@@ -114,7 +116,7 @@ bool CSceneEditorModule::Startup(core::CEditorService & _Services, std::string &
   auto DropHandlers = std::make_shared<CSceneDropHandlers>();
   DropHandlers->Register(std::make_shared<CMeshDropHandler>());
 
-  auto Controller = std::make_shared<CSceneEditorController>(std::move(ActionQueue), AssetTypes, std::move(DropHandlers), std::move(Templates));
+  auto Controller = std::make_shared<CSceneEditorController>(std::move(ActionQueue), AssetTypes, AssetDatabase, std::move(DropHandlers), std::move(Templates));
 
   const ui::TToolBoxDesc OutlinerDesc{GetInfo().Name, "Scene Outliner", false, ui::EDockSlot::LeftBottom, 0};
   m_WindowManager->RegisterToolBox(OutlinerDesc, std::make_shared<CSceneOutlinerWindow>(OutlinerDesc, Controller));
@@ -122,7 +124,7 @@ bool CSceneEditorModule::Startup(core::CEditorService & _Services, std::string &
   const ui::TToolBoxDesc ObjectsDesc{GetInfo().Name, "Scene Objects", false, ui::EDockSlot::RightBottom, 0};
   m_WindowManager->RegisterToolBox(ObjectsDesc, std::make_shared<CSceneObjectsWindow>(ObjectsDesc, Controller));
 
-  AssetTypes->Register(std::make_shared<CSceneAssetType>(std::move(Controller), NodeTypes, std::move(NodeBindings), std::move(EditorLog)));
+  AssetTypes->Register(std::make_shared<CSceneAssetType>(std::move(Controller), NodeTypes, std::move(NodeBindings), std::move(AssetDatabase), std::move(EditorLog)));
   AssetFactories->Register(std::make_shared<CSceneFactory>(std::move(NodeTypes)));
 
   return true;

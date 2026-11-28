@@ -4,7 +4,9 @@
 #include "model/SceneNode.h"
 #include "core/FunctionCommand.h"
 #include "core/WriteFileAtomic.h"
+#include "editor/assets/AssetDatabase.h"
 #include "editor/assets/AssetRecord.h"
+#include "editor/assets/AssetReference.h"
 #include "editor/documents/AssetProperty.h"
 
 #include <algorithm>
@@ -82,8 +84,9 @@ bool ToLocalTransform(const CSceneGraph & _Graph, const std::string & _ParentNam
 // Constructor
 //
 
-CSceneDocument::CSceneDocument(TAssetRecord _Record, std::shared_ptr<const CSceneNodeTypes> _NodeTypes):
+CSceneDocument::CSceneDocument(TAssetRecord _Record, std::shared_ptr<const CSceneNodeTypes> _NodeTypes, std::shared_ptr<const CAssetDatabase> _Assets):
   CAssetDocument(std::move(_Record), "Scene"),
+  m_Assets(std::move(_Assets)),
   m_Graph(std::move(_NodeTypes))
 {
   // Empty
@@ -101,6 +104,7 @@ std::vector<TAssetProperty> CSceneDocument::GetProperties() const
 bool CSceneDocument::OnSave(std::string & _Error)
 {
   CommitPreview();
+  RefreshAssetReferences();
 
   return core::WriteFileAtomic(GetRecord().AbsolutePath, WriteScene(m_Graph, m_Animations), _Error);
 }
@@ -111,7 +115,12 @@ bool CSceneDocument::OnSave(std::string & _Error)
 
 bool CSceneDocument::Load(const std::string & _Text, std::string & _Error)
 {
-  return ReadScene(_Text, m_Graph, m_Animations, _Error);
+  if (!ReadScene(_Text, m_Graph, m_Animations, _Error))
+    return false;
+
+  RefreshAssetReferences();
+
+  return true;
 }
 
 const CSceneGraph & CSceneDocument::GetGraph() const noexcept
@@ -124,14 +133,14 @@ const std::vector<TSceneAnimation> & CSceneDocument::GetAnimations() const noexc
   return m_Animations;
 }
 
-bool CSceneDocument::HasAnimation(const std::string & _Path) const
+bool CSceneDocument::HasAnimation(const TAssetId & _AnimationId) const
 {
-  return FindAnimation(_Path) != m_Animations.end();
+  return FindAnimation(_AnimationId) != m_Animations.end();
 }
 
-std::string CSceneDocument::ResolveSlot(const std::string & _Path, const std::string & _Slot) const
+std::string CSceneDocument::ResolveSlot(const TAssetId & _AnimationId, const std::string & _Slot) const
 {
-  const auto Animation = FindAnimation(_Path);
+  const auto Animation = FindAnimation(_AnimationId);
   if (Animation == m_Animations.end())
     return _Slot;
 
@@ -139,9 +148,9 @@ std::string CSceneDocument::ResolveSlot(const std::string & _Path, const std::st
   return Binding == Animation->Bindings.end() ? _Slot : Binding->second;
 }
 
-std::string CSceneDocument::FindSlot(const std::string & _Path, const std::string & _NodeName) const
+std::string CSceneDocument::FindSlot(const TAssetId & _AnimationId, const std::string & _NodeName) const
 {
-  const auto Animation = FindAnimation(_Path);
+  const auto Animation = FindAnimation(_AnimationId);
   if (Animation == m_Animations.end())
     return _NodeName;
 
@@ -285,34 +294,37 @@ void CSceneDocument::RenameNode(const std::string & _Name, const std::string & _
   ExecuteCommand("Rename Node", Rename(_Name, _NewName, RenameBindings(m_Animations, _Name, _NewName)), Rename(_NewName, _Name, m_Animations));
 }
 
-void CSceneDocument::AddAnimation(const std::string & _Path)
+void CSceneDocument::AddAnimation(const TAssetReference & _AnimationRef)
 {
-  if (_Path.empty() || HasAnimation(_Path))
+  if (!_AnimationRef.Id.IsValid() || HasAnimation(_AnimationRef.Id))
     return;
 
   auto Animations = m_Animations;
-  Animations.push_back({_Path, {}});
+  Animations.push_back({_AnimationRef, {}});
 
   ReplaceAnimations("Add Animation", std::move(Animations));
 }
 
-void CSceneDocument::RemoveAnimation(const std::string & _Path)
+void CSceneDocument::RemoveAnimation(const TAssetReference & _AnimationRef)
 {
   auto Animations = m_Animations;
-  std::erase_if(Animations, [&_Path](const TSceneAnimation & _Animation)
+  std::erase_if(Animations, [&_AnimationRef](const TSceneAnimation & _Entry)
   {
-    return _Animation.Path == _Path;
+    return _Entry.AssetRef.IsSameAsset(_AnimationRef);
   });
 
   ReplaceAnimations("Remove Animation", std::move(Animations));
 }
 
-void CSceneDocument::BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName)
+void CSceneDocument::BindSlot(const TAssetId & _AnimationId, const std::string & _Slot, const std::string & _NodeName)
 {
+  if (!_AnimationId.IsValid())
+    return;
+
   auto Animations = m_Animations;
-  auto Animation  = std::find_if(Animations.begin(), Animations.end(), [&_Path](const TSceneAnimation & _Animation)
+  auto Animation  = std::find_if(Animations.begin(), Animations.end(), [&_AnimationId](const TSceneAnimation & _Entry)
   {
-    return _Animation.Path == _Path;
+    return _Entry.AssetRef.Id == _AnimationId;
   });
 
   if (Animation == Animations.end() || _Slot.empty())
@@ -500,12 +512,28 @@ void CSceneDocument::ReplaceAnimations(std::string _CommandName, std::vector<TSc
   ExecuteCommand(std::move(_CommandName), Apply(std::move(_Animations)), Apply(m_Animations));
 }
 
-std::vector<TSceneAnimation>::const_iterator CSceneDocument::FindAnimation(const std::string & _Path) const
+std::vector<TSceneAnimation>::const_iterator CSceneDocument::FindAnimation(const TAssetId & _AnimationId) const
 {
-  return std::find_if(m_Animations.begin(), m_Animations.end(), [&_Path](const TSceneAnimation & _Animation)
+  if (!_AnimationId.IsValid())
+    return m_Animations.end();
+
+  return std::find_if(m_Animations.begin(), m_Animations.end(), [&_AnimationId](const TSceneAnimation & _Entry)
   {
-    return _Animation.Path == _Path;
+    return _Entry.AssetRef.Id == _AnimationId;
   });
+}
+
+void CSceneDocument::RefreshAssetReferences()
+{
+  auto Refresh = [this](TAssetReference & _AssetRef)
+  {
+    m_Assets->RefreshReference(_AssetRef);
+  };
+
+  m_Graph.VisitAssetReferences(Refresh);
+
+  for (auto & Animation : m_Animations)
+    Refresh(Animation.AssetRef);
 }
 
 } // namespace editor

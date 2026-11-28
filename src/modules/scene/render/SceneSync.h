@@ -5,6 +5,7 @@
 
 #include <OgrePrerequisites.h>
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -19,6 +20,7 @@ namespace core
 class CLog;
 } // namespace core
 
+class CAssetDatabase;
 class CRenderScene;
 class CSceneDocument;
 class CSceneGraph;
@@ -29,7 +31,7 @@ class CSceneSync
 {
 public: // Constructor/Destructor
 
-  CSceneSync(CRenderScene & _RenderScene, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log);
+  CSceneSync(CRenderScene & _RenderScene, std::shared_ptr<const CAssetDatabase> _Assets, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log);
 
   ~CSceneSync();
 
@@ -61,6 +63,8 @@ private: // Implementation
 
   void CreateAddedNodes(const CSceneGraph & _Graph, const std::unordered_set<std::string> & _DirtyNodes);
 
+  bool ReapplyAssets(const CSceneGraph & _Graph);
+
   void ApplyNode(const CSceneGraph & _Graph, const std::string & _Name);
 
   void ApplyParent(TOgreNodeBinding & _Binding, const CSceneNode & _Node);
@@ -72,11 +76,13 @@ private: // Implementation
 private: // Attributes
 
   CRenderScene &                                    m_RenderScene;
+  std::shared_ptr<const CAssetDatabase>             m_Assets;
   std::shared_ptr<const CSceneNodeBindings>         m_NodeBindings;
   std::shared_ptr<core::CLog>                       m_Log;
   CSceneMeshCache                                   m_MeshCache;
   std::unordered_map<std::string, TOgreNodeBinding> m_Bindings;
   std::string                                       m_HighlightedNode;
+  std::uint64_t                                     m_AssetsRevision;
 };
 
 } // namespace editor

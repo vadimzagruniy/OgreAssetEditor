@@ -21,7 +21,10 @@ namespace editor
 {
 
 enum class ESceneChangeKind;
+class CAssetDatabase;
 class CSceneNodeTypes;
+struct TAssetId;
+struct TAssetReference;
 struct TSceneChange;
 
 class CSceneDocument final:
@@ -34,7 +37,7 @@ public: // Types
 
 public: // Constructor
 
-  CSceneDocument(TAssetRecord _Record, std::shared_ptr<const CSceneNodeTypes> _NodeTypes);
+  CSceneDocument(TAssetRecord _Record, std::shared_ptr<const CSceneNodeTypes> _NodeTypes, std::shared_ptr<const CAssetDatabase> _Assets);
 
 public: // CAssetDocument
 
@@ -52,11 +55,11 @@ public: // Interface
 
   const std::vector<TSceneAnimation> & GetAnimations() const noexcept;
 
-  bool HasAnimation(const std::string & _Path) const;
+  bool HasAnimation(const TAssetId & _AnimationId) const;
 
-  std::string ResolveSlot(const std::string & _Path, const std::string & _Slot) const;
+  std::string ResolveSlot(const TAssetId & _AnimationId, const std::string & _Slot) const;
 
-  std::string FindSlot(const std::string & _Path, const std::string & _NodeName) const;
+  std::string FindSlot(const TAssetId & _AnimationId, const std::string & _NodeName) const;
 
   std::unordered_set<std::string> TakeDirtyNodes();
 
@@ -76,11 +79,11 @@ public: // Interface
 
   void RenameNode(const std::string & _Name, const std::string & _NewName);
 
-  void AddAnimation(const std::string & _Path);
+  void AddAnimation(const TAssetReference & _AnimationRef);
 
-  void RemoveAnimation(const std::string & _Path);
+  void RemoveAnimation(const TAssetReference & _AnimationRef);
 
-  void BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName);
+  void BindSlot(const TAssetId & _AnimationId, const std::string & _Slot, const std::string & _NodeName);
 
   void PreviewValue(const std::string & _Name, const std::string & _Identifier, const TPropertyValue & _Value, const std::string & _CommandName);
 
@@ -117,14 +120,17 @@ private: // Implementation
 
   void ReplaceAnimations(std::string _CommandName, std::vector<TSceneAnimation> _Animations);
 
-  std::vector<TSceneAnimation>::const_iterator FindAnimation(const std::string & _Path) const;
+  std::vector<TSceneAnimation>::const_iterator FindAnimation(const TAssetId & _AnimationId) const;
+
+  void RefreshAssetReferences();
 
 private: // Attributes
 
-  CSceneGraph                  m_Graph;
-  std::vector<TSceneAnimation> m_Animations;
-  std::optional<TPreview>      m_Preview;
-  TChangedSignal               m_ChangedSignal;
+  std::shared_ptr<const CAssetDatabase> m_Assets;
+  CSceneGraph                           m_Graph;
+  std::vector<TSceneAnimation>          m_Animations;
+  std::optional<TPreview>               m_Preview;
+  TChangedSignal                        m_ChangedSignal;
 };
 
 } // namespace editor

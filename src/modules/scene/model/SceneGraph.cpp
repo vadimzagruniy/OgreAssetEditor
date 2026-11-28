@@ -346,6 +346,12 @@ bool CSceneGraph::EditNode(const std::string & _Name, const std::function<bool(C
   return true;
 }
 
+void CSceneGraph::VisitAssetReferences(const std::function<void(TAssetReference &)> & _Visitor)
+{
+  for (auto & [Name, Node] : m_Nodes)
+    Node->VisitAssetReferences(_Visitor);
+}
+
 std::unordered_set<std::string> CSceneGraph::TakeDirtyNodes()
 {
   return std::exchange(m_DirtyNodes, {});

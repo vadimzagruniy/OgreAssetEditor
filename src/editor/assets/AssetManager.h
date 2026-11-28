@@ -19,6 +19,7 @@ class CLog;
 namespace editor
 {
 
+class CAssetDatabase;
 class CAssetFactoryRegistry;
 class CAssetMetaScanner;
 class CAssetTypeRegistry;
@@ -38,7 +39,7 @@ public: // Types
 
 public: // Constructor/Destructor
 
-  CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<core::CLog> _Log);
+  CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CAssetFactoryRegistry> _AssetFactories, std::shared_ptr<CAssetDatabase> _Database, std::shared_ptr<core::CLog> _Log);
 
   ~CAssetManager();
 
@@ -114,6 +115,7 @@ private: // Attributes
 
   std::shared_ptr<CAssetTypeRegistry>    m_AssetTypes;
   std::shared_ptr<CAssetFactoryRegistry> m_AssetFactories;
+  std::shared_ptr<CAssetDatabase>        m_Database;
   std::shared_ptr<core::CLog>            m_Log;
   std::unique_ptr<CAssetMetaScanner>     m_MetaScanner;
   std::filesystem::path                  m_ProjectRoot;

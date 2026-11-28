@@ -22,16 +22,17 @@ struct TToolBoxDesc;
 } // namespace ui
 
 class CAnimationEditor;
-class CAssetManager;
+class CAssetDatabase;
 class CEditorWorkspace;
 class CWorkspaceManager;
+struct TAssetReference;
 
 class CAnimationTimelineWindow final:
   public ui::CDockedWindow
 {
 public: // Constructor
 
-  CAnimationTimelineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<ui::CWindowManager> _WindowManager, std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<core::CActionQueue> _ActionQueue);
+  CAnimationTimelineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<ui::CWindowManager> _WindowManager, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<core::CActionQueue> _ActionQueue);
 
 public: // Interface
 
@@ -51,7 +52,7 @@ private: // Implementation
 
   void DrawSceneAnimations(const CEditorWorkspace & _Workspace) const;
 
-  void OpenAnimation(const std::string & _Path) const;
+  void OpenAnimation(const TAssetReference & _AnimationRef) const;
 
   void StopHiddenPreviews(const std::vector<std::shared_ptr<CAnimationEditor>> & _Editors) const;
 
@@ -59,13 +60,13 @@ private: // Implementation
 
 private: // Attributes
 
-  std::shared_ptr<CWorkspaceManager>   m_WorkspaceManager;
-  std::shared_ptr<ui::CWindowManager>  m_WindowManager;
-  std::shared_ptr<CAssetManager>       m_AssetManager;
-  std::shared_ptr<core::CActionQueue>  m_ActionQueue;
-  std::filesystem::path                m_RequestedPath;
-  std::filesystem::path                m_SelectedPath;
-  bool                                 m_IsTargetPickerOpened;
+  std::shared_ptr<CWorkspaceManager>    m_WorkspaceManager;
+  std::shared_ptr<ui::CWindowManager>   m_WindowManager;
+  std::shared_ptr<const CAssetDatabase> m_Assets;
+  std::shared_ptr<core::CActionQueue>   m_ActionQueue;
+  std::filesystem::path                 m_RequestedPath;
+  std::filesystem::path                 m_SelectedPath;
+  bool                                  m_IsTargetPickerOpened;
 };
 
 } // namespace editor

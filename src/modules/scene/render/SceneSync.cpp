@@ -2,6 +2,7 @@
 #include "SceneBindingContext.h"
 #include "SceneNodeBindings.h"
 #include "core/Log.h"
+#include "editor/assets/AssetDatabase.h"
 #include "editor/render/RenderScene.h"
 #include "modules/scene/SceneDocument.h"
 #include "modules/scene/model/SceneGraph.h"
@@ -29,11 +30,13 @@ const Ogre::String NodeNameBinding = "SceneNodeName";
 // Constructor/Destructor
 //
 
-CSceneSync::CSceneSync(CRenderScene & _RenderScene, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log):
+CSceneSync::CSceneSync(CRenderScene & _RenderScene, std::shared_ptr<const CAssetDatabase> _Assets, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log):
   m_RenderScene(_RenderScene),
+  m_Assets(std::move(_Assets)),
   m_NodeBindings(std::move(_NodeBindings)),
   m_Log(std::move(_Log)),
-  m_MeshCache(std::move(_ResourceGroup))
+  m_MeshCache(std::move(_ResourceGroup)),
+  m_AssetsRevision(m_Assets->GetRevision())
 {
   // Empty
 }
@@ -50,11 +53,13 @@ CSceneSync::~CSceneSync()
 
 bool CSceneSync::Update(CSceneDocument & _Document)
 {
+  const auto & Graph = _Document.GetGraph();
+
+  const bool IsReapplied = ReapplyAssets(Graph);
+
   const auto DirtyNodes = _Document.TakeDirtyNodes();
   if (DirtyNodes.empty())
-    return false;
-
-  const auto & Graph = _Document.GetGraph();
+    return IsReapplied;
 
   DestroyRemovedNodes(Graph, DirtyNodes);
   CreateAddedNodes(Graph, DirtyNodes);
@@ -191,6 +196,22 @@ void CSceneSync::CreateAddedNodes(const CSceneGraph & _Graph, const std::unorder
   }
 }
 
+bool CSceneSync::ReapplyAssets(const CSceneGraph & _Graph)
+{
+  if (m_AssetsRevision == m_Assets->GetRevision())
+    return false;
+
+  m_AssetsRevision = m_Assets->GetRevision();
+
+  for (const auto & [Name, Binding] : m_Bindings)
+  {
+    if (_Graph.HasNode(Name))
+      ApplyNode(_Graph, Name);
+  }
+
+  return true;
+}
+
 void CSceneSync::ApplyNode(const CSceneGraph & _Graph, const std::string & _Name)
 {
   const auto & Node    = _Graph.GetNode(_Name);
@@ -231,7 +252,7 @@ void CSceneSync::ApplyObject(TOgreNodeBinding & _Binding, const CSceneNode & _No
   {
     _Binding.Object.reset();
     _Binding.TypeId = TypeId;
-    _Binding.Object = m_NodeBindings->Create(TypeId, TSceneBindingContext{m_RenderScene.GetSceneManager(), _Binding.Node, m_MeshCache});
+    _Binding.Object = m_NodeBindings->Create(TypeId, TSceneBindingContext{m_RenderScene.GetSceneManager(), _Binding.Node, m_MeshCache, *m_Assets});
   }
 
   if (!_Binding.Object)

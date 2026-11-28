@@ -1,6 +1,7 @@
 #include "AnimationTrackSource.h"
 #include "AnimationSlots.h"
 #include "AnimationTracks.h"
+#include "editor/assets/AssetReference.h"
 #include "editor/inspector/PropertySchema.h"
 #include "editor/timeline/model/Timeline.h"
 #include "modules/scene/animation/ISceneAnimationHost.h"
@@ -130,7 +131,7 @@ std::vector<TTimelineTrackTemplate> CAnimationTrackSource::GetTrackTemplates(con
     return {};
 
   const auto NodeName = Host->GetSelectedNode();
-  const auto Slot     = Host->FindSlot(m_Slots->GetAnimationPath(), NodeName);
+  const auto Slot     = Host->FindSlot(m_Slots->GetAnimationId(), NodeName);
 
   return MakeNodeTemplates(Host->GetGraph(), NodeName, Slot, _Timeline);
 }
@@ -194,7 +195,7 @@ void CAnimationTrackSource::BindToSelection(const TTimelineTrack & _Track) const
   AddAnimationToScene();
 
   const auto Host = m_Slots->LockHost();
-  Host->BindSlot(m_Slots->GetAnimationPath(), _Track.Target.Slot, Host->GetSelectedNode());
+  Host->BindSlot(m_Slots->GetAnimationId(), _Track.Target.Slot, Host->GetSelectedNode());
 }
 
 std::uint32_t CAnimationTrackSource::GetTrackColor(const TTimelineTrack & _Track) const
@@ -263,10 +264,9 @@ void CAnimationTrackSource::OnTrackAdded(const TTimelineTrack & _Track) const
 void CAnimationTrackSource::AddAnimationToScene() const
 {
   const auto Host = m_Slots->LockHost();
-  const auto Path = m_Slots->GetAnimationPath();
 
-  if (Host && !Host->HasAnimation(Path))
-    Host->AddAnimation(Path);
+  if (Host && !Host->HasAnimation(m_Slots->GetAnimationId()))
+    Host->AddAnimation(m_Slots->MakeAnimationRef());
 }
 
 } // namespace editor

@@ -22,6 +22,7 @@ namespace ui
 class CComboBox;
 } // namespace ui
 
+class CAssetDatabase;
 class CRenderScene;
 class CSceneAnimationHost;
 class CSceneDocument;
@@ -41,7 +42,7 @@ class CSceneWorkspace final:
 {
 public: // Constructor/Destructor
 
-  CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneEditorController> _Controller, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log);
+  CSceneWorkspace(std::shared_ptr<CSceneDocument> _Document, std::shared_ptr<CSceneEditorController> _Controller, std::string _ResourceGroup, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<core::CLog> _Log);
 
   ~CSceneWorkspace() override;
 

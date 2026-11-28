@@ -4,6 +4,7 @@
 #include "editor/inspector/PropertyValue.h"
 #include "editor/json/Json.h"
 
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,11 +12,16 @@
 namespace editor
 {
 
+struct TAssetReference;
 struct TPropertyDesc;
 struct TSceneNodeSnapshot;
 
 class CSceneNode
 {
+public: // Types
+
+  using TAssetReferenceVisitor = std::function<void(TAssetReference &)>;
+
 public: // Constants
 
   static constexpr std::string_view TypeId = "node";
@@ -53,6 +59,8 @@ public: // Interface
   virtual TPropertyValue GetValue(const std::string & _Identifier) const;
 
   virtual bool SetValue(const std::string & _Identifier, const TPropertyValue & _Value);
+
+  virtual void VisitAssetReferences(const TAssetReferenceVisitor & _Visitor);
 
 protected: // Events
 

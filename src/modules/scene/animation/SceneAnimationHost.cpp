@@ -1,4 +1,5 @@
 #include "SceneAnimationHost.h"
+#include "editor/assets/AssetReference.h"
 #include "modules/scene/SceneDocument.h"
 #include "modules/scene/SceneSelection.h"
 #include "modules/scene/model/SceneGraph.h"
@@ -54,44 +55,44 @@ void CSceneAnimationHost::RestoreNode(const std::string & _Name)
   m_Sync.RestoreNode(m_Document->GetGraph(), _Name);
 }
 
-std::vector<std::string> CSceneAnimationHost::GetAnimations() const
+std::vector<TAssetReference> CSceneAnimationHost::GetAnimationRefs() const
 {
-  std::vector<std::string> Paths;
+  std::vector<TAssetReference> AnimationRefs;
 
   for (const auto & Animation : m_Document->GetAnimations())
-    Paths.push_back(Animation.Path);
+    AnimationRefs.push_back(Animation.AssetRef);
 
-  return Paths;
+  return AnimationRefs;
 }
 
-bool CSceneAnimationHost::HasAnimation(const std::string & _Path) const
+bool CSceneAnimationHost::HasAnimation(const TAssetId & _AnimationId) const
 {
-  return m_Document->HasAnimation(_Path);
+  return m_Document->HasAnimation(_AnimationId);
 }
 
-void CSceneAnimationHost::AddAnimation(const std::string & _Path)
+void CSceneAnimationHost::AddAnimation(const TAssetReference & _AnimationRef)
 {
-  m_Document->AddAnimation(_Path);
+  m_Document->AddAnimation(_AnimationRef);
 }
 
-void CSceneAnimationHost::RemoveAnimation(const std::string & _Path)
+void CSceneAnimationHost::RemoveAnimation(const TAssetReference & _AnimationRef)
 {
-  m_Document->RemoveAnimation(_Path);
+  m_Document->RemoveAnimation(_AnimationRef);
 }
 
-std::string CSceneAnimationHost::ResolveSlot(const std::string & _Path, const std::string & _Slot) const
+std::string CSceneAnimationHost::ResolveSlot(const TAssetId & _AnimationId, const std::string & _Slot) const
 {
-  return m_Document->ResolveSlot(_Path, _Slot);
+  return m_Document->ResolveSlot(_AnimationId, _Slot);
 }
 
-std::string CSceneAnimationHost::FindSlot(const std::string & _Path, const std::string & _NodeName) const
+std::string CSceneAnimationHost::FindSlot(const TAssetId & _AnimationId, const std::string & _NodeName) const
 {
-  return m_Document->FindSlot(_Path, _NodeName);
+  return m_Document->FindSlot(_AnimationId, _NodeName);
 }
 
-void CSceneAnimationHost::BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName)
+void CSceneAnimationHost::BindSlot(const TAssetId & _AnimationId, const std::string & _Slot, const std::string & _NodeName)
 {
-  m_Document->BindSlot(_Path, _Slot, _NodeName);
+  m_Document->BindSlot(_AnimationId, _Slot, _NodeName);
 }
 
 //

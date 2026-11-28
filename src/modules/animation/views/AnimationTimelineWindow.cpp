@@ -1,7 +1,10 @@
 #include "AnimationTimelineWindow.h"
 #include "core/ActionQueue.h"
 #include "core/EditorService.h"
-#include "editor/assets/AssetManager.h"
+#include "editor/assets/AssetDatabase.h"
+#include "editor/assets/AssetRecord.h"
+#include "editor/assets/AssetReference.h"
+#include "editor/assets/AssetResolveResult.h"
 #include "editor/assets/AssetNode.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/workspaces/EditorWorkspace.h"
@@ -52,11 +55,11 @@ std::string MakeAnimationLabel(const CAnimationEditor & _Editor)
 // Constructor
 //
 
-CAnimationTimelineWindow::CAnimationTimelineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<ui::CWindowManager> _WindowManager, std::shared_ptr<CAssetManager> _AssetManager, std::shared_ptr<core::CActionQueue> _ActionQueue):
+CAnimationTimelineWindow::CAnimationTimelineWindow(const ui::TToolBoxDesc & _Desc, std::shared_ptr<CWorkspaceManager> _WorkspaceManager, std::shared_ptr<ui::CWindowManager> _WindowManager, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<core::CActionQueue> _ActionQueue):
   CDockedWindow(_Desc.Title, "AnimationTimeline", _Desc.Visible),
   m_WorkspaceManager(std::move(_WorkspaceManager)),
   m_WindowManager(std::move(_WindowManager)),
-  m_AssetManager(std::move(_AssetManager)),
+  m_Assets(std::move(_Assets)),
   m_ActionQueue(std::move(_ActionQueue)),
   m_IsTargetPickerOpened(false)
 {
@@ -179,8 +182,8 @@ void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Wor
     return;
   }
 
-  const auto Paths = Host->GetAnimations();
-  if (Paths.empty())
+  const auto AnimationRefs = Host->GetAnimationRefs();
+  if (AnimationRefs.empty())
   {
     ImGui::TextDisabled("Double-click an animation asset to edit it here.");
     return;
@@ -188,15 +191,17 @@ void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Wor
 
   ImGui::TextUnformatted("Scene animations");
 
-  for (const auto & Path : Paths)
+  for (const auto & AnimationRef : AnimationRefs)
   {
-    ImGui::PushID(Path.c_str());
+    TAssetRecord Record;
+    const bool   IsMissing = m_Assets->Resolve(AnimationRef, Record) == EAssetResolveResult::Missing;
+    const auto   Path      = IsMissing ? AnimationRef.PathHint : Record.RelativePath.generic_string();
 
-    const bool IsMissing = !m_AssetManager->HasNode(Path);
+    ImGui::PushID(AnimationRef.Id.IsValid() ? AnimationRef.Id.ToString().c_str() : AnimationRef.PathHint.c_str());
 
     ImGui::BeginDisabled(IsMissing);
     if (ImGui::SmallButton("Open"))
-      OpenAnimation(Path);
+      OpenAnimation(AnimationRef);
     ImGui::EndDisabled();
 
     ImGui::SameLine();
@@ -210,7 +215,7 @@ void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Wor
     if (ImGui::BeginPopupContextItem("##SceneAnimationMenu"))
     {
       if (ImGui::MenuItem("Remove from Scene"))
-        Host->RemoveAnimation(Path);
+        Host->RemoveAnimation(AnimationRef);
 
       ImGui::EndPopup();
     }
@@ -219,12 +224,13 @@ void CAnimationTimelineWindow::DrawSceneAnimations(const CEditorWorkspace & _Wor
   }
 }
 
-void CAnimationTimelineWindow::OpenAnimation(const std::string & _Path) const
+void CAnimationTimelineWindow::OpenAnimation(const TAssetReference & _AnimationRef) const
 {
-  m_ActionQueue->Post([AssetManager = m_AssetManager, WorkspaceManager = m_WorkspaceManager, _Path]
+  m_ActionQueue->Post([Assets = m_Assets, WorkspaceManager = m_WorkspaceManager, _AnimationRef]
   {
-    if (AssetManager->HasNode(_Path))
-      WorkspaceManager->OpenAsset(AssetManager->GetNode(_Path).Record);
+    TAssetRecord Record;
+    if (Assets->Resolve(_AnimationRef, Record) != EAssetResolveResult::Missing)
+      WorkspaceManager->OpenAsset(Record);
   });
 }
 

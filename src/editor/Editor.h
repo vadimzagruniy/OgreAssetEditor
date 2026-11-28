@@ -20,6 +20,7 @@ namespace ui
 class CWindowManager;
 } // namespace ui
 
+class CAssetDatabase;
 class CAssetFactoryRegistry;
 class CAssetManager;
 class CAssetTypeRegistry;
@@ -76,6 +77,7 @@ private: // Attributes
   std::shared_ptr<core::CActionQueue>    m_ActionQueue;
   std::shared_ptr<CAssetTypeRegistry>    m_AssetTypes;
   std::shared_ptr<CAssetFactoryRegistry> m_AssetFactories;
+  std::shared_ptr<CAssetDatabase>        m_AssetDatabase;
   std::shared_ptr<CAssetManager>         m_AssetManager;
   std::shared_ptr<CWorkspaceManager>     m_WorkspaceManager;
   std::shared_ptr<ui::CWindowManager>    m_WindowManager;

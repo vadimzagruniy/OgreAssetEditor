@@ -1,4 +1,5 @@
 #include "SceneSerializer.h"
+#include "editor/assets/AssetReferenceJson.h"
 #include "editor/json/Json.h"
 #include "editor/json/JsonFields.h"
 #include "model/SceneAnimation.h"
@@ -19,7 +20,7 @@ namespace editor
 namespace
 {
 
-constexpr std::int64_t SceneFormatVersion = 3;
+constexpr std::int64_t SceneFormatVersion = 4;
 
 const std::string NameKey        = "name";
 const std::string TypeKey        = "type";
@@ -29,7 +30,8 @@ const std::string ScaleKey       = "scale";
 const std::string ChildrenKey    = "children";
 const std::string LegacyMeshKey  = "mesh";
 const std::string AnimationsKey  = "animations";
-const std::string PathKey        = "path";
+const std::string AnimationKey   = "animation";
+const std::string LegacyPathKey  = "path";
 const std::string BindingsKey    = "bindings";
 
 constexpr std::array<std::string_view, 6> ReservedKeys{"name", "type", "position", "orientation", "scale", "children"};
@@ -174,6 +176,28 @@ bool ReadBindings(const TJson & _Json, TSceneAnimation & _Animation, std::string
   return true;
 }
 
+bool ReadAnimationAsset(const TJson & _Json, TSceneAnimation & _Animation, std::string & _Error)
+{
+  if (!_Json.is_object())
+  {
+    _Error = "Scene animation must be an object.";
+    return false;
+  }
+
+  const std::string & Key = _Json.contains(AnimationKey) ? AnimationKey : LegacyPathKey;
+
+  if (!ReadAssetReference(_Json, Key, _Animation.AssetRef, _Error))
+    return false;
+
+  if (_Animation.AssetRef.IsEmpty())
+  {
+    _Error = "Scene animation must reference an animation asset in '" + AnimationKey + "'.";
+    return false;
+  }
+
+  return true;
+}
+
 bool ReadAnimations(const TJson & _Root, std::vector<TSceneAnimation> & _Animations, std::string & _Error)
 {
   const auto AnimationsField = _Root.find(AnimationsKey);
@@ -190,15 +214,12 @@ bool ReadAnimations(const TJson & _Root, std::vector<TSceneAnimation> & _Animati
   {
     TSceneAnimation Animation;
 
-    if (!AnimationJson.is_object() || !ReadString(AnimationJson, PathKey, Animation.Path, _Error) || Animation.Path.empty())
-    {
-      _Error = _Error.empty() ? "Scene animation must be an object with a 'path' string." : _Error;
+    if (!ReadAnimationAsset(AnimationJson, Animation, _Error))
       return false;
-    }
 
     if (!ReadBindings(AnimationJson, Animation, _Error))
     {
-      _Error = "Animation '" + Animation.Path + "': " + _Error;
+      _Error = "Animation '" + Animation.AssetRef.PathHint + "': " + _Error;
       return false;
     }
 
@@ -211,7 +232,7 @@ bool ReadAnimations(const TJson & _Root, std::vector<TSceneAnimation> & _Animati
 TJson WriteAnimation(const TSceneAnimation & _Animation)
 {
   TJson Json = TJson::object();
-  Json[PathKey] = _Animation.Path;
+  Json[AnimationKey] = WriteAssetReference(_Animation.AssetRef);
 
   if (_Animation.Bindings.empty())
     return Json;

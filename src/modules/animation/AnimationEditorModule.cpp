@@ -3,7 +3,7 @@
 #include "AnimationFactory.h"
 #include "core/ActionQueue.h"
 #include "core/EditorService.h"
-#include "editor/assets/AssetManager.h"
+#include "editor/assets/AssetDatabase.h"
 #include "editor/assets/AssetFactoryRegistry.h"
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/modules/ModuleInfo.h"
@@ -35,18 +35,18 @@ bool CAnimationEditorModule::Startup(core::CEditorService & _Services, std::stri
   auto WindowManager    = _Services.GetService<ui::CWindowManager>();
   auto WorkspaceManager = _Services.GetService<CWorkspaceManager>();
   auto ActionQueue      = _Services.GetService<core::CActionQueue>();
-  auto AssetManager     = _Services.GetService<CAssetManager>();
+  auto AssetDatabase    = _Services.GetService<CAssetDatabase>();
 
-  if (!AssetTypes || !AssetFactories || !WindowManager || !WorkspaceManager || !ActionQueue || !AssetManager)
+  if (!AssetTypes || !AssetFactories || !WindowManager || !WorkspaceManager || !ActionQueue || !AssetDatabase)
   {
-    _Error = "Animation Editor module requires the asset type registry, asset factory registry, window manager, workspace manager, action queue and asset manager services.";
+    _Error = "Animation Editor module requires the asset type registry, asset factory registry, window manager, workspace manager, action queue and asset database services.";
     return false;
   }
 
   m_WindowManager = std::move(WindowManager);
 
   const ui::TToolBoxDesc TimelineDesc{GetInfo().Name, "Timeline", false, ui::EDockSlot::Bottom, 0};
-  auto                   TimelineWindow = std::make_shared<CAnimationTimelineWindow>(TimelineDesc, WorkspaceManager, m_WindowManager, std::move(AssetManager), ActionQueue);
+  auto                   TimelineWindow = std::make_shared<CAnimationTimelineWindow>(TimelineDesc, WorkspaceManager, m_WindowManager, std::move(AssetDatabase), ActionQueue);
 
   m_WindowManager->RegisterToolBox(TimelineDesc, TimelineWindow);
 

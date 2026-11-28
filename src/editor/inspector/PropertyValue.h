@@ -1,5 +1,7 @@
 #pragma once
 
+#include "editor/assets/AssetReference.h"
+
 #include <OgreColourValue.h>
 #include <OgreQuaternion.h>
 #include <OgreVector.h>
@@ -11,6 +13,6 @@
 namespace editor
 {
 
-using TPropertyValue = std::variant<std::monostate, bool, float, std::size_t, std::string, Ogre::Vector3, Ogre::Quaternion, Ogre::ColourValue>;
+using TPropertyValue = std::variant<std::monostate, bool, float, std::size_t, std::string, Ogre::Vector3, Ogre::Quaternion, Ogre::ColourValue, TAssetReference>;
 
 } // namespace editor

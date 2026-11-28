@@ -1,8 +1,8 @@
 #pragma once
 
+#include "editor/assets/AssetReference.h"
 #include "modules/scene/drop/SceneDropTarget.h"
 
-#include <filesystem>
 #include <string>
 
 namespace editor
@@ -10,9 +10,9 @@ namespace editor
 
 struct TSceneDrop
 {
-  std::filesystem::path AssetPath;
-  std::string           AssetType;
-  TSceneDropTarget      Target;
+  TAssetReference  AssetRef;
+  std::string      AssetType;
+  TSceneDropTarget Target;
 };
 
 } // namespace editor

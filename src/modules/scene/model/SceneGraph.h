@@ -18,6 +18,7 @@ namespace editor
 
 class CSceneNode;
 class CSceneNodeTypes;
+struct TAssetReference;
 struct TSceneNodeSnapshot;
 
 class CSceneGraph final
@@ -76,6 +77,8 @@ public: // Interface
   bool ApplySnapshot(const std::string & _Name, const TSceneNodeSnapshot & _Snapshot, std::string & _Error);
 
   bool EditNode(const std::string & _Name, const std::function<bool(CSceneNode &)> & _Edit);
+
+  void VisitAssetReferences(const std::function<void(TAssetReference &)> & _Visitor);
 
   std::unordered_set<std::string> TakeDirtyNodes();
 

@@ -10,6 +10,7 @@
 namespace editor
 {
 
+class CAssetDatabase;
 class CSceneMeshCache;
 struct TSceneBindingContext;
 
@@ -28,15 +29,21 @@ protected: // CSceneNodeBinding
 
 private: // Implementation
 
+  bool CreateEntity(const CMeshNode & _Node, std::string & _Error);
+
+  void AttachEntity(Ogre::Entity * _Entity);
+
   void DestroyEntity();
 
 private: // Attributes
 
-  Ogre::SceneManager * m_SceneManager;
-  Ogre::SceneNode *    m_Node;
-  CSceneMeshCache &    m_Meshes;
-  Ogre::Entity *       m_Entity;
-  std::string          m_MeshName;
+  Ogre::SceneManager *   m_SceneManager;
+  Ogre::SceneNode *      m_Node;
+  CSceneMeshCache &      m_Meshes;
+  const CAssetDatabase & m_Assets;
+  Ogre::Entity *         m_Entity;
+  std::string            m_MeshPath;
+  bool                   m_IsMissing;
 };
 
 } // namespace editor

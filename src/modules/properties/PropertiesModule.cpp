@@ -3,6 +3,7 @@
 #include "core/ActionQueue.h"
 #include "core/EditorService.h"
 #include "core/Log.h"
+#include "editor/assets/AssetDatabase.h"
 #include "editor/assets/AssetManager.h"
 #include "editor/assets/AssetTypeRegistry.h"
 #include "editor/modules/ModuleInfo.h"
@@ -32,14 +33,15 @@ bool CPropertiesModule::Startup(core::CEditorService & _Services, std::string & 
 
   TPropertyControlContext Context;
   Context.AssetManager     = _Services.GetService<CAssetManager>();
+  Context.Assets           = _Services.GetService<CAssetDatabase>();
   Context.AssetTypes       = _Services.GetService<CAssetTypeRegistry>();
   Context.WorkspaceManager = _Services.GetService<CWorkspaceManager>();
   Context.ActionQueue      = _Services.GetService<core::CActionQueue>();
   Context.Log              = _Services.GetService<core::CLog>();
 
-  if (!WindowManager || !WorkspaceController || !Context.AssetManager || !Context.AssetTypes || !Context.WorkspaceManager || !Context.ActionQueue || !Context.Log)
+  if (!WindowManager || !WorkspaceController || !Context.AssetManager || !Context.Assets || !Context.AssetTypes || !Context.WorkspaceManager || !Context.ActionQueue || !Context.Log)
   {
-    _Error = "Properties module requires the window manager, workspace controller, asset manager, asset type registry, workspace manager, action queue and log services.";
+    _Error = "Properties module requires the window manager, workspace controller, asset manager, asset database, asset type registry, workspace manager, action queue and log services.";
     return false;
   }
 

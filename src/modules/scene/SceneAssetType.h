@@ -12,6 +12,7 @@ namespace core
 class CLog;
 } // namespace core
 
+class CAssetDatabase;
 class CSceneEditorController;
 class CSceneNodeBindings;
 class CSceneNodeTypes;
@@ -21,7 +22,7 @@ class CSceneAssetType final:
 {
 public: // Constructor
 
-  CSceneAssetType(std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<const CSceneNodeTypes> _NodeTypes, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log);
+  CSceneAssetType(std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<const CSceneNodeTypes> _NodeTypes, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<core::CLog> _Log);
 
 public: // IAssetType
 
@@ -34,6 +35,7 @@ private: // Attributes
   std::shared_ptr<CSceneEditorController>   m_Controller;
   std::shared_ptr<const CSceneNodeTypes>    m_NodeTypes;
   std::shared_ptr<const CSceneNodeBindings> m_NodeBindings;
+  std::shared_ptr<const CAssetDatabase>     m_Assets;
   std::shared_ptr<core::CLog>               m_Log;
 };
 

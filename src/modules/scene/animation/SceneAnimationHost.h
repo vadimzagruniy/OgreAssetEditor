@@ -32,19 +32,19 @@ public: // ISceneAnimationHost
 
   void RestoreNode(const std::string & _Name) override;
 
-  std::vector<std::string> GetAnimations() const override;
+  std::vector<TAssetReference> GetAnimationRefs() const override;
 
-  bool HasAnimation(const std::string & _Path) const override;
+  bool HasAnimation(const TAssetId & _AnimationId) const override;
 
-  void AddAnimation(const std::string & _Path) override;
+  void AddAnimation(const TAssetReference & _AnimationRef) override;
 
-  void RemoveAnimation(const std::string & _Path) override;
+  void RemoveAnimation(const TAssetReference & _AnimationRef) override;
 
-  std::string ResolveSlot(const std::string & _Path, const std::string & _Slot) const override;
+  std::string ResolveSlot(const TAssetId & _AnimationId, const std::string & _Slot) const override;
 
-  std::string FindSlot(const std::string & _Path, const std::string & _NodeName) const override;
+  std::string FindSlot(const TAssetId & _AnimationId, const std::string & _NodeName) const override;
 
-  void BindSlot(const std::string & _Path, const std::string & _Slot, const std::string & _NodeName) override;
+  void BindSlot(const TAssetId & _AnimationId, const std::string & _Slot, const std::string & _NodeName) override;
 
 public: // Interface
 

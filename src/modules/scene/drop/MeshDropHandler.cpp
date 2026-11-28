@@ -5,6 +5,8 @@
 #include "modules/scene/model/SceneNodeSnapshot.h"
 #include "modules/scene/model/nodes/MeshNode.h"
 
+#include <filesystem>
+
 namespace editor
 {
 
@@ -12,6 +14,11 @@ namespace
 {
 
 constexpr const char * MeshAssetType = "mesh";
+
+std::string GetAssetName(const TSceneDrop & _Drop)
+{
+  return std::filesystem::path(_Drop.AssetRef.PathHint).stem().string();
+}
 
 std::string GetParentName(const TSceneDrop & _Drop)
 {
@@ -36,7 +43,7 @@ bool CMeshDropHandler::CanDrop(const TSceneDrop & _Drop, const CSceneDocument & 
 
 std::string CMeshDropHandler::GetDropHint(const TSceneDrop & _Drop) const
 {
-  const std::string Hint       = "Add " + _Drop.AssetPath.stem().string();
+  const std::string Hint       = "Add " + GetAssetName(_Drop);
   const std::string ParentName = GetParentName(_Drop);
 
   return ParentName.empty() ? Hint : Hint + " to " + ParentName;
@@ -45,7 +52,7 @@ std::string CMeshDropHandler::GetDropHint(const TSceneDrop & _Drop) const
 void CMeshDropHandler::Drop(const TSceneDrop & _Drop, CSceneDocument & _Document) const
 {
   CMeshNode Node;
-  Node.SetMeshName(_Drop.AssetPath.generic_string());
+  Node.SetMeshRef(_Drop.AssetRef);
 
   if (const auto * ViewportTarget = std::get_if<TViewportDropTarget>(&_Drop.Target))
   {
@@ -54,7 +61,7 @@ void CMeshDropHandler::Drop(const TSceneDrop & _Drop, CSceneDocument & _Document
     Node.SetTransform(Transform);
   }
 
-  _Document.CreateNode(GetParentName(_Drop), _Drop.AssetPath.stem().string(), Node.CaptureSnapshot());
+  _Document.CreateNode(GetParentName(_Drop), GetAssetName(_Drop), Node.CaptureSnapshot());
 }
 
 } // namespace editor

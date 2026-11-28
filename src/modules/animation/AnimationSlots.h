@@ -8,6 +8,8 @@ namespace editor
 
 class CAssetDocument;
 class ISceneAnimationHost;
+struct TAssetId;
+struct TAssetReference;
 
 class CAnimationSlots final
 {
@@ -19,7 +21,9 @@ public: // Interface
 
   std::shared_ptr<ISceneAnimationHost> LockHost() const;
 
-  std::string GetAnimationPath() const;
+  const TAssetId & GetAnimationId() const;
+
+  TAssetReference MakeAnimationRef() const;
 
   std::string ResolveSlot(const std::string & _Slot) const;
 

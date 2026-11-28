@@ -1,14 +1,95 @@
 {
-  "version": 1,
+  "version": 4,
   "nodes": [
     {
       "name": "Props",
-      "position": [0, 0, 0],
+      "type": "node",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "orientation": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
       "children": [
-        { "name": "Head", "position": [0, 0, 0], "mesh": "Characters/OgreHead/ogrehead.mesh" },
-        { "name": "Head_1", "position": [60, 0, 0], "orientation": [0.7071068, 0, 0.7071068, 0], "scale": [0.5, 0.5, 0.5], "mesh": "Characters/OgreHead/ogrehead.mesh" }
+        {
+          "name": "Head",
+          "type": "mesh",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "mesh": {
+            "id": "5b1389ce0e9d5d8c",
+            "path": "Characters/OgreHead/ogrehead.mesh"
+          }
+        },
+        {
+          "name": "Head_1",
+          "type": "mesh",
+          "position": [
+            67.98503,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0.7071067,
+            0.0,
+            0.7071068,
+            0.0
+          ],
+          "scale": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "mesh": {
+            "id": "5b1389ce0e9d5d8c",
+            "path": "Characters/OgreHead/ogrehead.mesh"
+          }
+        }
       ]
     },
-    { "name": "Empty" }
+    {
+      "name": "Empty",
+      "type": "node",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "orientation": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
   ]
 }

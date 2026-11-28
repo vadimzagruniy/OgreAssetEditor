@@ -1,6 +1,6 @@
 #include "MeshNode.h"
+#include "editor/assets/AssetReferenceJson.h"
 #include "editor/inspector/PropertyDesc.h"
-#include "editor/json/JsonFields.h"
 
 #include <nlohmann/json.hpp>
 
@@ -39,7 +39,7 @@ void CMeshNode::DescribeProperties(std::vector<TPropertyDesc> & _Properties) con
 TPropertyValue CMeshNode::GetValue(const std::string & _Identifier) const
 {
   if (_Identifier == MeshIdentifier)
-    return m_MeshName;
+    return m_MeshRef;
 
   return CSceneNode::GetValue(_Identifier);
 }
@@ -49,27 +49,33 @@ bool CMeshNode::SetValue(const std::string & _Identifier, const TPropertyValue &
   if (_Identifier != MeshIdentifier)
     return CSceneNode::SetValue(_Identifier, _Value);
 
-  const auto * MeshName = std::get_if<std::string>(&_Value);
-  if (!MeshName)
+  const auto * MeshRef = std::get_if<TAssetReference>(&_Value);
+  if (!MeshRef)
     return false;
 
-  m_MeshName = *MeshName;
+  m_MeshRef = *MeshRef;
   return true;
+}
+
+void CMeshNode::VisitAssetReferences(const TAssetReferenceVisitor & _Visitor)
+{
+  if (!m_MeshRef.IsEmpty())
+    _Visitor(m_MeshRef);
 }
 
 void CMeshNode::OnWriteData(TJson & _Data) const
 {
-  if (!m_MeshName.empty())
-    _Data[MeshKey] = m_MeshName;
+  if (!m_MeshRef.IsEmpty())
+    _Data[MeshKey] = WriteAssetReference(m_MeshRef);
 }
 
 bool CMeshNode::OnReadData(const TJson & _Data, std::string & _Error)
 {
-  std::string MeshName;
-  if (!ReadString(_Data, MeshKey, MeshName, _Error))
+  TAssetReference MeshRef;
+  if (!ReadAssetReference(_Data, MeshKey, MeshRef, _Error))
     return false;
 
-  m_MeshName = std::move(MeshName);
+  m_MeshRef = std::move(MeshRef);
   return true;
 }
 
@@ -77,14 +83,14 @@ bool CMeshNode::OnReadData(const TJson & _Data, std::string & _Error)
 // Interface
 //
 
-const std::string & CMeshNode::GetMeshName() const noexcept
+const TAssetReference & CMeshNode::GetMeshRef() const noexcept
 {
-  return m_MeshName;
+  return m_MeshRef;
 }
 
-void CMeshNode::SetMeshName(std::string _MeshName)
+void CMeshNode::SetMeshRef(TAssetReference _MeshRef)
 {
-  m_MeshName = std::move(_MeshName);
+  m_MeshRef = std::move(_MeshRef);
 }
 
 } // namespace editor

@@ -14,6 +14,7 @@ namespace core
 class CActionQueue;
 } // namespace core
 
+class CAssetDatabase;
 class CAssetTypeRegistry;
 class CSceneDropHandlers;
 class CSceneNodeTemplates;
@@ -25,7 +26,7 @@ class CSceneEditorController final:
 {
 public: // Constructor
 
-  CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CSceneDropHandlers> _DropHandlers, std::shared_ptr<const CSceneNodeTemplates> _Templates);
+  CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<CSceneDropHandlers> _DropHandlers, std::shared_ptr<const CSceneNodeTemplates> _Templates);
 
 public: // ISceneEditorPresenter state
 
@@ -75,6 +76,7 @@ private: // Attributes
 
   std::shared_ptr<core::CActionQueue>        m_ActionQueue;
   std::shared_ptr<CAssetTypeRegistry>        m_AssetTypes;
+  std::shared_ptr<const CAssetDatabase>      m_Assets;
   std::shared_ptr<CSceneDropHandlers>        m_DropHandlers;
   std::shared_ptr<const CSceneNodeTemplates> m_Templates;
   std::weak_ptr<CSceneDocument>              m_Document;

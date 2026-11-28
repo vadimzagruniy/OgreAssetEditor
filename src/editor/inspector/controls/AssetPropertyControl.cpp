@@ -1,9 +1,12 @@
 #include "AssetPropertyControl.h"
 #include "core/ActionQueue.h"
 #include "core/Log.h"
+#include "editor/assets/AssetDatabase.h"
 #include "editor/assets/AssetManager.h"
 #include "editor/assets/AssetNode.h"
 #include "editor/assets/AssetPayload.h"
+#include "editor/assets/AssetRecord.h"
+#include "editor/assets/AssetResolveResult.h"
 #include "editor/assets/AssetType.h"
 #include "editor/assets/AssetTypeInfo.h"
 #include "editor/assets/AssetTypeRegistry.h"
@@ -59,7 +62,7 @@ void CAssetPropertyControl::OnDraw(const TPropertyValue & _Value)
     m_BrowsedPath.reset();
   }
 
-  SyncAppliedPath(_Value);
+  SyncAppliedAssetRef(_Value);
   DrawElements();
 }
 
@@ -88,16 +91,18 @@ void CAssetPropertyControl::SetupElements()
   });
 }
 
-void CAssetPropertyControl::SyncAppliedPath(const TPropertyValue & _Value)
+void CAssetPropertyControl::SyncAppliedAssetRef(const TPropertyValue & _Value)
 {
-  const auto *      AssetPath = std::get_if<std::string>(&_Value);
-  const std::string Current   = AssetPath ? *AssetPath : std::string();
+  const auto *          ValueAssetRef = std::get_if<TAssetReference>(&_Value);
+  const TAssetReference AssetRef      = ValueAssetRef ? *ValueAssetRef : TAssetReference();
+  const std::string     DisplayPath   = MakeDisplayPath(AssetRef);
 
-  if (Current == m_AppliedPath)
+  if (AssetRef == m_AppliedAssetRef && DisplayPath == m_AppliedPath)
     return;
 
-  m_AppliedPath = Current;
-  m_PathInput.SetText(Current);
+  m_AppliedAssetRef = AssetRef;
+  m_AppliedPath     = DisplayPath;
+  m_PathInput.SetText(DisplayPath);
 }
 
 void CAssetPropertyControl::DrawElements()
@@ -206,18 +211,27 @@ void CAssetPropertyControl::Browse()
 
 void CAssetPropertyControl::OpenAsset() const
 {
-  m_Context.ActionQueue->Post([AssetManager = m_Context.AssetManager, WorkspaceManager = m_Context.WorkspaceManager, AssetPath = m_AppliedPath]
+  m_Context.ActionQueue->Post([Assets = m_Context.Assets, WorkspaceManager = m_Context.WorkspaceManager, AssetRef = m_AppliedAssetRef]
   {
-    if (AssetManager->HasNode(AssetPath))
-      WorkspaceManager->OpenAsset(AssetManager->GetNode(AssetPath).Record);
+    TAssetRecord Record;
+    if (Assets->Resolve(AssetRef, Record) != EAssetResolveResult::Missing)
+      WorkspaceManager->OpenAsset(Record);
   });
 }
 
 void CAssetPropertyControl::Assign(const std::string & _AssetPath)
 {
+  TAssetReference AssetRef;
+  if (!_AssetPath.empty() && !m_Context.Assets->MakeReference(_AssetPath, AssetRef))
+  {
+    Warn("'" + _AssetPath + "' has no asset ID in the project.");
+    m_PathInput.SetText(m_AppliedPath);
+    return;
+  }
+
   m_PathInput.SetText(_AssetPath);
 
-  SetEditedValue(_AssetPath);
+  SetEditedValue(AssetRef);
   FinishEdit();
 }
 
@@ -252,10 +266,23 @@ bool CAssetPropertyControl::IsMatchingType(const std::filesystem::path & _AssetP
 
 bool CAssetPropertyControl::IsResolved() const
 {
-  if (m_AppliedPath.empty())
+  if (m_AppliedAssetRef.IsEmpty())
     return true;
 
-  return m_Context.AssetManager->HasNode(m_AppliedPath) && IsMatchingType(m_AppliedPath);
+  TAssetRecord Record;
+  if (m_Context.Assets->Resolve(m_AppliedAssetRef, Record) == EAssetResolveResult::Missing)
+    return false;
+
+  return IsMatchingType(Record.RelativePath);
+}
+
+std::string CAssetPropertyControl::MakeDisplayPath(const TAssetReference & _AssetRef) const
+{
+  TAssetRecord Record;
+  if (m_Context.Assets->Resolve(_AssetRef, Record) == EAssetResolveResult::Missing)
+    return _AssetRef.PathHint;
+
+  return Record.RelativePath.generic_string();
 }
 
 std::shared_ptr<IAssetType> CAssetPropertyControl::FindAssetType() const

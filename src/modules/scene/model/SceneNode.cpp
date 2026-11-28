@@ -125,6 +125,11 @@ bool CSceneNode::SetValue(const std::string & _Identifier, const TPropertyValue 
   return true;
 }
 
+void CSceneNode::VisitAssetReferences(const TAssetReferenceVisitor & /*_Visitor*/)
+{
+  // Empty
+}
+
 //
 // Events
 //

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "editor/assets/AssetReference.h"
 #include "modules/scene/model/SceneNode.h"
 
 #include <string>
@@ -26,6 +27,8 @@ public: // CSceneNode
 
   bool SetValue(const std::string & _Identifier, const TPropertyValue & _Value) override;
 
+  void VisitAssetReferences(const TAssetReferenceVisitor & _Visitor) override;
+
 protected: // CSceneNode
 
   void OnWriteData(TJson & _Data) const override;
@@ -34,13 +37,13 @@ protected: // CSceneNode
 
 public: // Interface
 
-  const std::string & GetMeshName() const noexcept;
+  const TAssetReference & GetMeshRef() const noexcept;
 
-  void SetMeshName(std::string _MeshName);
+  void SetMeshRef(TAssetReference _MeshRef);
 
 private: // Attributes
 
-  std::string m_MeshName;
+  TAssetReference m_MeshRef;
 };
 
 } // namespace editor

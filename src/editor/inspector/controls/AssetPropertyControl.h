@@ -2,6 +2,7 @@
 
 #include "PropertyControlContext.h"
 #include "ValuePropertyControl.h"
+#include "editor/assets/AssetReference.h"
 #include "ui/elements/ArrowButton.h"
 #include "ui/elements/Button.h"
 #include "ui/elements/InputText.h"
@@ -33,7 +34,7 @@ private: // Implementation
 
   void SetupElements();
 
-  void SyncAppliedPath(const TPropertyValue & _Value);
+  void SyncAppliedAssetRef(const TPropertyValue & _Value);
 
   void DrawElements();
 
@@ -53,6 +54,8 @@ private: // Implementation
 
   bool IsResolved() const;
 
+  std::string MakeDisplayPath(const TAssetReference & _AssetRef) const;
+
   std::shared_ptr<IAssetType> FindAssetType() const;
 
   void Warn(const std::string & _Message) const;
@@ -61,6 +64,7 @@ private: // Attributes
 
   TPropertyControlContext    m_Context;
   std::string                m_AssetType;
+  TAssetReference            m_AppliedAssetRef;
   std::string                m_AppliedPath;
   std::optional<std::string> m_BrowsedPath;
   ui::CInputText             m_PathInput;

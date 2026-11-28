@@ -1,4 +1,5 @@
 #include "TimelineSerializer.h"
+#include "editor/assets/AssetReferenceJson.h"
 #include "editor/json/JsonFields.h"
 #include "editor/timeline/model/Timeline.h"
 
@@ -91,6 +92,8 @@ std::string GetValueTypeName(const TPropertyValue & _Value)
       return "rotation";
     else if constexpr (std::is_same_v<TAlternative, Ogre::ColourValue>)
       return "color";
+    else if constexpr (std::is_same_v<TAlternative, TAssetReference>)
+      return "asset";
     else
       return {};
   }, _Value);
@@ -110,6 +113,8 @@ TJson WriteValue(const TPropertyValue & _Value)
       return WriteQuaternion(_Alternative);
     else if constexpr (std::is_same_v<TAlternative, Ogre::ColourValue>)
       return WriteColour(_Alternative);
+    else if constexpr (std::is_same_v<TAlternative, TAssetReference>)
+      return WriteAssetReference(_Alternative);
     else
       return _Alternative;
   }, _Value);
@@ -167,6 +172,9 @@ bool ReadValue(const TJson & _Object, const std::string & _ValueType, TPropertyV
 
   if (_ValueType == "color")
     return ReadTypedValue(_Object, Ogre::ColourValue::White, ReadColour, _Value, _Error);
+
+  if (_ValueType == "asset")
+    return ReadTypedValue(_Object, TAssetReference(), ReadAssetReference, _Value, _Error);
 
   _Error = _ValueType.empty() ? "Key has a value, but the track has no 'valueType'." : "Unknown value type '" + _ValueType + "'.";
   return false;

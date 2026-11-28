@@ -17,10 +17,11 @@ namespace editor
 // Constructor
 //
 
-CSceneAssetType::CSceneAssetType(std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<const CSceneNodeTypes> _NodeTypes, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<core::CLog> _Log):
+CSceneAssetType::CSceneAssetType(std::shared_ptr<CSceneEditorController> _Controller, std::shared_ptr<const CSceneNodeTypes> _NodeTypes, std::shared_ptr<const CSceneNodeBindings> _NodeBindings, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<core::CLog> _Log):
   m_Controller(std::move(_Controller)),
   m_NodeTypes(std::move(_NodeTypes)),
   m_NodeBindings(std::move(_NodeBindings)),
+  m_Assets(std::move(_Assets)),
   m_Log(std::move(_Log))
 {
   // Empty
@@ -47,14 +48,14 @@ EAssetOpenResult CSceneAssetType::OpenAsset(const TAssetRecord & _Asset, const s
 
   const std::string Text((std::istreambuf_iterator<char>(File)), {});
 
-  auto Document = std::make_shared<CSceneDocument>(_Asset, m_NodeTypes);
+  auto Document = std::make_shared<CSceneDocument>(_Asset, m_NodeTypes, m_Assets);
   if (!Document->Load(Text, _Error))
   {
     _Error = _Asset.RelativePath.generic_string() + ": " + _Error;
     return EAssetOpenResult::Failed;
   }
 
-  _Workspace = std::make_unique<CSceneWorkspace>(std::move(Document), m_Controller, _ResourceGroup, m_NodeBindings, m_Log);
+  _Workspace = std::make_unique<CSceneWorkspace>(std::move(Document), m_Controller, _ResourceGroup, m_NodeBindings, m_Assets, m_Log);
 
   return EAssetOpenResult::OpenedInWorkspace;
 }

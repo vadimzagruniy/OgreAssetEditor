@@ -1,5 +1,7 @@
 #include "SceneEditorController.h"
 #include "core/ActionQueue.h"
+#include "editor/assets/AssetDatabase.h"
+#include "editor/assets/AssetReference.h"
 #include "editor/assets/AssetType.h"
 #include "editor/assets/AssetTypeInfo.h"
 #include "editor/assets/AssetTypeRegistry.h"
@@ -22,9 +24,10 @@ namespace editor
 // Constructor
 //
 
-CSceneEditorController::CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<CSceneDropHandlers> _DropHandlers, std::shared_ptr<const CSceneNodeTemplates> _Templates):
+CSceneEditorController::CSceneEditorController(std::shared_ptr<core::CActionQueue> _ActionQueue, std::shared_ptr<CAssetTypeRegistry> _AssetTypes, std::shared_ptr<const CAssetDatabase> _Assets, std::shared_ptr<CSceneDropHandlers> _DropHandlers, std::shared_ptr<const CSceneNodeTemplates> _Templates):
   m_ActionQueue(std::move(_ActionQueue)),
   m_AssetTypes(std::move(_AssetTypes)),
+  m_Assets(std::move(_Assets)),
   m_DropHandlers(std::move(_DropHandlers)),
   m_Templates(std::move(_Templates))
 {
@@ -207,10 +210,12 @@ void CSceneEditorController::Post(std::function<void(CSceneDocument &)> _Action)
 std::optional<TSceneDrop> CSceneEditorController::MakeDrop(const std::filesystem::path & _AssetPath, const TSceneDropTarget & _Target) const
 {
   const auto AssetType = m_AssetTypes->FindByExtension(_AssetPath.extension().string());
-  if (!AssetType)
+
+  TAssetReference AssetRef;
+  if (!AssetType || !m_Assets->MakeReference(_AssetPath, AssetRef))
     return std::nullopt;
 
-  return TSceneDrop{_AssetPath, AssetType->GetInfo().Identifier, _Target};
+  return TSceneDrop{std::move(AssetRef), AssetType->GetInfo().Identifier, _Target};
 }
 
 } // namespace editor
