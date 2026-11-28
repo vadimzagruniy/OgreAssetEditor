@@ -309,6 +309,56 @@ void CollectLegacyAnimationReferences(const TJson & _Root, std::vector<TAssetRef
   }
 }
 
+bool ReplaceLegacyField(TJson & _Object, const std::string & _Key, const std::string & _NewKey, const TAssetReference & _OldRef, const TAssetReference & _NewRef)
+{
+  const auto Field = _Object.find(_Key);
+  if (Field == _Object.end() || !Field->is_string() || !TAssetReference{{}, Field->get<std::string>()}.IsSameAsset(_OldRef))
+    return false;
+
+  _Object.erase(_Key);
+  _Object[_NewKey] = WriteAssetReference(_NewRef);
+
+  return true;
+}
+
+bool ReplaceLegacyNodeReferences(TJson & _Nodes, const TAssetReference & _OldRef, const TAssetReference & _NewRef)
+{
+  if (!_Nodes.is_array())
+    return false;
+
+  bool IsChanged = false;
+
+  for (auto & Node : _Nodes)
+  {
+    if (!Node.is_object())
+      continue;
+
+    IsChanged = ReplaceLegacyField(Node, LegacyMeshKey, LegacyMeshKey, _OldRef, _NewRef) || IsChanged;
+
+    if (const auto ChildrenField = Node.find(ChildrenKey); ChildrenField != Node.end())
+      IsChanged = ReplaceLegacyNodeReferences(*ChildrenField, _OldRef, _NewRef) || IsChanged;
+  }
+
+  return IsChanged;
+}
+
+bool ReplaceLegacyAnimationReferences(TJson & _Root, const TAssetReference & _OldRef, const TAssetReference & _NewRef)
+{
+  const auto AnimationsField = _Root.find(AnimationsKey);
+  if (AnimationsField == _Root.end() || !AnimationsField->is_array())
+    return false;
+
+  bool IsChanged = false;
+
+  for (auto & Animation : *AnimationsField)
+  {
+    if (Animation.is_object())
+      IsChanged = ReplaceLegacyField(Animation, LegacyPathKey, AnimationKey, _OldRef, _NewRef) || IsChanged;
+  }
+
+  return IsChanged;
+}
+
 TJson WriteNode(const CSceneGraph & _Scene, const std::string & _Name)
 {
   const auto & Node     = _Scene.GetNode(_Name);
@@ -382,6 +432,31 @@ bool CollectSceneAssetReferences(const std::string & _Text, std::vector<TAssetRe
 
     CollectLegacyAnimationReferences(Root, _AssetRefs);
   }
+
+  return true;
+}
+
+bool ReplaceSceneAssetReferences(const std::string & _Text, const TAssetReference & _OldRef, const TAssetReference & _NewRef, std::string & _NewText, bool & _IsChanged, std::string & _Error)
+{
+  TJson        Root;
+  std::int64_t Version = 0;
+
+  if (!ParseSceneRoot(_Text, Root, Version, _Error))
+    return false;
+
+  bool IsChanged = ReplaceAssetReferences(Root, _OldRef, _NewRef);
+
+  if (Version < FirstReferenceVersion)
+  {
+    if (const auto NodesField = Root.find("nodes"); NodesField != Root.end())
+      IsChanged = ReplaceLegacyNodeReferences(*NodesField, _OldRef, _NewRef) || IsChanged;
+
+    IsChanged = ReplaceLegacyAnimationReferences(Root, _OldRef, _NewRef) || IsChanged;
+  }
+
+  _IsChanged = IsChanged;
+  if (IsChanged)
+    _NewText = Root.dump(2, ' ', false, TJson::error_handler_t::replace) + "\n";
 
   return true;
 }

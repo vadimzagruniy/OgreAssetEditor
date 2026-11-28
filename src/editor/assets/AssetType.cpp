@@ -24,4 +24,10 @@ bool IAssetType::CollectDependencies(const TAssetRecord & /*_Asset*/, std::vecto
   return true;
 }
 
+bool IAssetType::ReplaceDependency(const TAssetRecord & /*_Asset*/, const TAssetReference & /*_OldRef*/, const TAssetReference & /*_NewRef*/, bool & _IsChanged, std::string & /*_Error*/) const
+{
+  _IsChanged = false;
+  return true;
+}
+
 } // namespace editor

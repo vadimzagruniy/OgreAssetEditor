@@ -1,5 +1,6 @@
 #include "ContentBrowserModule.h"
 #include "ContentBrowserWindow.h"
+#include "MissingReferencesWindow.h"
 #include "core/ActionQueue.h"
 #include "core/EditorService.h"
 #include "core/Log.h"
@@ -46,12 +47,15 @@ bool CContentBrowserModule::Startup(core::CEditorService & _Services, std::strin
     return false;
   }
 
-  auto Controller = std::make_shared<CContentBrowserController>(std::move(AssetManager), std::move(AssetTypes), std::move(AssetFactories), std::move(AssetDatabase), std::move(Dependencies), std::move(WorkspaceManager), std::move(EditorLog), std::move(ActionQueue));
+  auto Controller = std::make_shared<CContentBrowserController>(AssetManager, std::move(AssetTypes), std::move(AssetFactories), AssetDatabase, Dependencies, WorkspaceManager, EditorLog, ActionQueue);
 
   m_WindowManager = std::move(WindowManager);
 
   const ui::TToolBoxDesc Desc{GetInfo().Name, "Content", true, ui::EDockSlot::Left, 0, true};
   m_WindowManager->RegisterToolBox(Desc, std::make_shared<CContentBrowserWindow>(Desc, std::move(Controller), *m_WindowManager));
+
+  const ui::TToolBoxDesc MissingDesc{GetInfo().Name, "Missing References", false, ui::EDockSlot::Bottom, 1};
+  m_WindowManager->RegisterToolBox(MissingDesc, std::make_shared<CMissingReferencesWindow>(MissingDesc, std::move(AssetManager), std::move(AssetDatabase), std::move(Dependencies), std::move(WorkspaceManager), std::move(ActionQueue), std::move(EditorLog), *m_WindowManager));
 
   return true;
 }

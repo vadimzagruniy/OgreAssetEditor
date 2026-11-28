@@ -32,6 +32,8 @@ public: // IAssetType
 
   bool CollectDependencies(const TAssetRecord & _Asset, std::vector<TAssetReference> & _DependencyRefs, std::string & _Error) const override;
 
+  bool ReplaceDependency(const TAssetRecord & _Asset, const TAssetReference & _OldRef, const TAssetReference & _NewRef, bool & _IsChanged, std::string & _Error) const override;
+
 private: // Attributes
 
   std::shared_ptr<CSceneEditorController>   m_Controller;

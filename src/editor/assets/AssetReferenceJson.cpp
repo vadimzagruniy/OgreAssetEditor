@@ -113,4 +113,29 @@ void CollectAssetReferences(const TJson & _Json, std::vector<TAssetReference> & 
     CollectAssetReferences(Element, _AssetRefs);
 }
 
+bool ReplaceAssetReferences(TJson & _Json, const TAssetReference & _OldRef, const TAssetReference & _NewRef)
+{
+  if (IsAssetReferenceObject(_Json))
+  {
+    TAssetReference AssetRef;
+    std::string     Error;
+
+    if (!ReadReferenceObject(_Json, "reference", AssetRef, Error) || !AssetRef.IsSameAsset(_OldRef))
+      return false;
+
+    _Json = WriteAssetReference(_NewRef);
+    return true;
+  }
+
+  if (!_Json.is_structured())
+    return false;
+
+  bool IsChanged = false;
+
+  for (auto & Element : _Json)
+    IsChanged = ReplaceAssetReferences(Element, _OldRef, _NewRef) || IsChanged;
+
+  return IsChanged;
+}
+
 } // namespace editor

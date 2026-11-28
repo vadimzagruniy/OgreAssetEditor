@@ -16,4 +16,6 @@ std::string WriteScene(const CSceneGraph & _Scene, const std::vector<TSceneAnima
 
 bool CollectSceneAssetReferences(const std::string & _Text, std::vector<TAssetReference> & _AssetRefs, std::string & _Error);
 
+bool ReplaceSceneAssetReferences(const std::string & _Text, const TAssetReference & _OldRef, const TAssetReference & _NewRef, std::string & _NewText, bool & _IsChanged, std::string & _Error);
+
 } // namespace editor

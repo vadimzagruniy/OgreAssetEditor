@@ -2,6 +2,7 @@
 
 #include "AssetDependencyEntry.h"
 #include "AssetId.h"
+#include "MissingAssetReference.h"
 
 #include <map>
 #include <memory>
@@ -40,11 +41,17 @@ public: // Interface
 
   std::vector<TAssetReference> GetDependencyRefs(const TAssetId & _AssetId) const;
 
+  const std::vector<TMissingAssetReference> & GetMissingRefs() const noexcept;
+
+  std::vector<TAssetId> GetMissingReferrers(const TAssetReference & _MissingRef) const;
+
 private: // Implementation
 
   void UpdateEntry(const TAssetRecord & _Record, std::map<TAssetId, TAssetDependencyEntry> & _Entries) const;
 
   void RebuildReferrers();
+
+  void AddMissingRef(const TAssetReference & _MissingRef, const TAssetId & _ReferrerId);
 
 private: // Attributes
 
@@ -53,6 +60,7 @@ private: // Attributes
   std::shared_ptr<core::CLog>               m_Log;
   std::map<TAssetId, TAssetDependencyEntry> m_Entries;
   std::map<TAssetId, std::set<TAssetId>>    m_Referrers;
+  std::vector<TMissingAssetReference>       m_MissingRefs;
 };
 
 } // namespace editor

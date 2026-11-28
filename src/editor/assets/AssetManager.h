@@ -10,6 +10,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace editor::core
 {
@@ -25,6 +26,7 @@ class CAssetFactoryRegistry;
 class CAssetMetaScanner;
 class CAssetTypeRegistry;
 class IAssetFactory;
+struct TAssetReference;
 
 class CAssetManager
 {
@@ -63,6 +65,8 @@ public: // Operations
   bool Duplicate(const std::filesystem::path & _Path, std::filesystem::path & _CreatedPath, std::string & _Error);
 
   bool Remove(const std::filesystem::path & _Path, std::string & _Error);
+
+  bool ReplaceReferences(const TAssetReference & _MissingRef, const std::filesystem::path & _ReplacementPath, std::vector<std::filesystem::path> & _ChangedPaths, std::string & _Error);
 
 public: // Accessors
 

@@ -41,8 +41,8 @@
             1.0
           ],
           "mesh": {
-            "id": "5b1389ce0e9d5d8c",
-            "path": "Characters/OgreHead/ogrehead.mesh"
+            "id": "930e232cbf585817",
+            "path": "Characters/OgreHead/aogrehead.mesh"
           }
         },
         {
@@ -65,8 +65,8 @@
             0.5
           ],
           "mesh": {
-            "id": "5b1389ce0e9d5d8c",
-            "path": "Characters/OgreHead/ogrehead.mesh"
+            "id": "930e232cbf585817",
+            "path": "Characters/OgreHead/aogrehead.mesh"
           }
         }
       ]

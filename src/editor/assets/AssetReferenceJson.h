@@ -16,4 +16,6 @@ TJson WriteAssetReference(const TAssetReference & _AssetRef);
 
 void CollectAssetReferences(const TJson & _Json, std::vector<TAssetReference> & _AssetRefs);
 
+bool ReplaceAssetReferences(TJson & _Json, const TAssetReference & _OldRef, const TAssetReference & _NewRef);
+
 } // namespace editor

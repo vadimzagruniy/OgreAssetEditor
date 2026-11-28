@@ -5,6 +5,7 @@
 #include "core/EditorService.h"
 #include "core/PathUtf8.h"
 #include "core/ReadFileText.h"
+#include "core/WriteFileAtomic.h"
 #include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetReferenceJson.h"
@@ -79,6 +80,26 @@ bool CAnimationAssetType::CollectDependencies(const TAssetRecord & _Asset, std::
   CollectAssetReferences(Root, _DependencyRefs);
 
   return true;
+}
+
+bool CAnimationAssetType::ReplaceDependency(const TAssetRecord & _Asset, const TAssetReference & _OldRef, const TAssetReference & _NewRef, bool & _IsChanged, std::string & _Error) const
+{
+  std::string Text;
+  if (!core::ReadFileText(_Asset.AbsolutePath, Text, _Error))
+    return false;
+
+  auto Root = TJson::parse(Text, nullptr, false);
+  if (Root.is_discarded())
+  {
+    _Error = "Animation file is not valid JSON.";
+    return false;
+  }
+
+  _IsChanged = ReplaceAssetReferences(Root, _OldRef, _NewRef);
+  if (!_IsChanged)
+    return true;
+
+  return core::WriteFileAtomic(_Asset.AbsolutePath, Root.dump(2, ' ', false, TJson::error_handler_t::replace) + "\n", _Error);
 }
 
 //

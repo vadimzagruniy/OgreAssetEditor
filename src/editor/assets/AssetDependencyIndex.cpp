@@ -6,6 +6,8 @@
 #include "AssetTypeRegistry.h"
 #include "core/Log.h"
 
+#include <algorithm>
+#include <iterator>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -59,6 +61,21 @@ std::vector<TAssetReference> CAssetDependencyIndex::GetDependencyRefs(const TAss
   return Entry == m_Entries.end() ? std::vector<TAssetReference>() : Entry->second.DependencyRefs;
 }
 
+const std::vector<TMissingAssetReference> & CAssetDependencyIndex::GetMissingRefs() const noexcept
+{
+  return m_MissingRefs;
+}
+
+std::vector<TAssetId> CAssetDependencyIndex::GetMissingReferrers(const TAssetReference & _MissingRef) const
+{
+  const auto MissingRef = std::find_if(m_MissingRefs.begin(), m_MissingRefs.end(), [&_MissingRef](const TMissingAssetReference & _Entry)
+  {
+    return _Entry.AssetRef.IsSameAsset(_MissingRef);
+  });
+
+  return MissingRef == m_MissingRefs.end() ? std::vector<TAssetId>() : MissingRef->ReferrerIds;
+}
+
 //
 // Implementation
 //
@@ -95,18 +112,40 @@ void CAssetDependencyIndex::UpdateEntry(const TAssetRecord & _Record, std::map<T
 void CAssetDependencyIndex::RebuildReferrers()
 {
   m_Referrers.clear();
+  m_MissingRefs.clear();
 
   for (const auto & [AssetId, Entry] : m_Entries)
   {
     for (const auto & DependencyRef : Entry.DependencyRefs)
     {
       TAssetRecord Dependency;
-      if (m_Assets->Resolve(DependencyRef, Dependency) == EAssetResolveResult::Missing || Dependency.Id == AssetId)
+      if (m_Assets->Resolve(DependencyRef, Dependency) == EAssetResolveResult::Missing)
+      {
+        AddMissingRef(DependencyRef, AssetId);
         continue;
+      }
 
-      m_Referrers[Dependency.Id].insert(AssetId);
+      if (Dependency.Id != AssetId)
+        m_Referrers[Dependency.Id].insert(AssetId);
     }
   }
+}
+
+void CAssetDependencyIndex::AddMissingRef(const TAssetReference & _MissingRef, const TAssetId & _ReferrerId)
+{
+  auto MissingRef = std::find_if(m_MissingRefs.begin(), m_MissingRefs.end(), [&_MissingRef](const TMissingAssetReference & _Entry)
+  {
+    return _Entry.AssetRef.IsSameAsset(_MissingRef);
+  });
+
+  if (MissingRef == m_MissingRefs.end())
+  {
+    m_MissingRefs.push_back({_MissingRef, {}});
+    MissingRef = std::prev(m_MissingRefs.end());
+  }
+
+  if (std::find(MissingRef->ReferrerIds.begin(), MissingRef->ReferrerIds.end(), _ReferrerId) == MissingRef->ReferrerIds.end())
+    MissingRef->ReferrerIds.push_back(_ReferrerId);
 }
 
 } // namespace editor

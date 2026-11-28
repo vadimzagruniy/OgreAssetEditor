@@ -29,6 +29,8 @@ public: // Interface
   virtual void GetContextActions(const TAssetRecord & _Asset, std::vector<TAssetMenuEntry> & _Entries) const;
 
   virtual bool CollectDependencies(const TAssetRecord & _Asset, std::vector<TAssetReference> & _DependencyRefs, std::string & _Error) const;
+
+  virtual bool ReplaceDependency(const TAssetRecord & _Asset, const TAssetReference & _OldRef, const TAssetReference & _NewRef, bool & _IsChanged, std::string & _Error) const;
 };
 
 } // namespace editor

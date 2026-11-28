@@ -58,6 +58,8 @@ public: // Interface
 
   std::optional<std::size_t> FindWorkspace(const std::filesystem::path & _AbsolutePath) const;
 
+  bool IsAssetOpen(const std::filesystem::path & _AbsolutePath) const;
+
   template <class THost>
   std::optional<std::size_t> FindHost() const;
 

@@ -7,6 +7,7 @@
 #include "AssetMetaScanner.h"
 #include "AssetNameRules.h"
 #include "AssetPath.h"
+#include "AssetReference.h"
 #include "AssetType.h"
 #include "AssetTypeInfo.h"
 #include "AssetTypeRegistry.h"
@@ -310,6 +311,50 @@ bool CAssetManager::Remove(const std::filesystem::path & _Path, std::string & _E
 
   m_RemovedSignal.Emit(_Path);
   Refresh();
+
+  return true;
+}
+
+bool CAssetManager::ReplaceReferences(const TAssetReference & _MissingRef, const std::filesystem::path & _ReplacementPath, std::vector<std::filesystem::path> & _ChangedPaths, std::string & _Error)
+{
+  TAssetReference NewRef;
+  if (!m_Database->MakeReference(_ReplacementPath, NewRef))
+  {
+    _Error = "'" + _ReplacementPath.generic_string() + "' has no asset ID in the project.";
+    return false;
+  }
+
+  m_Dependencies->Update();
+
+  std::string Errors;
+
+  for (const auto & ReferrerId : m_Dependencies->GetMissingReferrers(_MissingRef))
+  {
+    TAssetRecord Referrer;
+    if (!m_Database->FindById(ReferrerId, Referrer))
+      continue;
+
+    const auto AssetType = m_AssetTypes->FindByExtension(Referrer.RelativePath.extension().string());
+    if (!AssetType)
+      continue;
+
+    bool        IsChanged = false;
+    std::string Error;
+
+    if (!AssetType->ReplaceDependency(Referrer, _MissingRef, NewRef, IsChanged, Error))
+      Errors += (Errors.empty() ? "" : "; ") + Referrer.RelativePath.generic_string() + ": " + Error;
+    else
+    if (IsChanged)
+      _ChangedPaths.push_back(Referrer.RelativePath);
+  }
+
+  Refresh();
+
+  if (!Errors.empty())
+  {
+    _Error = Errors;
+    return false;
+  }
 
   return true;
 }

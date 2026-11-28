@@ -223,6 +223,20 @@ std::optional<std::size_t> CWorkspaceManager::FindWorkspace(const std::filesyste
   return WorkspaceIterator->second;
 }
 
+bool CWorkspaceManager::IsAssetOpen(const std::filesystem::path & _AbsolutePath) const
+{
+  if (FindWorkspace(_AbsolutePath))
+    return true;
+
+  for (std::size_t WorkspaceIndex = 0; WorkspaceIndex < m_Workspaces.size(); ++WorkspaceIndex)
+  {
+    if (FindAttachedEditor(WorkspaceIndex, _AbsolutePath))
+      return true;
+  }
+
+  return false;
+}
+
 std::shared_ptr<IAttachedEditor> CWorkspaceManager::FindAttachedEditor(std::size_t _WorkspaceIndex, const std::filesystem::path & _AbsolutePath) const
 {
   if (_WorkspaceIndex >= m_Workspaces.size())

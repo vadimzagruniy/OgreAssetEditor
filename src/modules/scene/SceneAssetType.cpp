@@ -4,6 +4,7 @@
 #include "SceneWorkspace.h"
 #include "core/PathUtf8.h"
 #include "core/ReadFileText.h"
+#include "core/WriteFileAtomic.h"
 #include "editor/assets/AssetOpenResult.h"
 #include "editor/assets/AssetRecord.h"
 #include "editor/assets/AssetTypeInfo.h"
@@ -67,6 +68,17 @@ bool CSceneAssetType::CollectDependencies(const TAssetRecord & _Asset, std::vect
   std::string Text;
 
   return core::ReadFileText(_Asset.AbsolutePath, Text, _Error) && CollectSceneAssetReferences(Text, _DependencyRefs, _Error);
+}
+
+bool CSceneAssetType::ReplaceDependency(const TAssetRecord & _Asset, const TAssetReference & _OldRef, const TAssetReference & _NewRef, bool & _IsChanged, std::string & _Error) const
+{
+  std::string Text;
+  std::string NewText;
+
+  if (!core::ReadFileText(_Asset.AbsolutePath, Text, _Error) || !ReplaceSceneAssetReferences(Text, _OldRef, _NewRef, NewText, _IsChanged, _Error))
+    return false;
+
+  return !_IsChanged || core::WriteFileAtomic(_Asset.AbsolutePath, NewText, _Error);
 }
 
 } // namespace editor
