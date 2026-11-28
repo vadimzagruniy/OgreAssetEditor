@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <set>
@@ -19,6 +20,7 @@ namespace editor
 {
 
 class CAssetFactoryRegistry;
+class CAssetMetaScanner;
 class CAssetTypeRegistry;
 class IAssetFactory;
 
@@ -86,11 +88,19 @@ public: // Signals
 
   TRenamedSignal & GetRenamedSignal() noexcept;
 
+private: // Types
+
+  using TAssetIds = std::map<std::filesystem::path, TAssetId>;
+
 private: // Implementation
 
   std::optional<std::reference_wrapper<const TAssetNode>> FindNode(const std::filesystem::path & _RelativePath) const;
 
-  void ScanFolder(TAssetNode & _Folder);
+  void ScanFolder(TAssetNode & _Folder, const TAssetIds & _Ids);
+
+  bool RenameMeta(const std::filesystem::path & _Path, const std::filesystem::path & _NewPath, std::string & _Error);
+
+  bool DuplicateMeta(const std::filesystem::path & _SourcePath, const std::filesystem::path & _TargetPath, std::string & _Error);
 
   void ReportInvalidEntry(const std::filesystem::path & _Path, const std::string & _Reason);
 
@@ -105,6 +115,7 @@ private: // Attributes
   std::shared_ptr<CAssetTypeRegistry>    m_AssetTypes;
   std::shared_ptr<CAssetFactoryRegistry> m_AssetFactories;
   std::shared_ptr<core::CLog>            m_Log;
+  std::unique_ptr<CAssetMetaScanner>     m_MetaScanner;
   std::filesystem::path                  m_ProjectRoot;
   std::filesystem::path                  m_AssetsRoot;
   TAssetNode                             m_RootNode;

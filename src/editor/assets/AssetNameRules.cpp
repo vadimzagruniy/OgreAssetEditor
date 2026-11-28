@@ -1,4 +1,5 @@
 #include "AssetNameRules.h"
+#include "AssetPath.h"
 
 #include <algorithm>
 #include <array>
@@ -75,6 +76,12 @@ bool IsValidAssetName(std::string_view _Name, std::string & _Error)
   if (IsReservedName(_Name))
   {
     _Error = "The name is reserved by the system.";
+    return false;
+  }
+
+  if (IsMetaPath(std::filesystem::path(std::string(_Name))))
+  {
+    _Error = "The .meta extension is reserved for asset metadata.";
     return false;
   }
 

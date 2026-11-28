@@ -2,7 +2,9 @@
 #include "AssetFactory.h"
 #include "AssetFactoryInfo.h"
 #include "AssetFactoryRegistry.h"
+#include "AssetMetaScanner.h"
 #include "AssetNameRules.h"
+#include "AssetPath.h"
 #include "AssetType.h"
 #include "AssetTypeInfo.h"
 #include "AssetTypeRegistry.h"
@@ -66,6 +68,7 @@ CAssetManager::CAssetManager(std::shared_ptr<CAssetTypeRegistry> _AssetTypes, st
   m_AssetTypes(std::move(_AssetTypes)),
   m_AssetFactories(std::move(_AssetFactories)),
   m_Log(std::move(_Log)),
+  m_MetaScanner(std::make_unique<CAssetMetaScanner>(m_Log)),
   m_IsResourcesMounted(false)
 {
   // Empty
@@ -114,7 +117,10 @@ bool CAssetManager::Refresh()
   m_RootNode.IsDirectory         = true;
   m_RootNode.Record.AbsolutePath = m_AssetsRoot;
 
-  ScanFolder(m_RootNode);
+  TAssetIds Ids;
+  m_MetaScanner->Scan(m_AssetsRoot, Ids);
+
+  ScanFolder(m_RootNode, Ids);
 
   if (m_IsResourcesMounted)
     RemountResources();
@@ -226,6 +232,13 @@ bool CAssetManager::Rename(const std::filesystem::path & _Path, const std::strin
     return false;
   }
 
+  if (!RenameMeta(_Path, NewPath, _Error))
+  {
+    std::error_code RollbackError;
+    std::filesystem::rename(ToAbsolute(NewPath), ToAbsolute(_Path), RollbackError);
+    return false;
+  }
+
   _RenamedPath = NewPath;
 
   m_RenamedSignal.Emit(_Path, NewPath);
@@ -255,6 +268,10 @@ bool CAssetManager::Duplicate(const std::filesystem::path & _Path, std::filesyst
     return false;
   }
 
+  std::string MetaError;
+  if (!DuplicateMeta(SourcePath, TargetPath, MetaError))
+    m_Log->Write(core::ELogLevel::Warning, "Duplicate of " + _Path.generic_string() + " will get a new ID on refresh: " + MetaError);
+
   _CreatedPath = _Path.parent_path() / TargetPath.filename();
 
   Refresh();
@@ -270,8 +287,13 @@ bool CAssetManager::Remove(const std::filesystem::path & _Path, std::string & _E
     return false;
   }
 
+  const bool IsDirectory = GetNode(_Path).IsDirectory;
+
   std::error_code ErrorCode;
   std::filesystem::remove_all(ToAbsolute(_Path), ErrorCode);
+
+  if (!ErrorCode && !IsDirectory)
+    std::filesystem::remove(MakeMetaPath(ToAbsolute(_Path)), ErrorCode);
 
   if (ErrorCode)
   {
@@ -406,7 +428,7 @@ std::optional<std::reference_wrapper<const TAssetNode>> CAssetManager::FindNode(
   return Current;
 }
 
-void CAssetManager::ScanFolder(TAssetNode & _Folder)
+void CAssetManager::ScanFolder(TAssetNode & _Folder, const TAssetIds & _Ids)
 {
   std::error_code ErrorCode;
   const auto      Options = std::filesystem::directory_options::skip_permission_denied;
@@ -420,15 +442,17 @@ void CAssetManager::ScanFolder(TAssetNode & _Folder)
     }
 
     std::string       Reason;
+    std::error_code   EntryError;
     const std::string Name = core::PathToUtf8(Entry->path().filename());
+
+    if (IsMetaPath(Entry->path()) && Entry->is_regular_file(EntryError))
+      continue;
 
     if (!IsValidAssetName(Name, Reason))
     {
       ReportInvalidEntry(Entry->path(), Reason);
       continue;
     }
-
-    std::error_code EntryError;
 
     TAssetNode Node;
     Node.Name                = Name;
@@ -437,17 +461,56 @@ void CAssetManager::ScanFolder(TAssetNode & _Folder)
     Node.Record.RelativePath = _Folder.Record.RelativePath / Node.Name;
 
     if (Node.IsDirectory)
-      ScanFolder(Node);
+      ScanFolder(Node, _Ids);
     else
     if (Entry->is_regular_file(EntryError))
       Node.Record.SizeBytes = Entry->file_size(EntryError);
     else
       continue;
 
+    if (const auto Id = _Ids.find(Node.Record.RelativePath); Id != _Ids.end())
+      Node.Record.Id = Id->second;
+
     _Folder.Children.push_back(std::move(Node));
   }
 
   std::sort(_Folder.Children.begin(), _Folder.Children.end(), IsNodeOrderedBefore);
+}
+
+bool CAssetManager::RenameMeta(const std::filesystem::path & _Path, const std::filesystem::path & _NewPath, std::string & _Error)
+{
+  std::error_code ErrorCode;
+
+  const auto OldMetaPath = MakeMetaPath(ToAbsolute(_Path));
+  if (std::filesystem::is_directory(ToAbsolute(_NewPath), ErrorCode) || !std::filesystem::exists(OldMetaPath, ErrorCode))
+    return true;
+
+  std::filesystem::rename(OldMetaPath, MakeMetaPath(ToAbsolute(_NewPath)), ErrorCode);
+  if (ErrorCode)
+  {
+    _Error = "Cannot rename metadata of " + _Path.generic_string() + ": " + ErrorCode.message();
+    return false;
+  }
+
+  return true;
+}
+
+bool CAssetManager::DuplicateMeta(const std::filesystem::path & _SourcePath, const std::filesystem::path & _TargetPath, std::string & _Error)
+{
+  std::error_code ErrorCode;
+
+  const auto SourceMetaPath = MakeMetaPath(_SourcePath);
+  if (!std::filesystem::is_directory(_SourcePath, ErrorCode) && std::filesystem::exists(SourceMetaPath, ErrorCode))
+  {
+    std::filesystem::copy_file(SourceMetaPath, MakeMetaPath(_TargetPath), std::filesystem::copy_options::overwrite_existing, ErrorCode);
+    if (ErrorCode)
+    {
+      _Error = ErrorCode.message();
+      return false;
+    }
+  }
+
+  return m_MetaScanner->RegenerateIds(_TargetPath, _Error);
 }
 
 void CAssetManager::ReportInvalidEntry(const std::filesystem::path & _Path, const std::string & _Reason)

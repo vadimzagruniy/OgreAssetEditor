@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "timeline": {
+    "duration": 240000,
+    "frameRate": 30,
+    "tracks": [
+      {
+        "type": "group",
+        "name": "Head",
+        "children": [
+          {
+            "type": "property",
+            "name": "Head Position",
+            "slot": "Head",
+            "property": "Transform.Position",
+            "valueType": "vector3",
+            "keys": [
+              { "time": 0, "value": [0, 0, 0], "interpolation": "spline" },
+              { "time": 60000, "value": [0, 40, 0], "interpolation": "spline" },
+              { "time": 120000, "value": [-40, 40, 0], "interpolation": "linear" },
+              { "time": 180000, "value": [0, 0, 0], "interpolation": "linear" }
+            ]
+          },
+          {
+            "type": "property",
+            "name": "Head Rotation",
+            "slot": "Head",
+            "property": "Transform.Rotation",
+            "valueType": "rotation",
+            "keys": [
+              { "time": 0, "value": [1, 0, 0, 0], "interpolation": "linear" },
+              { "time": 120000, "value": [0, 0, 1, 0], "interpolation": "linear" },
+              { "time": 240000, "value": [-1, 0, 0, 0], "interpolation": "linear" }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "property",
+        "name": "Head_1 Scale",
+        "slot": "Head_1",
+        "property": "Transform.Scale",
+        "valueType": "vector3",
+        "keys": [
+          { "time": 0, "value": [0.5, 0.5, 0.5], "interpolation": "step" },
+          { "time": 60000, "value": [0.8, 0.8, 0.8], "interpolation": "step" },
+          { "time": 150000, "value": [0.5, 0.5, 0.5], "interpolation": "step" }
+        ]
+      }
+    ]
+  }
+}

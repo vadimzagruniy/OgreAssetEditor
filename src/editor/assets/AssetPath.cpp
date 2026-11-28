@@ -2,10 +2,19 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
 #include <iterator>
+#include <string>
 
 namespace editor
 {
+
+namespace
+{
+
+constexpr const char * MetaExtension = ".meta";
+
+} // namespace
 
 bool IsSameOrInside(const std::filesystem::path & _Path, const std::filesystem::path & _Folder)
 {
@@ -31,6 +40,32 @@ std::filesystem::path RebasePath(const std::filesystem::path & _Path, const std:
     Result /= *PathElement;
 
   return Result;
+}
+
+std::filesystem::path MakeMetaPath(const std::filesystem::path & _AssetPath)
+{
+  std::filesystem::path MetaPath = _AssetPath;
+  MetaPath += MetaExtension;
+
+  return MetaPath;
+}
+
+bool IsMetaPath(const std::filesystem::path & _Path)
+{
+  const std::string Extension = _Path.extension().string();
+  const std::string Expected  = MetaExtension;
+
+  return std::equal(Extension.begin(), Extension.end(), Expected.begin(), Expected.end(), [](char _Left, char _Right)
+  {
+    return std::tolower(static_cast<unsigned char>(_Left)) == _Right;
+  });
+}
+
+std::filesystem::path GetMetaAssetPath(const std::filesystem::path & _MetaPath)
+{
+  assert(IsMetaPath(_MetaPath));
+
+  return _MetaPath.parent_path() / _MetaPath.stem();
 }
 
 } // namespace editor
